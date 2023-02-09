@@ -19,8 +19,16 @@ namespace gl {
 
     triangle triangle_init(u32& shader_program, u32& vao, u32& vbo);
     void triangle_free(u32 shader_program, u32 vao, u32 vbo);
-    6
-    std::vector<triangle> triangles_init(u32& shader_program, u32& vao, u32& vbo, u32 count);
+
+    typedef triangle (*triangle_factory_fn_t)(u32);
+
+    std::vector<triangle> triangles_init(
+            u32& shader_program,
+            u32& vao,
+            u32& vbo,
+            u32 count,
+            triangle_factory_fn_t triangle_factory_fn = [](u32 i) { return triangle(); }
+    );
 
     struct rect_vertices final {
         vertex v0 = { { 0.5f, 0.5f, 0 } };

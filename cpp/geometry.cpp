@@ -2,18 +2,26 @@
 
 namespace gl {
 
-    void triangle_init(u32& shader_program, u32& vao, u32& vbo, const triangle& geometry) {
+    static attr_type s_vertex_attrs[] = { vec3 };
+
+    static vertex_format get_vertex_format() {
+        vertex_format format {};
+        format.attrs = s_vertex_attrs;
+        format.attr_count = 1;
+        format.stride = sizeof(vertex);
+        return format;
+    }
+
+    triangle triangle_init(u32& shader_program, u32& vao, u32& vbo) {
+        triangle result;
+
         shader_program = shader_program_init({ "shaders/triangle.vert", "shaders/triangle.frag" });
 
         vao = vao_init();
         vao_bind(vao);
+        static_vbo_init(result, get_vertex_format());
 
-        attr_type attrs[] = { vec3 };
-        vertex_format format {};
-        format.attrs = attrs;
-        format.attr_count = sizeof(attrs) / sizeof(attrs[0]);
-        format.stride = sizeof(vertex);
-        vbo = static_vbo_init(geometry, format);
+        return result;
     }
 
     void triangle_free(u32 shader_program, u32 vao, u32 vbo) {
@@ -22,30 +30,29 @@ namespace gl {
         shader_program_free(shader_program);
     }
 
-    void triangle_init_batch(u32& shader_program, u32& vao, u32& vbo, u32 batch_count, const triangle& base) {
+    std::vector<triangle> triangles_init(u32& shader_program, u32& vao, u32& vbo, u32 count,
+                                         triangle_factory_fn_t triangle_factory_fn) {
+        std::vector<triangle> triangles;
+
         shader_program = shader_program_init({ "shaders/triangle.vert", "shaders/triangle.frag" });
 
         vao = vao_init();
         vao_bind(vao);
 
-        for (u32 i = 0 ; i < batch_count ; i++) {
-
+        triangles.reserve(count);
+        for (u32 i = 0 ; i < count ; i++) {
+            triangles.emplace_back(triangle_factory_fn(i));
         }
+        vbo = static_vbo_init(triangles, get_vertex_format());
+
+        return triangles;
     }
 
     void rect_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo, const rect& geometry) {
         shader_program = shader_program_init({ "shaders/rect.vert", "shaders/rect.frag" });
-
         vao = vao_init();
         vao_bind(vao);
-
-        attr_type attrs[] = { vec3 };
-        vertex_format format {};
-        format.attrs = attrs;
-        format.attr_count = sizeof(attrs) / sizeof(attrs[0]);
-        format.stride = sizeof(vertex);
-        vbo = static_vbo_init(geometry.vertices, format);
-
+        vbo = static_vbo_init(geometry.vertices, get_vertex_format());
         ibo = static_ibo_init(geometry.indices, 6);
     }
 

@@ -48,6 +48,27 @@ namespace app {
     static u32 rect_vbo;
     static u32 rect_ibo;
 
+    static std::vector<gl::triangle> triangles;
+
+    static gl::triangle triangle_init(u32 i) {
+        gl::triangle triangle;
+        float offset = i + 1;
+
+        triangle.v0.pos.x *= offset;
+        triangle.v0.pos.y *= offset;
+        triangle.v0.pos.z *= offset;
+
+        triangle.v1.pos.x *= offset;
+        triangle.v1.pos.y *= offset;
+        triangle.v1.pos.z *= offset;
+
+        triangle.v2.pos.x *= offset;
+        triangle.v2.pos.y *= offset;
+        triangle.v2.pos.z *= offset;
+
+        return triangle;
+    }
+
     static void init() {
         win::init({ 800, 600, "CGP" });
 
@@ -61,7 +82,7 @@ namespace app {
 
         win::event_registry_update();
 
-        gl::triangle_init(triangle_shader_program, triangle_vao, triangle_vbo);
+        triangles = gl::triangles_init(triangle_shader_program, triangle_vao, triangle_vbo, 2, triangle_init);
 
         gl::rect_init(rect_shader_program, rect_vao, rect_vbo, rect_ibo);
 
@@ -81,7 +102,8 @@ namespace app {
             win::update();
             gl::clear_display(COLOR_CLEAR);
 //            gl::draw_triangle(triangle_shader_program, triangle_vao);
-            gl::draw_rect(rect_shader_program, rect_vao, rect_ibo);
+//            gl::draw_rect(rect_shader_program, rect_vao, rect_ibo);
+            gl::draw_triangles(triangle_shader_program, triangle_vao, triangles.size());
         }
         free();
     }
