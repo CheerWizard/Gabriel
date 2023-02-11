@@ -7,6 +7,8 @@ namespace win {
     static window_props s_props;
     static GLFWwindow* s_win;
 
+    int gpu_props::max_attrs_allowed;
+
     void init(const window_props& props) {
         int status = glfwInit();
         if (status == GLFW_FALSE) {
@@ -35,6 +37,10 @@ namespace win {
         }
 
         s_props = props;
+
+        glfwSwapInterval(props.sync);
+
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &gpu_props::max_attrs_allowed);
     }
 
     void free() {
@@ -57,6 +63,10 @@ namespace win {
 
     float get_aspect_ratio() {
         return (float) s_props.width / (float) s_props.height;
+    }
+
+    void disable_cursor() {
+        glfwSetInputMode(s_win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
     bool is_key_press(int key) {
@@ -85,6 +95,8 @@ namespace win {
 
     event_mouse_press event_registry::mouse_press = null;
     event_mouse_release event_registry::mouse_release = null;
+    event_mouse_cursor event_registry::mouse_cursor = null;
+    event_mouse_scroll event_registry::mouse_scroll = null;
 
     #define event_handler(event, ...) if (event_registry::event) { \
         event_registry::event(__VA_ARGS__);                                                                \
@@ -92,30 +104,38 @@ namespace win {
 
     void event_registry_update() {
         glfwSetWindowSizeCallback(s_win, [](GLFWwindow* win, int w, int h) {
-            event_handler(window_resized, w, h);
+            event_handler(window_resized, w, h)
         });
         glfwSetWindowCloseCallback(s_win, [](GLFWwindow* win) {
-            event_handler(window_close);
+            event_handler(window_close)
         });
 
         glfwSetFramebufferSizeCallback(s_win, [](GLFWwindow* win, int w, int h) {
-            event_handler(framebuffer_resized, w, h);
+            event_handler(framebuffer_resized, w, h)
         });
 
-        glfwSetKeyCallback(s_win, [](GLFWwindow* win, int scan, int key, int action, int mods) {
+        glfwSetKeyCallback(s_win, [](GLFWwindow* win, int key, int scancode, int action, int mods) {
             if (action == GLFW_PRESS) {
-                event_handler(key_press, key);
+                event_handler(key_press, key)
             } else if (action == GLFW_RELEASE) {
-                event_handler(key_release, key);
+                event_handler(key_release, key)
             }
         });
 
         glfwSetMouseButtonCallback(s_win, [](GLFWwindow* win, int button, int action, int mods) {
             if (action == GLFW_PRESS) {
-                event_handler(mouse_press, button);
+                event_handler(mouse_press, button)
             } else if (action == GLFW_RELEASE) {
-                event_handler(mouse_release, button);
+                event_handler(mouse_release, button)
             }
+        });
+
+        glfwSetCursorPosCallback(s_win, [](GLFWwindow* win, double x, double y) {
+            event_handler(mouse_cursor, x, y)
+        });
+
+        glfwSetScrollCallback(s_win, [](GLFWwindow* win, double x, double y) {
+            event_handler(mouse_scroll, x, y)
         });
     }
 

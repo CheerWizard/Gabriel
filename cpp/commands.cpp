@@ -2,10 +2,6 @@
 
 namespace gl {
 
-    void set_view_port(int x, int y, int w, int h) {
-        glViewport(x, y, w, h);
-    }
-
     void clear_display(float r, float g, float b, float a, int bitmask) {
         glClearColor(r, g, b, a);
         glClear(bitmask);

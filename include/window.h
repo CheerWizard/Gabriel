@@ -1,6 +1,6 @@
 #pragma once
 
-#include <primitives.h>
+#include <keycodes.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -10,6 +10,7 @@ namespace win {
     struct window_props final {
         int width, height;
         const char* title;
+        bool sync = false;
         int major_version = 3;
         int minor_version = 3;
         int profile_version = GLFW_OPENGL_CORE_PROFILE;
@@ -24,6 +25,8 @@ namespace win {
     bool is_open();
 
     float get_aspect_ratio();
+
+    void disable_cursor();
 
     bool is_key_press(int key);
     bool is_key_release(int key);
@@ -41,6 +44,8 @@ namespace win {
 
     typedef void (*event_mouse_press)(int);
     typedef void (*event_mouse_release)(int);
+    typedef void (*event_mouse_cursor)(double, double);
+    typedef void (*event_mouse_scroll)(double, double);
 
     struct event_registry final {
         static event_window_resized window_resized;
@@ -53,8 +58,14 @@ namespace win {
 
         static event_mouse_press mouse_press;
         static event_mouse_release mouse_release;
+        static event_mouse_cursor mouse_cursor;
+        static event_mouse_scroll mouse_scroll;
     };
 
     void event_registry_update();
+
+    struct gpu_props final {
+        static int max_attrs_allowed;
+    };
 
 }

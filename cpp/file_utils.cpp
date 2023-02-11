@@ -1,3 +1,4 @@
+#define STB_IMAGE_IMPLEMENTATION
 #include <file_utils.h>
 
 namespace io {
@@ -23,6 +24,21 @@ namespace io {
         file.close();
 
         return buffer;
+    }
+
+    image_data image_read(const char* filepath, bool flip_uv) {
+        image_data result;
+
+        stbi_set_flip_vertically_on_load(flip_uv);
+
+        result.data = stbi_load(filepath, &result.width, &result.height, &result.channels, 0);
+        if (!result.data) {
+            print_err("image_load() : failed to load image");
+            print_err(filepath);
+            return result;
+        }
+
+        return result;
     }
 
 }

@@ -1,24 +1,13 @@
 #pragma once
 
 #include <primitives.h>
+#include <shader.h>
 
 #include <glm.hpp>
 
+#include <vector>
+
 namespace gl {
-
-    struct vertex final {
-        glm::fvec3 pos = { 0, 0, 0 };
-    };
-
-    struct vertex_data_t final {
-        size_t size;
-        float* data;
-    };
-
-    struct index_data_t final {
-        size_t size;
-        u32* data;
-    };
 
     enum attr_type : int {
         float_t = 1,
@@ -35,9 +24,48 @@ namespace gl {
     };
 
     struct vertex_format final {
-        attr_type* attrs;
-        u32 attr_count;
+        std::vector<attr_type> attrs;
         size_t stride;
+    };
+
+#define decl_vertex \
+static vertex_format format; \
+static shader_props shader_props;
+
+    struct vertex_solid final {
+        decl_vertex
+        glm::fvec3 pos = { 0, 0, 0 };
+        glm::fvec4 color = { 0.5 , 0.5, 0.5, 0.5 };
+    };
+
+    struct vertex_solid_normal final {
+        decl_vertex
+        glm::fvec3 pos = { 0, 0, 0 };
+        glm::fvec4 color = { 0.5 , 0.5, 0.5, 0.5 };
+        glm::fvec3 normal = { 0, 0, 0 };
+    };
+
+    struct vertex_uv final {
+        decl_vertex
+        glm::fvec3 pos = { 0, 0, 0 };
+        glm::fvec2 uv = { 0, 0 };
+    };
+
+    struct vertex_uv_normal final {
+        decl_vertex
+        glm::fvec3 pos = { 0, 0, 0 };
+        glm::fvec2 uv = { 0, 0 };
+        glm::fvec3 normal = { 0, 0, 0 };
+    };
+
+    struct vertex_data_t final {
+        size_t size;
+        float* data;
+    };
+
+    struct index_data_t final {
+        size_t size;
+        u32* data;
     };
 
 }

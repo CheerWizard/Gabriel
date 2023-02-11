@@ -1,4 +1,4 @@
-#include <core.h>
+#include <app.h>
 
 int main() {
     app::run();
