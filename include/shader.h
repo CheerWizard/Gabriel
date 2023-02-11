@@ -16,6 +16,8 @@ namespace gl {
 
     int get_uniform_location(u32 shader_program, const char* name);
     int get_uniform_array_location(u32 shader_program, u32 index, const char* name);
+    int get_uniform_struct_location(u32 shader, const char *structName, const char *fieldName);
+    int get_uniform_struct_array_location(u32 shader, const char* structName, const char* fieldName, u32 index);
 
     void shader_set_uniform(int location, float value);
     void shader_set_uniform(int location, bool value);
@@ -47,14 +49,13 @@ namespace gl {
     void shader_set_uniform(int location, glm::dmat4& value);
 
     template<typename T>
-    void shader_set_uniform(u32 shader_program, uniform<T>& uniform) {
-        shader_set_uniform(get_uniform_location(shader_program, uniform.name), uniform.value);
+    void shader_set_uniform(u32 shader, uniform<T>& uniform) {
+        shader_set_uniform(get_uniform_location(shader, uniform.name), uniform.value);
     }
 
     template<typename T>
-    void shader_set_uniform_args(u32 shader_program, const char* name, T&& value_args) {
-        T value(value_args);
-        shader_set_uniform(get_uniform_location(shader_program, name), value);
+    void shader_set_uniform_args(u32 shader, const char* name, T& value) {
+        shader_set_uniform(get_uniform_location(shader, name), value);
     }
 
     constexpr auto shader_set_uniformf = &shader_set_uniform_args<float>;
@@ -71,14 +72,36 @@ namespace gl {
     constexpr auto shader_set_uniform4m = &shader_set_uniform_args<glm::mat4>;
 
     template<typename T>
-    void shader_set_uniform(u32 shader_program, uniform_array<T>& uniform_array) {
+    void shader_set_uniform(u32 shader, uniform_array<T>& uniform_array) {
         size_t size = uniform_array.values.size();
         for (u32 i = 0; i < size ; i++) {
             shader_set_uniform(
-                    get_uniform_array_location(shader_program, i, uniform_array.name),
+                    get_uniform_array_location(shader, i, uniform_array.name),
                     uniform_array.values[i]
             );
         }
     }
 
+    template<typename T>
+    void shader_set_uniform_struct(u32 shader, const char* struct_name, uniform<T>& field_uniform) {
+        shader_set_uniform(get_uniform_struct_location(shader, struct_name, field_uniform.name), field_uniform.value);
+    }
+
+    template<typename T>
+    void shader_set_uniform_struct_args(u32 shader_program, const char* struct_name, const char* field_name, T& field_value) {
+        shader_set_uniform(get_uniform_struct_location(shader_program, struct_name, field_name), field_value);
+    }
+
+    constexpr auto shader_set_uniform_structf = &shader_set_uniform_struct_args<float>;
+    constexpr auto shader_set_uniform_structi = &shader_set_uniform_struct_args<int>;
+    constexpr auto shader_set_uniform_structd = &shader_set_uniform_struct_args<double>;
+    constexpr auto shader_set_uniform_structb = &shader_set_uniform_struct_args<bool>;
+
+    constexpr auto shader_set_uniform_struct2v = &shader_set_uniform_struct_args<glm::vec2>;
+    constexpr auto shader_set_uniform_struct3v = &shader_set_uniform_struct_args<glm::vec3>;
+    constexpr auto shader_set_uniform_struct4v = &shader_set_uniform_struct_args<glm::vec4>;
+
+    constexpr auto shader_set_uniform_struct2m = &shader_set_uniform_struct_args<glm::mat2>;
+    constexpr auto shader_set_uniform_struct3m = &shader_set_uniform_struct_args<glm::mat3>;
+    constexpr auto shader_set_uniform_struct4m = &shader_set_uniform_struct_args<glm::mat4>;
 }

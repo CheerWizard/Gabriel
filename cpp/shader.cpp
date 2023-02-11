@@ -64,31 +64,46 @@ namespace gl {
         return shader_program;
     }
 
-    void shader_use(u32 shader_program) {
-        glUseProgram(shader_program);
+    void shader_use(u32 shader) {
+        glUseProgram(shader);
     }
 
-    void shader_free(u32 shader_program) {
-        glDeleteProgram(shader_program);
+    void shader_free(u32 shader) {
+        glDeleteProgram(shader);
     }
 
     static std::unordered_map<const char*, int> s_uniform_locations;
 
-    int get_uniform_location(u32 shader_program, const char* name) {
-        if (s_uniform_locations.find(name) == s_uniform_locations.end()) {
-            int location = glGetUniformLocation(shader_program, name);
-            s_uniform_locations.insert({ name, location });
+    int get_uniform_location(u32 shader, const char* name) {
+        // todo found hash key collisions when updating light struct field
+//        if (s_uniform_locations.find(name) == s_uniform_locations.end()) {
+            int location = glGetUniformLocation(shader, name);
+//            s_uniform_locations.insert({ name, location });
             return location;
-        } else {
-            return s_uniform_locations[name];
-        }
+//        } else {
+//            return s_uniform_locations[name];
+//        }
     }
 
-    int get_uniform_array_location(u32 shader_program, u32 index, const char* name) {
+    int get_uniform_array_location(u32 shader, u32 index, const char* name) {
         std::stringstream ss;
         ss << name << "[" << index << "]";
         std::string s = ss.str();
-        return get_uniform_location(shader_program, s.c_str());
+        return get_uniform_location(shader, s.c_str());
+    }
+
+    int get_uniform_struct_location(u32 shader, const char *structName, const char *fieldName) {
+        std::stringstream ss;
+        ss << structName << "." << fieldName;
+        std::string s = ss.str();
+        return get_uniform_location(shader, s.c_str());
+    }
+
+    int get_uniform_struct_array_location(u32 shader, const char* structName, const char* fieldName, u32 index) {
+        std::stringstream ss;
+        ss << structName << "[" << index << "]" << "." << fieldName;
+        std::string s = ss.str();
+        return get_uniform_location(shader, s.c_str());
     }
 
     void shader_set_uniform(int location, float value) {
