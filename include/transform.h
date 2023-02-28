@@ -17,5 +17,7 @@ namespace gl {
     glm::mat4 transform_mat(const transform& data);
 
     void transform_update(u32 shader, const transform& transform);
+    void transform_array_update(u32 shader, const std::vector<transform>& transforms);
+    void transform_array_update(u32 shader, const transform& transform, int i);
 
 }

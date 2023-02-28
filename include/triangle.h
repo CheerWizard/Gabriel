@@ -25,18 +25,15 @@ namespace gl {
     typedef triangle<vertex_uv_normal> triangle_uv_normal;
 
     template<typename T>
-    void triangle_init(u32& shader_program, u32& vao, u32& vbo, const triangle<T>& triangle)
+    void triangle_init(u32 vao, u32& vbo, const triangle<T>& triangle)
     {
-        shader_program = shader_init(T::shader_props);
-        vao = vao_init();
         vao_bind(vao);
         vbo_init(triangle, T::format, GL_STATIC_DRAW);
     }
 
     template<typename T>
     std::vector<triangle<T>> triangles_init(
-            u32& shader_program,
-            u32& vao,
+            u32 vao,
             u32& vbo,
             u32 count,
             const std::function<triangle<T>(u32)>& triangle_factory_fn = [](u32 i) { return triangle<T>(); }
@@ -44,11 +41,7 @@ namespace gl {
     {
         std::vector<triangle<T>> triangles;
 
-        shader_program = shader_init(T::shader_props);
-
-        vao = vao_init();
         vao_bind(vao);
-
         triangles.reserve(count);
         for (u32 i = 0 ; i < count ; i++) {
             triangles.emplace_back(triangle_factory_fn(i));

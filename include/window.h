@@ -11,8 +11,8 @@ namespace win {
         int width, height;
         const char* title;
         bool sync = false;
-        int major_version = 3;
-        int minor_version = 3;
+        int major_version = 4;
+        int minor_version = 2;
         int profile_version = GLFW_OPENGL_CORE_PROFILE;
     };
 
@@ -25,6 +25,7 @@ namespace win {
     bool is_open();
 
     float get_aspect_ratio();
+    window_props& props();
 
     void disable_cursor();
 

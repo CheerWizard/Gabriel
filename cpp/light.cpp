@@ -3,54 +3,33 @@
 
 namespace gl {
 
-    struct light_present_t final {
-        u32 shader;
-        u32 vao;
-        u32 vbo;
-        u32 ibo;
-    };
+    static u32 light_present_shader = 0;
+    static gl::drawable_elements light_present_drawable;
+    static gl::light_present* s_present;
 
-    static light_present_t light_present;
+    void light_present_init(light_present* present) {
+        light_present_shader = shader_init({
+            "shaders/light_present.vert",
+            "shaders/light_present.frag"
+        });
 
-    static void light_update_target(u32 shader, light& light) {
-        shader_use(shader);
-        shader_set_uniform3v(shader, "light_position", light.transform.translation);
-        shader_set_uniform_struct3v(shader, "light", "ambient", light.ambient);
-        shader_set_uniform_struct3v(shader, "light", "diffuse", light.diffuse);
-        shader_set_uniform_struct3v(shader, "light", "specular", light.specular);
-    }
-
-    static void light_update_present(camera& camera, const light& light) {
-        shader_use(light_present.shader);
-        camera_perspective_update(light_present.shader, camera);
-        camera_view_update(light_present.shader, camera);
-        transform_update(light_present.shader, light.transform);
-        draw_cube(light_present.vao, light_present.ibo);
-    }
-
-    void light_init(u32 shader, camera& camera, light& light) {
-        light.presentation = cube_solid_init(
-                light_present.shader,
-                light_present.vao,
-                light_present.vbo,
-                light_present.ibo,
-                light.color
+        present->presentation = cube_solid_init(
+                light_present_drawable,
+                present->color
         );
 
-        light_update_present(camera, light);
-
-        light_update_target(shader, light);
+        s_present = present;
     }
 
-    void light_free() {
-        free(light_present.shader, light_present.vao, light_present.vbo, light_present.ibo);
+    void light_present_free() {
+        shader_free(light_present_shader);
+        drawable_free(light_present_drawable);
     }
 
-    void light_update(u32 shader, camera& camera, light& light) {
-        // draw presentation of light
-        light_update_present(camera, light);
-        // update light position in target shader
-        light_update_target(shader, light);
+    void light_present_update() {
+        shader_use(light_present_shader);
+        transform_update(light_present_shader, s_present->transform);
+        draw(light_present_drawable);
     }
 
 }

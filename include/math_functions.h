@@ -14,4 +14,9 @@ namespace gl {
         }
     }
 
+    template<typename T>
+    T lerp(T a, T b, T f) {
+        return a + f * (b - a);
+    }
+
 }

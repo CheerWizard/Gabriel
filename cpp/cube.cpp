@@ -98,24 +98,24 @@ namespace gl {
         vertices.v23.normal = normal6;
     }
 
-    cube_uv cube_uv_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo)
+    cube_uv cube_uv_init(drawable_elements& drawable)
     {
         cube_uv new_cube;
         init_uv(new_cube.vertices);
-        cube_init<vertex_uv>(shader_program, vao, vbo, ibo, new_cube);
+        cube_init<vertex_uv>(drawable, new_cube);
         return new_cube;
     }
 
-    cube_uv_normal cube_uv_normal_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo)
+    cube_uv_normal cube_uv_normal_init(drawable_elements& drawable)
     {
         cube_uv_normal new_cube;
         init_uv(new_cube.vertices);
         init_normal(new_cube.vertices);
-        cube_init<vertex_uv_normal>(shader_program, vao, vbo, ibo, new_cube);
+        cube_init<vertex_uv_normal>(drawable, new_cube);
         return new_cube;
     }
 
-    cube_solid cube_solid_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo, const glm::vec4& fill_color)
+    cube_solid cube_solid_init(drawable_elements& drawable, const glm::vec4& fill_color)
     {
         cube_solid new_cube;
         cube_vertices<vertex_solid>& vertices = new_cube.vertices;
@@ -145,7 +145,7 @@ namespace gl {
         vertices.v22.color = fill_color;
         vertices.v23.color = fill_color;
 
-        cube_init<vertex_solid>(shader_program, vao, vbo, ibo, new_cube);
+        cube_init<vertex_solid>(drawable, new_cube);
 
         return new_cube;
     }

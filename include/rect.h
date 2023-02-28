@@ -2,6 +2,7 @@
 
 #include <shader.h>
 #include <buffers.h>
+#include <draw.h>
 
 #include <gtc/type_ptr.hpp>
 
@@ -33,23 +34,21 @@ namespace gl {
     typedef rect<vertex_uv> rect_uv;
     typedef rect<vertex_solid_normal> rect_solid_normal;
     typedef rect<vertex_uv_normal> rect_uv_normal;
+    typedef rect<vertex_tbn> rect_tbn;
 
     template<typename T>
-    void rect_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo, const rect<T>& rect)
+    void rect_init(drawable_elements& drawable, const rect<T>& rect)
     {
-        shader_program = shader_init(T::shader_props);
-        vao = vao_init();
-        vao_bind(vao);
-        vbo = vbo_init(rect.vertices, T::format, GL_STATIC_DRAW);
-        ibo = ibo_init(rect.indices, 6, GL_STATIC_DRAW);
+        drawable.vao = vao_init();
+        vao_bind(drawable.vao);
+        drawable.vbo = vbo_init(rect.vertices, T::format, GL_STATIC_DRAW);
+        drawable.ibo = ibo_init(rect.indices, 6, GL_STATIC_DRAW);
+        drawable.index_count = 6;
     }
 
     template<typename T>
     std::vector<rect<T>> rects_init(
-            u32& shader_program,
-            u32& vao,
-            u32& vbo,
-            u32& ibo,
+            drawable_elements& drawable,
             u32 count,
             const std::function<rect<T>(u32)>& rect_factory_fn = [](u32 i) { return rect<T>(); })
     {
@@ -57,11 +56,8 @@ namespace gl {
         std::vector<u32> indices;
         std::vector<rect<T>> rects;
 
-        shader_program = shader_init(T::shader_props);
-
-        vao = vao_init();
-        vao_bind(vao);
-
+        drawable.vao = vao_init();
+        vao_bind(drawable.vao);
         vertices.reserve(count * 4);
         indices.reserve(count * 6);
         int index_offset = 0;
@@ -74,16 +70,20 @@ namespace gl {
             rects.emplace_back(new_rect);
             index_offset += 4;
         }
-        vbo = vbo_init(vertices, T::format, GL_STATIC_DRAW);
-        ibo = ibo_init(indices.data(), indices.size(), GL_STATIC_DRAW);
+        drawable.vbo = vbo_init(vertices, T::format, GL_STATIC_DRAW);
+        drawable.ibo = ibo_init(indices.data(), indices.size(), GL_STATIC_DRAW);
 
         return rects;
     }
 
+    void rect_uv_init(drawable_elements& drawable);
+    void rect_uv_normal_init(drawable_elements& drawable);
+    void rect_tbn_init(drawable_elements& drawable);
+
+    constexpr auto rect_default_init = &rect_init<vertex_default>;
+
     constexpr auto rect_solid_init = &rect_init<vertex_solid>;
     constexpr auto rect_solid_normal_init = &rect_init<vertex_solid_normal>;
-    constexpr auto rect_uv_init = &rect_init<vertex_uv>;
-    constexpr auto rect_uv_normal_init = &rect_init<vertex_uv_normal>;
 
     constexpr auto rects_solid_init = &rects_init<vertex_solid>;
     constexpr auto rects_solid_normal_init = &rects_init<vertex_solid_normal>;

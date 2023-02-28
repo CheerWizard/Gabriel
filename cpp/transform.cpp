@@ -17,8 +17,19 @@ namespace gl {
     void transform_update(u32 shader, const transform& transform) {
         glm::mat4 model = transform_mat(transform);
         shader_set_uniform4m(shader, "model", model);
-        glm::mat4 normal_model = glm::transpose(glm::inverse(model));
-        shader_set_uniform4m(shader, "normal_model", normal_model);
+    }
+
+    void transform_array_update(u32 shader, const std::vector<transform>& transforms) {
+        size_t size = transforms.size();
+        for (int i = 0; i < size; i++) {
+            glm::mat4 model = transform_mat(transforms[i]);
+            shader_set_uniform(shader, "models", model, i);
+        }
+    }
+
+    void transform_array_update(u32 shader, const transform& transform, int i) {
+        glm::mat4 model = transform_mat(transform);
+        shader_set_uniform(shader, "models", model, i);
     }
 
 }

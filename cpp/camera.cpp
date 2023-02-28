@@ -1,6 +1,7 @@
 #include <camera.h>
 #include <math_functions.h>
 #include <window.h>
+#include <buffers.h>
 
 namespace gl {
 
@@ -24,15 +25,21 @@ namespace gl {
     static float s_last_y = 300;
     static bool s_first_mouse = true;
 
-    camera camera_init(u32 shader) {
+    static u32 camera_ubo;
+
+    camera camera_init(u32 binding) {
         camera new_camera;
         new_camera.aspect = win::get_aspect_ratio();
 
-        gl::shader_use(shader);
-        camera_perspective_update(shader, new_camera);
-        camera_view_update(shader, new_camera);
+        camera_ubo = ubo_init(binding, 2 * sizeof(glm::mat4));
+
+        camera_update(new_camera);
 
         return new_camera;
+    }
+
+    void camera_free() {
+        ubo_free(camera_ubo);
     }
 
     void camera_look(camera& camera, double x, double y) {
@@ -54,7 +61,7 @@ namespace gl {
         camera.yaw += xoffset;
         camera.pitch += yoffset;
 
-//        clamp(s_camera.pitch, -s_camera.max_pitch, s_camera.max_pitch);
+        clamp(camera.pitch, -camera.max_pitch, camera.max_pitch);
 
         glm::vec3 direction;
         direction.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
@@ -63,32 +70,40 @@ namespace gl {
         camera.front = glm::normalize(direction);
     }
 
-    void camera_zoom(u32 shader, camera& camera, double x, double y) {
+    void camera_zoom(camera& camera, double x, double y) {
         camera.fov -= (float) y;
         clamp(camera.fov, 1.0f, camera.max_fov);
-        gl::shader_use(shader);
-        camera_perspective_update(shader, camera);
+        camera_perspective_update(camera);
     }
 
-    void camera_resize(u32 shader, camera& camera, int w, int h) {
+    void camera_resize(camera& camera, int w, int h) {
         camera.aspect = (float)w / (float)h;
-        gl::shader_use(shader);
-        camera_perspective_update(shader, camera);
+        camera_perspective_update(camera);
     }
 
-    void camera_view_update(u32 shader, camera& camera) {
+    void camera_view_update(camera& camera) {
         glm::mat4 view = view_mat(camera);
-        shader_set_uniform4m(shader, "view", view);
+        ubo_update(camera_ubo, { sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view) });
     }
 
-    void camera_perspective_update(u32 shader, camera& camera) {
-        glm::mat4 perspective = gl::perspective_mat({
+    void camera_perspective_update(camera& camera) {
+        glm::mat4 perspective = perspective_mat({
             camera.fov,
             camera.aspect,
             camera.z_near,
             camera.z_far
         });
-        gl::shader_set_uniform4m(shader, "perspective", perspective);
+        ubo_update(camera_ubo, { 0, sizeof(glm::mat4), glm::value_ptr(perspective) });
+    }
+
+    void camera_update(camera& camera) {
+        camera_perspective_update(camera);
+        camera_view_update(camera);
+    }
+
+    void camera_view_position_update(u32 shader, glm::vec3& position) {
+        gl::shader_use(shader);
+        shader_set_uniform3v(shader, "view_position", position);
     }
 
 }

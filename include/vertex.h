@@ -28,9 +28,12 @@ namespace gl {
         size_t stride;
     };
 
-#define decl_vertex \
-static vertex_format format; \
-static shader_props shader_props;
+#define decl_vertex static vertex_format format;
+
+    struct vertex_default final {
+        decl_vertex
+        glm::fvec3 pos = { 0, 0, 0 };
+    };
 
     struct vertex_solid final {
         decl_vertex
@@ -56,6 +59,15 @@ static shader_props shader_props;
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec2 uv = { 0, 0 };
         glm::fvec3 normal = { 0, 0, 0 };
+    };
+
+    struct vertex_tbn final {
+        decl_vertex
+        glm::fvec3 pos = { 0, 0, 0 };
+        glm::fvec2 uv = { 0, 0 };
+        glm::fvec3 normal = { 0, 0, 0 };
+        glm::fvec3 tangent = { 0, 0, 0 };
+        glm::fvec3 bitangent = { 0, 0, 0 };
     };
 
     struct vertex_data_t final {

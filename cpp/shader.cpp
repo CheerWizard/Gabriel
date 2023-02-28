@@ -43,9 +43,19 @@ namespace gl {
         if (!fragment_shader)
             return 0;
 
+        std::vector<u32> shaders = { vertex_shader, fragment_shader };
+
+        if (props.geometry_filepath) {
+            u32 geometry_shader = shader_init(props.geometry_filepath, GL_GEOMETRY_SHADER);
+            if (geometry_shader) {
+                shaders.emplace_back(geometry_shader);
+            }
+        }
+
         u32 shader_program = glCreateProgram();
-        glAttachShader(shader_program, vertex_shader);
-        glAttachShader(shader_program, fragment_shader);
+        for (u32 shader : shaders) {
+            glAttachShader(shader_program, shader);
+        }
         glLinkProgram(shader_program);
 
         int status;
@@ -58,8 +68,10 @@ namespace gl {
             return 0;
         }
 
-        glDeleteShader(vertex_shader);
-        glDeleteShader(fragment_shader);
+
+        for (u32 shader : shaders) {
+            glDeleteShader(shader);
+        }
 
         return shader_program;
     }
@@ -99,9 +111,23 @@ namespace gl {
         return get_uniform_location(shader, s.c_str());
     }
 
+    int get_uniform_array_struct_location(u32 shader, const char *structName, const char *fieldName, u32 index) {
+        std::stringstream ss;
+        ss << structName << "." << fieldName << "[" << index << "]";
+        std::string s = ss.str();
+        return get_uniform_location(shader, s.c_str());
+    }
+
     int get_uniform_struct_array_location(u32 shader, const char* structName, const char* fieldName, u32 index) {
         std::stringstream ss;
         ss << structName << "[" << index << "]" << "." << fieldName;
+        std::string s = ss.str();
+        return get_uniform_location(shader, s.c_str());
+    }
+
+    int get_uniform_array_struct_array_location(u32 shader, const char* structName, const char* fieldName, u32 struct_index, u32 field_index) {
+        std::stringstream ss;
+        ss << structName << "[" << struct_index << "]" << "." << fieldName << "[" << field_index << "]";
         std::string s = ss.str();
         return get_uniform_location(shader, s.c_str());
     }

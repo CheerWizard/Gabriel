@@ -3,6 +3,8 @@ project(CGP)
 
 set(CMAKE_CXX_STANDARD 14)
 
+include(cmake_utils/CMakeLists.txt)
+
 file(GLOB_RECURSE SRC
         cpp/*.cpp include/*.h
         vendor/glad-c/src/glad.c
@@ -17,20 +19,17 @@ include_directories(
         vendor/glad-c/include
         vendor/glm/glm
         vendor/stb
+        vendor/assimp/include
 )
 
 add_subdirectory(vendor/glfw)
 add_subdirectory(vendor/glm)
 
-configure_file(shaders/solid.vert shaders/solid.vert COPYONLY)
-configure_file(shaders/solid.frag shaders/solid.frag COPYONLY)
-configure_file(shaders/uv_normal.vert shaders/uv_normal.vert COPYONLY)
-configure_file(shaders/uv_normal.frag shaders/uv_normal.frag COPYONLY)
+configure_file(libs/assimp-vc143-mtd.lib assimp-vc143-mtd.lib COPYONLY)
+configure_file(libs/assimp-vc143-mtd.dll assimp-vc143-mtd.dll COPYONLY)
 
-configure_file(images/wall.jpg images/wall.jpg COPYONLY)
-configure_file(images/smile.png images/smile.png COPYONLY)
-configure_file(images/container.png images/container.png COPYONLY)
-configure_file(images/container_specular.png images/container_specular.png COPYONLY)
-configure_file(images/container_emission.jpg images/container_emission.jpg COPYONLY)
+replace_dirs(shaders shaders)
+replace_dirs(images images)
+replace_dirs(models models)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm assimp-vc143-mtd)

@@ -34,6 +34,7 @@ namespace gl {
         glm::vec3 front = { 0, 0, -1 };
         glm::vec3 up = { 0, 1, 0 };
         float pitch = 0;
+        float max_pitch = 89;
         float yaw = 0;
         float roll = 0;
         float speed = 0.5f;
@@ -47,15 +48,18 @@ namespace gl {
 
     glm::mat4 view_mat(const camera& data);
 
-    camera camera_init(u32 shader);
+    camera camera_init(u32 binding);
+    void camera_free();
 
     void camera_look(camera& camera, double x, double y);
 
-    void camera_zoom(u32 shader, camera& camera, double x, double y);
+    void camera_zoom(camera& camera, double x, double y);
 
-    void camera_resize(u32 shader, camera& camera, int w, int h);
+    void camera_resize(camera& camera, int w, int h);
 
-    void camera_view_update(u32 shader, camera& camera);
-    void camera_perspective_update(u32 shader, camera& camera);
+    void camera_view_update(camera& camera);
+    void camera_perspective_update(camera& camera);
+    void camera_update(camera& camera);
+    void camera_view_position_update(u32 shader, glm::vec3& position);
 
 }

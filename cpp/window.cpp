@@ -40,6 +40,8 @@ namespace win {
 
         glfwSwapInterval(props.sync);
 
+        glViewport(0, 0, props.width, props.height);
+
         glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &gpu_props::max_attrs_allowed);
     }
 
@@ -63,6 +65,10 @@ namespace win {
 
     float get_aspect_ratio() {
         return (float) s_props.width / (float) s_props.height;
+    }
+
+    window_props& props() {
+        return s_props;
     }
 
     void disable_cursor() {
@@ -104,6 +110,8 @@ namespace win {
 
     void event_registry_update() {
         glfwSetWindowSizeCallback(s_win, [](GLFWwindow* win, int w, int h) {
+            s_props.width = w;
+            s_props.height = h;
             event_handler(window_resized, w, h)
         });
         glfwSetWindowCloseCallback(s_win, [](GLFWwindow* win) {
@@ -111,6 +119,7 @@ namespace win {
         });
 
         glfwSetFramebufferSizeCallback(s_win, [](GLFWwindow* win, int w, int h) {
+            glViewport(0, 0, w, h);
             event_handler(framebuffer_resized, w, h)
         });
 

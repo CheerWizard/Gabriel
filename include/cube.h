@@ -2,6 +2,7 @@
 
 #include <shader.h>
 #include <buffers.h>
+#include <draw.h>
 
 #include <gtc/type_ptr.hpp>
 
@@ -71,19 +72,18 @@ namespace gl {
     typedef cube<vertex_uv_normal> cube_uv_normal;
 
     template<typename T>
-    void cube_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo, const cube<T>& cube)
+    void cube_init(drawable_elements& drawable, const cube<T>& cube)
     {
-        shader_program = shader_init(T::shader_props);
-        vao = vao_init();
-        vao_bind(vao);
-        vbo = vbo_init(cube.vertices, T::format, GL_STATIC_DRAW);
-        ibo = ibo_init(cube.indices, 36, GL_STATIC_DRAW);
+        drawable.vao = vao_init();
+        vao_bind(drawable.vao);
+        drawable.vbo = vbo_init(cube.vertices, T::format, GL_STATIC_DRAW);
+        drawable.ibo = ibo_init(cube.indices, 36, GL_STATIC_DRAW);
+        drawable.index_count = 36;
     }
 
     template<typename T>
     std::vector<cube<T>> cubes_init(
-            u32& shader_program,
-            u32& vao,
+            u32 vao,
             u32& vbo,
             u32& ibo,
             u32 count,
@@ -93,9 +93,6 @@ namespace gl {
         std::vector<u32> indices;
         std::vector<cube<T>> cubes;
 
-        shader_program = shader_init(T::shader_props);
-
-        vao = vao_init();
         vao_bind(vao);
 
         vertices.reserve(count * 24);
@@ -116,11 +113,12 @@ namespace gl {
         return cubes;
     }
 
-    cube_uv cube_uv_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo);
-    cube_uv_normal cube_uv_normal_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo);
-    cube_solid cube_solid_init(u32& shader_program, u32& vao, u32& vbo, u32& ibo, const glm::vec4& fill_color);
+    cube_uv cube_uv_init(drawable_elements& drawable);
+    cube_uv_normal cube_uv_normal_init(drawable_elements& drawable);
+    cube_solid cube_solid_init(drawable_elements& drawable, const glm::vec4& fill_color);
 
     constexpr auto cube_solid_normal_init = &cube_init<vertex_solid_normal>;
+    constexpr auto cube_default_init = &cube_init<vertex_default>;
 
     constexpr auto cubes_solid_init = &cubes_init<vertex_solid>;
     constexpr auto cubes_solid_normal_init = &cubes_init<vertex_solid_normal>;
