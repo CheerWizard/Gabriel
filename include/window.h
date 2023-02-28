@@ -5,6 +5,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#define UI
+
 namespace win {
 
     struct window_props final {
@@ -19,7 +21,8 @@ namespace win {
     void init(const window_props& props);
     void free();
 
-    void update();
+    void poll();
+    void swap();
 
     void close();
     bool is_open();
@@ -35,6 +38,7 @@ namespace win {
     bool is_mouse_press(int button);
     bool is_mouse_release(int key);
 
+    typedef void (*event_window_error)(int, const char*);
     typedef void (*event_window_resized)(int, int);
     typedef void (*event_window_close)();
 
@@ -49,6 +53,7 @@ namespace win {
     typedef void (*event_mouse_scroll)(double, double);
 
     struct event_registry final {
+        static event_window_error window_error;
         static event_window_resized window_resized;
         static event_window_close window_close;
 

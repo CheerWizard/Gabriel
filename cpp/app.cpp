@@ -8,14 +8,16 @@
 #include <outline.h>
 #include <shadow.h>
 #include <math_functions.h>
+#include <ui.h>
 
 #include <map>
 #include <random>
 
 namespace app {
 
-    static bool s_running = true;
-    static float s_dt = 6;
+    static bool running = true;
+    static float dt = 6;
+    static float begin_time = 0;
 
     static u32 material_shader;
     static u32 lights_ubo;
@@ -79,7 +81,7 @@ namespace app {
     static std::vector<gl::color_attachment> blur_colors;
     static u32 blur_shader;
     static float blur_offset = 1.0 / 300.0;
-    static bool blur_enabled = false;
+    static int enable_blur = false;
 
     static u32 ssao_fbo;
     static std::vector<gl::color_attachment> ssao_colors;
@@ -87,12 +89,15 @@ namespace app {
     static std::vector<glm::vec3> ssao_kernel;
     static std::vector<glm::vec3> ssao_noise;
     static gl::texture ssao_noise_texture;
-
-    static bool ssao_enabled = false;
+    static int enable_ssao = false;
 
     static u32 skybox_shader;
     static gl::drawable_elements skybox;
     static gl::texture skybox_texture;
+
+    static void window_error(int error, const char* msg) {
+        print_err("window_error: error=" << error << ", msg=" << msg);
+    }
 
     static void window_close() {
         print("window_close()");
@@ -115,6 +120,9 @@ namespace app {
         gl::shader_set_uniform4m(skybox_shader, "perspective", skybox_perspective);
     }
 
+    static int enable_normal_mapping = true;
+    static int enable_parallax_mapping = true;
+
     static void key_press(int key) {
         print("key_press()");
 
@@ -122,21 +130,19 @@ namespace app {
             win::close();
 
         if (key == KEY::N) {
-            backpack_material.enable_normal = !backpack_material.enable_normal;
-            plane_material.enable_normal = !plane_material.enable_normal;
-            window_material.enable_normal = !window_material.enable_normal;
+            enable_normal_mapping = !enable_normal_mapping;
         }
 
         if (key == KEY::P) {
-            plane_material.enable_parallax = !plane_material.enable_parallax;
+            enable_parallax_mapping = !enable_parallax_mapping;
         }
 
         if (key == KEY::B) {
-            blur_enabled = !blur_enabled;
+            enable_blur = !enable_blur;
         }
 
         if (key == KEY::O) {
-            ssao_enabled = !ssao_enabled;
+            enable_ssao = !enable_ssao;
         }
     }
 
@@ -175,6 +181,7 @@ namespace app {
         win::init({ 1366, 768, "CGP", true });
 //        win::disable_cursor();
 
+        win::event_registry::window_error = window_error;
         win::event_registry::window_close = window_close;
         win::event_registry::window_resized = window_resized;
         win::event_registry::framebuffer_resized = framebuffer_resized;
@@ -366,14 +373,11 @@ namespace app {
         backpack_material = backpack.model.materials[backpack.model.meshes.front().material_index];
         gl::material_update(material_shader, backpack_material);
 
-        gl::shader_use(screen_shader);
-        gl::shader_set_uniformf(screen_shader, "gamma", screen_gamma);
-        gl::shader_set_uniformf(screen_shader, "exposure", screen_exposure);
-
         gl::shader_use(blur_shader);
         gl::shader_set_uniformf(blur_shader, "offset", blur_offset);
 
         gl::shader_use(0);
+        gl::texture_unbind();
     }
 
     static void free() {
@@ -427,7 +431,7 @@ namespace app {
     }
 
     static void camera_control_update() {
-        float camera_speed = s_camera.speed / s_dt;
+        float camera_speed = s_camera.speed / dt;
         glm::vec3& camera_pos = s_camera.position;
 
         if (win::is_key_press(KEY::W)) {
@@ -447,37 +451,57 @@ namespace app {
         gl::camera_view_position_update(material_shader, s_camera.position);
     }
 
-    void run() {
-        init();
-
-        while (s_running) {
-            float t = glfwGetTime();
-
-            s_running = win::is_open();
-            win::update();
-
-            // simulation
-            {
-                float dt = s_dt;
-                camera_control_update();
-                // rotate object each frame
+    static void simulate() {
+        float t = begin_time;
+        camera_control_update();
+        // rotate object each frame
 //                float f = 0.2f;
 //                backpack_transform.rotation.y += f;
-                // translate point light up/down
-                for (auto& point_light : point_lights) {
-                    point_light.position.y = 4 * sin(t/2) + 2;
-                }
-                // sorting transparent drawables
-                transparent_objects.clear();
-                for (auto& window_transform : window_transforms) {
-                    float distance = glm::length(s_camera.position - window_transform.translation);
-                    transparent_objects[distance] = window_transform;
-                }
-            }
+        // translate point light up/down
+        for (auto& point_light : point_lights) {
+            point_light.position.y = 4 * sin(t/2) + 2;
+        }
+        // sorting transparent drawables
+        transparent_objects.clear();
+        for (auto& window_transform : window_transforms) {
+            float distance = glm::length(s_camera.position - window_transform.translation);
+            transparent_objects[distance] = window_transform;
+        }
 
-            // render shadows
-            {
-                // render scene into direct shadows
+        backpack_material.enable_normal = enable_normal_mapping;
+        plane_material.enable_normal = enable_normal_mapping;
+        window_material.enable_normal = enable_normal_mapping;
+
+        plane_material.enable_parallax = enable_parallax_mapping;
+    }
+
+    static void render_screen_ui() {
+        ui::theme_selector("Theme");
+        ui::slider("Gamma", &screen_gamma, 1.2, 3.2, 0.1);
+        ui::slider("Exposure", &screen_exposure, 0, 5.0, 0.01);
+        ui::checkbox("Normal Mapping", &enable_normal_mapping);
+        ui::checkbox("Parallax Mapping", &enable_parallax_mapping);
+        ui::checkbox("Blur", &enable_blur);
+        ui::checkbox("SSAO", &enable_ssao);
+    }
+
+    static void render_materials_ui() {
+        ui::image(window_material.diffuse.id, 128, 128);
+    }
+
+    static void render_ui() {
+        ui::begin();
+
+        ui::window("Screen", render_screen_ui);
+        ui::window("Materials", render_materials_ui);
+
+        ui::end();
+    }
+
+    static void render_scene() {
+        // render shadows
+        {
+            // render scene into direct shadows
 //                gl::direct_shadow_begin();
 //                {
 //                    gl::direct_shadow_update(s_light_dir.direction);
@@ -486,143 +510,165 @@ namespace app {
 //                    }
 //                    gl::direct_shadow_draw(backpack_transform, backpack_shadow.elements);
 //                }
-                // render scene into point shadows
-                gl::point_shadow_begin();
-                {
-                    gl::point_shadow_update(sunlight.position);
+            // render scene into point shadows
+            gl::point_shadow_begin();
+            {
+                gl::point_shadow_update(sunlight.position);
+                gl::point_shadow_draw(backpack_transform, backpack_shadow.elements);
+                for (auto& point_light : point_lights) {
+                    gl::point_shadow_update(point_light.position);
                     gl::point_shadow_draw(backpack_transform, backpack_shadow.elements);
-                    for (auto& point_light : point_lights) {
-                        gl::point_shadow_update(point_light.position);
-                        gl::point_shadow_draw(backpack_transform, backpack_shadow.elements);
-                    }
                 }
             }
-            if (msaa > 1) {
-                gl::shadow_end(msaa_fbo, win::props().width, win::props().height);
-            } else {
-                gl::shadow_end(scene_fbo, win::props().width, win::props().height);
-            }
+        }
+        if (msaa > 1) {
+            gl::shadow_end(msaa_fbo, win::props().width, win::props().height);
+        } else {
+            gl::shadow_end(scene_fbo, win::props().width, win::props().height);
+        }
 
-            // render scene into MSAA fbo
-            gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            glEnable(GL_DEPTH_TEST);
-            glEnable(GL_STENCIL_TEST);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // render scene into MSAA fbo
+        gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_STENCIL_TEST);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            glStencilMask(0x00);
+        glStencilMask(0x00);
 
-            // render skybox
-            {
-                glDepthFunc(GL_LEQUAL);
-                gl::shader_use(skybox_shader);
-                glm::mat4 view = glm::mat4(glm::mat3(gl::view_mat(s_camera)));
-                gl::shader_set_uniform4m(skybox_shader, "view", view);
-                gl::texture_update(skybox_shader, skybox_texture);
-                gl::draw(skybox);
-                glDepthFunc(GL_LESS);
-            }
+        // render skybox
+        {
+            glDepthFunc(GL_LEQUAL);
+            gl::shader_use(skybox_shader);
+            glm::mat4 view = glm::mat4(glm::mat3(gl::view_mat(s_camera)));
+            gl::shader_set_uniform4m(skybox_shader, "view", view);
+            gl::texture_update(skybox_shader, skybox_texture);
+            gl::draw(skybox);
+            glDepthFunc(GL_LESS);
+        }
 
-            // upload shadow maps
-            {
-                gl::shader_use(material_shader);
+        // upload shadow maps
+        {
+            gl::shader_use(material_shader);
 //                gl::direct_shadow_update(material_shader);
-                gl::point_shadow_update(material_shader);
-            }
+            gl::point_shadow_update(material_shader);
+        }
 
-            // render and upload lights
-            {
-                // sunlight
-                point_light_present.transform.translation = sunlight.position;
+        // render and upload lights
+        {
+            // sunlight
+            point_light_present.transform.translation = sunlight.position;
+            gl::light_present_update();
+            gl::ubo_update(sunlight_ubo, { 0, sizeof(sunlight), sunlight.to_float() });
+        }
+        {
+            // point lights
+            size_t point_light_size = point_lights.size();
+            for (int i = 0 ; i < point_light_size ; i++) {
+                auto& point_light = point_lights[i];
+                // render presentation
+                point_light_present.transform.translation = point_light.position;
                 gl::light_present_update();
-                gl::ubo_update(sunlight_ubo, { 0, sizeof(sunlight), sunlight.to_float() });
+                // upload data to ubo
+                gl::ubo_update(lights_ubo, {
+                        static_cast<long long>(i * sizeof(point_light)),
+                        sizeof(point_light),
+                        point_light.to_float()
+                });
             }
-            {
-                // point lights
-                size_t point_light_size = point_lights.size();
-                for (int i = 0 ; i < point_light_size ; i++) {
-                    auto& point_light = point_lights[i];
-                    // render presentation
-                    point_light_present.transform.translation = point_light.position;
-                    gl::light_present_update();
-                    // upload data to ubo
-                    gl::ubo_update(lights_ubo, {
-                            static_cast<long long>(i * sizeof(point_light)),
-                            sizeof(point_light),
-                            point_light.to_float()
-                    });
-                }
+        }
+        // render default objects
+        {
+            gl::shader_use(material_shader);
+            gl::material_update(material_shader, plane_material);
+            for (auto& plane_transform : plane_transforms) {
+                gl::transform_update(material_shader, plane_transform);
+                gl::draw(plane);
             }
-            // render default objects
-            {
-                gl::shader_use(material_shader);
-                gl::material_update(material_shader, plane_material);
-                for (auto& plane_transform : plane_transforms) {
-                    gl::transform_update(material_shader, plane_transform);
-                    gl::draw(plane);
-                }
+        }
+
+        // render outlined objects
+        {
+            gl::outline_begin();
+
+            gl::shader_use(material_shader);
+            gl::transform_update(material_shader, backpack_transform);
+            gl::material_update(material_shader, backpack_material);
+            gl::draw(backpack.elements);
+
+            gl::outline_end(backpack_transform, backpack.elements, backpack_outline);
+        }
+
+        // render transparent objects
+        {
+            gl::shader_use(material_shader);
+            gl::material_update(material_shader, window_material);
+            for (auto it = transparent_objects.rbegin() ; it != transparent_objects.rend() ; it++) {
+                gl::transform_update(material_shader, it->second);
+                gl::draw(window);
             }
+        }
 
-            // render outlined objects
-            {
-                gl::outline_begin();
+        // MSAA -> scene pass
+        if (msaa > 1) {
+            int w = win::props().width;
+            int h = win::props().height;
+            gl::fbo_blit(msaa_fbo, w, h, scene_fbo, w, h, msaa_colors.size());
+        }
 
-                gl::shader_use(material_shader);
-                gl::transform_update(material_shader, backpack_transform);
-                gl::material_update(material_shader, backpack_material);
-                gl::draw(backpack.elements);
+        // scene -> post effects
+        final_render_target = scene_colors[0];
 
-                gl::outline_end(backpack_transform, backpack.elements, backpack_outline);
-            }
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_STENCIL_TEST);
+        glDisable(GL_BLEND);
 
-            // render transparent objects
-            {
-                gl::shader_use(material_shader);
-                gl::material_update(material_shader, window_material);
-                for (auto it = transparent_objects.rbegin() ; it != transparent_objects.rend() ; it++) {
-                    gl::transform_update(material_shader, it->second);
-                    gl::draw(window);
-                }
-            }
-
-            // MSAA -> scene pass
-            if (msaa > 1) {
-                int w = win::props().width;
-                int h = win::props().height;
-                gl::fbo_blit(msaa_fbo, w, h, scene_fbo, w, h, msaa_colors.size());
-            }
-
-            // scene -> post effects
-            final_render_target = scene_colors[0];
-
-            glDisable(GL_DEPTH_TEST);
-            glDisable(GL_STENCIL_TEST);
-            glDisable(GL_BLEND);
-
-            // post effects
-            {
-                // blur effect
-                if (blur_enabled) {
-                    gl::fbo_bind(blur_fbo);
-                    gl::clear_display(1, 1, 1, 1, GL_COLOR_BUFFER_BIT);
-                    gl::shader_use(blur_shader);
-                    gl::texture_update(blur_shader, final_render_target.texture);
-                    gl::draw_quad(screen_vao);
-                    final_render_target = blur_colors[0];
-                }
-            }
-
-            // render into screen
-            {
-                gl::fbo_unbind();
+        // post effects
+        {
+            // blur effect
+            if (enable_blur) {
+                gl::fbo_bind(blur_fbo);
                 gl::clear_display(1, 1, 1, 1, GL_COLOR_BUFFER_BIT);
-                gl::shader_use(screen_shader);
-                gl::texture_update(screen_shader, final_render_target.texture);
+                gl::shader_use(blur_shader);
+                gl::texture_update(blur_shader, final_render_target.texture);
                 gl::draw_quad(screen_vao);
+                final_render_target = blur_colors[0];
             }
+        }
 
-            s_dt = ((float)glfwGetTime() - t) * 1000;
+        // render into screen
+        {
+            gl::fbo_unbind();
+            gl::clear_display(1, 1, 1, 1, GL_COLOR_BUFFER_BIT);
+            gl::shader_use(screen_shader);
+            gl::texture_update(screen_shader, final_render_target.texture);
+            gl::shader_set_uniformf(screen_shader, "gamma", screen_gamma);
+            gl::shader_set_uniformf(screen_shader, "exposure", screen_exposure);
+            gl::draw_quad(screen_vao);
+        }
+    }
+
+    void run() {
+        init();
+
+        while (running) {
+            begin_time = glfwGetTime();
+            running = win::is_open();
+
+            win::poll();
+
+            simulate();
+
+            render_scene();
+
+#ifdef UI
+            render_ui();
+#endif
+
+            win::swap();
+
+            dt = ((float)glfwGetTime() - begin_time) * 1000;
         }
 
         free();

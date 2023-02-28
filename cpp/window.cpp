@@ -1,4 +1,5 @@
 #include <window.h>
+#include <ui.h>
 
 #include <glad/glad.h>
 
@@ -10,6 +11,13 @@ namespace win {
     int gpu_props::max_attrs_allowed;
 
     void init(const window_props& props) {
+        glfwSetErrorCallback([](int error, const char* msg) {
+            print_err("GLFW error=" << error << ", msg=" << msg);
+            if (event_registry::window_error) {
+                event_registry::window_error(error, msg);
+            }
+        });
+
         int status = glfwInit();
         if (status == GLFW_FALSE) {
             print_err("Failed to initialize GLFW");
@@ -19,6 +27,9 @@ namespace win {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, props.major_version);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, props.minor_version);
         glfwWindowHint(GLFW_OPENGL_PROFILE, props.profile_version);
+#ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
         s_win = glfwCreateWindow(props.width, props.height, props.title, null, null);
         if (!s_win) {
@@ -43,16 +54,27 @@ namespace win {
         glViewport(0, 0, props.width, props.height);
 
         glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &gpu_props::max_attrs_allowed);
+
+#ifdef UI
+        ui::init(s_win);
+#endif
     }
 
     void free() {
+#ifdef UI
+        ui::free();
+#else
         glfwDestroyWindow(s_win);
+#endif
         glfwTerminate();
     }
 
-    void update() {
-        glfwSwapBuffers(s_win);
+    void poll() {
         glfwPollEvents();
+    }
+
+    void swap() {
+        glfwSwapBuffers(s_win);
     }
 
     void close() {
@@ -91,6 +113,7 @@ namespace win {
         return glfwGetMouseButton(s_win, button) == GLFW_RELEASE;
     }
 
+    event_window_error event_registry::window_error = null;
     event_window_resized event_registry::window_resized = null;
     event_window_close event_registry::window_close = null;
 
@@ -105,10 +128,13 @@ namespace win {
     event_mouse_scroll event_registry::mouse_scroll = null;
 
     #define event_handler(event, ...) if (event_registry::event) { \
-        event_registry::event(__VA_ARGS__);                                                                \
+        event_registry::event(__VA_ARGS__);     \
     }
 
     void event_registry_update() {
+        glfwSetErrorCallback([](int error, const char* msg) {
+            event_handler(window_error, error, msg)
+        });
         glfwSetWindowSizeCallback(s_win, [](GLFWwindow* win, int w, int h) {
             s_props.width = w;
             s_props.height = h;

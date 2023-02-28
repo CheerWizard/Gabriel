@@ -58,6 +58,8 @@ namespace gl {
     void texture_free(u32 tbo);
     void textures_free(u32* tbo, int size);
 
+    void texture_unbind();
+
     void texture_update(u32 shader, texture& texture);
     void texture_update(const texture& texture, const texture_2d_params& params);
     void texture_update(const texture& texture, const texture_3d_params& params);

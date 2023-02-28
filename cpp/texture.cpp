@@ -69,6 +69,11 @@ namespace gl {
         glDeleteTextures(size, tbo);
     }
 
+    void texture_unbind() {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
     void texture_update(u32 shader, texture& texture) {
         shader_set_uniform(shader, texture.sampler);
         glActiveTexture(GL_TEXTURE0 + texture.sampler.value);

@@ -12,7 +12,9 @@ namespace gl {
     ) {
         material new_material;
         if (diffuse_path) {
-            gl::texture2d_init(new_material.diffuse, diffuse_path);
+            gl::texture_2d_params params;
+            params.srgb = true;
+            gl::texture2d_init(new_material.diffuse, diffuse_path, false, params);
             new_material.enable_diffuse = new_material.diffuse.id != invalid_texture;
         }
         if (specular_path) {
@@ -20,7 +22,9 @@ namespace gl {
             new_material.enable_specular = new_material.specular.id != invalid_texture;
         }
         if (skybox_path) {
-            gl::texture2d_init(new_material.skybox, skybox_path);
+            gl::texture_2d_params params;
+            params.srgb = true;
+            gl::texture2d_init(new_material.skybox, skybox_path, false, params);
             new_material.enable_skybox = new_material.skybox.id != invalid_texture;
         }
         if (normal_path) {

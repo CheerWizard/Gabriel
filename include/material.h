@@ -17,7 +17,7 @@ namespace gl {
         glm::vec4 color = { 1, 1, 1, 1 };
         // diffuse
         float diffuse_factor = 1;
-        texture diffuse = { 0, GL_TEXTURE_2D, { "diffuse", 2 }, true };
+        texture diffuse = { 0, GL_TEXTURE_2D, { "diffuse", 2 } };
         bool enable_diffuse = false;
         // specular
         float specular_factor = 1;
