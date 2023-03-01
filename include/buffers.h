@@ -136,11 +136,12 @@ namespace gl {
     struct ubo_data final {
         long long offset;
         long long size;
-        float* data;
+        void* data;
     };
 
     u32 ubo_init(u32 binding, long long size);
     void ubo_bind(u32 ubo);
     void ubo_update(u32 ubo, const ubo_data& ubo_data);
+    void ubo_update(const ubo_data& ubo_data);
     void ubo_free(u32 ubo);
 }

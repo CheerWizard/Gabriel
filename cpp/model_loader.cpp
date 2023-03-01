@@ -125,18 +125,24 @@ namespace io {
                 gl::texture_2d_params material_params;
 
                 material_params.srgb = true;
-                read_material(material, aiTextureType_DIFFUSE, directory, flags, result_material.diffuse, material_params);
-                result_material.enable_diffuse = result_material.diffuse.id != invalid_texture;
+                read_material(material, aiTextureType_BASE_COLOR, directory, flags, result_material.albedo, material_params);
+                result_material.enable_albedo = result_material.albedo.id != invalid_texture;
 
                 material_params.srgb = false;
-                read_material(material, aiTextureType_SPECULAR, directory, flags, result_material.specular, material_params);
-                result_material.enable_specular = result_material.specular.id != invalid_texture;
-
                 read_material(material, aiTextureType_HEIGHT, directory, flags, result_material.normal, material_params);
                 result_material.enable_normal = result_material.normal.id != invalid_texture;
 
                 read_material(material, aiTextureType_DISPLACEMENT, directory, flags, result_material.parallax, material_params);
                 result_material.enable_parallax = result_material.parallax.id != invalid_texture;
+
+                read_material(material, aiTextureType_METALNESS, directory, flags, result_material.metallic, material_params);
+                result_material.enable_metallic = result_material.metallic.id != invalid_texture;
+
+                read_material(material, aiTextureType_DIFFUSE_ROUGHNESS, directory, flags, result_material.roughness, material_params);
+                result_material.enable_roughness = result_material.roughness.id != invalid_texture;
+
+                read_material(material, aiTextureType_AMBIENT_OCCLUSION, directory, flags, result_material.ao, material_params);
+                result_material.enable_ao = result_material.ao.id != invalid_texture;
 
                 materials[result.material_index] = result_material;
             }
@@ -159,7 +165,7 @@ namespace io {
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
-            print_err("model_read(): Failed to read model from " << filepath);
+            print_err("model_read(): failed to read model " << filepath);
             return {};
         }
 

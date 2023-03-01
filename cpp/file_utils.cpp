@@ -33,8 +33,7 @@ namespace io {
 
         result.data = stbi_load(filepath, &result.width, &result.height, &result.channels, 0);
         if (!result.data) {
-            print_err("image_load() : failed to load image");
-            print_err(filepath);
+            print_err("image_read(): failed to read image " << filepath);
             return result;
         }
 

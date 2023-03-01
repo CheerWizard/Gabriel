@@ -3,6 +3,7 @@
 #include <shader.h>
 #include <buffers.h>
 #include <draw.h>
+#include <geometry.h>
 
 #include <gtc/type_ptr.hpp>
 
@@ -70,6 +71,7 @@ namespace gl {
     typedef cube<vertex_uv> cube_uv;
     typedef cube<vertex_solid_normal> cube_solid_normal;
     typedef cube<vertex_uv_normal> cube_uv_normal;
+    typedef cube<vertex_tbn> cube_tbn;
 
     template<typename T>
     void cube_init(drawable_elements& drawable, const cube<T>& cube)
@@ -116,6 +118,7 @@ namespace gl {
     cube_uv cube_uv_init(drawable_elements& drawable);
     cube_uv_normal cube_uv_normal_init(drawable_elements& drawable);
     cube_solid cube_solid_init(drawable_elements& drawable, const glm::vec4& fill_color);
+    cube_tbn cube_tbn_init(drawable_elements& drawable);
 
     constexpr auto cube_solid_normal_init = &cube_init<vertex_solid_normal>;
     constexpr auto cube_default_init = &cube_init<vertex_default>;

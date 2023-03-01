@@ -150,4 +150,23 @@ namespace gl {
         return new_cube;
     }
 
+    template<typename T>
+    static void init_tbn(cube_vertices<T>& vertices) {
+        init_tbn(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
+        init_tbn(&vertices.v4, &vertices.v5, &vertices.v6, &vertices.v7);
+        init_tbn(&vertices.v8, &vertices.v9, &vertices.v10, &vertices.v11);
+        init_tbn(&vertices.v12, &vertices.v13, &vertices.v14, &vertices.v15);
+        init_tbn(&vertices.v16, &vertices.v17, &vertices.v18, &vertices.v19);
+        init_tbn(&vertices.v20, &vertices.v21, &vertices.v22, &vertices.v23);
+    }
+
+    cube_tbn cube_tbn_init(drawable_elements& drawable) {
+        cube_tbn cube;
+        init_uv(cube.vertices);
+        init_normal(cube.vertices);
+        init_tbn(cube.vertices);
+        cube_init(drawable, cube);
+        return cube;
+    }
+
 }

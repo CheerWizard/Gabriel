@@ -20,15 +20,19 @@ namespace app {
     static float begin_time = 0;
 
     static u32 material_shader;
-    static u32 lights_ubo;
     static u32 sunlight_ubo;
+    static u32 lights_ubo;
+    static u32 flashlight_ubo;
 
     static gl::camera s_camera;
+    static bool enable_camera = false;
+
+    static gl::light_dir sunlight;
 
     static gl::light_present point_light_present;
     static std::array<gl::light_point, 4> point_lights;
 
-    static gl::light_point sunlight;
+    static gl::light_spot flashlight;
 
     static io::drawable_elements plane;
     static std::vector<gl::transform> plane_transforms = {
@@ -124,26 +128,25 @@ namespace app {
     static int enable_parallax_mapping = true;
 
     static void key_press(int key) {
-        print("key_press()");
+        print("key_press(): " << key);
 
         if (key == KEY::Escape)
             win::close();
 
-        if (key == KEY::N) {
+        if (key == KEY::N)
             enable_normal_mapping = !enable_normal_mapping;
-        }
 
-        if (key == KEY::P) {
+        if (key == KEY::P)
             enable_parallax_mapping = !enable_parallax_mapping;
-        }
 
-        if (key == KEY::B) {
+        if (key == KEY::B)
             enable_blur = !enable_blur;
-        }
 
-        if (key == KEY::O) {
+        if (key == KEY::O)
             enable_ssao = !enable_ssao;
-        }
+
+        if (key == KEY::C)
+            enable_camera = !enable_camera;
     }
 
     static void key_release(int key) {
@@ -159,22 +162,24 @@ namespace app {
     }
 
     static void mouse_cursor(double x, double y) {
-//        print("mouse_cursor");
-        gl::camera_look(s_camera, x, y);
+        if (enable_camera) {
+            gl::camera_look(s_camera, x, y);
+        }
     }
 
     static void mouse_scroll(double x, double y) {
-        print("mouse_scroll()");
-        gl::camera_zoom(s_camera, x, y);
+        if (enable_camera) {
+            gl::camera_zoom(s_camera, x, y);
 
-        gl::shader_use(skybox_shader);
-        glm::mat4 skybox_perspective = gl::perspective_mat({
-            s_camera.fov,
-            s_camera.aspect,
-            s_camera.z_near,
-            s_camera.z_far
-        });
-        gl::shader_set_uniform4m(skybox_shader, "perspective", skybox_perspective);
+            gl::shader_use(skybox_shader);
+            glm::mat4 skybox_perspective = gl::perspective_mat({
+                s_camera.fov,
+                s_camera.aspect,
+                s_camera.z_near,
+                s_camera.z_far
+            });
+            gl::shader_set_uniform4m(skybox_shader, "perspective", skybox_perspective);
+        }
     }
 
     static void init() {
@@ -314,37 +319,38 @@ namespace app {
 
         // setup sunlight
         sunlight_ubo = gl::ubo_init(1, sizeof(sunlight));
-        sunlight.position = { 0, 5, 0 };
-        sunlight.diffuse = { 100, 100, 100 };
-        gl::ubo_update(sunlight_ubo, {
-                0,
-                sizeof(sunlight),
-                sunlight.to_float()
-        });
+        sunlight.color = { 0, 0, 0, 1 };
+        gl::ubo_update(sunlight_ubo, { 0, sizeof(sunlight), &sunlight });
         // setup lights
         lights_ubo = gl::ubo_init(2, sizeof(point_lights));
-        point_lights[0].position = { -5, 2, -5 };
-        point_lights[1].position = { 5, 2, -5 };
-        point_lights[2].position = { -5, 2, 5 };
-        point_lights[3].position = { 5, 2, 5 };
-        for (int i = 0 ; i < point_lights.size() ; i++) {
-            auto& point_light = point_lights[i];
-            point_light.ambient = { 0.2f, 0.2f, 0.2f };
-            point_light.diffuse = { 0, 0, 1 };
-            point_light.specular = {0, 0, 1 };
-            gl::ubo_update(lights_ubo, {
-                static_cast<long long>(i * sizeof(point_light)),
-                sizeof(point_light),
-                point_light.to_float()
-            });
-        }
+        point_lights[0].position = { -5, 2, -5, 1 };
+        point_lights[0].color = { 1, 0, 0, 1 };
+        point_lights[0].quadratic = 1;
+        point_lights[1].position = { 5, 2, -5, 1 };
+        point_lights[1].color = { 0, 1, 0, 1 };
+        point_lights[1].quadratic = 1;
+        point_lights[2].position = { -5, 2, 5, 1 };
+        point_lights[2].color = { 0, 0, 1, 1 };
+        point_lights[2].quadratic = 1;
+        point_lights[2].constant = 1;
+        point_lights[3].position = { 5, 2, 5, 1 };
+        point_lights[3].color = { 1, 0, 1, 1 };
+        point_lights[3].quadratic = 1;
+        gl::ubo_update(lights_ubo, { 0, sizeof(point_lights), point_lights.data() });
+        // setup flashlight
+        flashlight_ubo = gl::ubo_init(3, sizeof(flashlight));
+        flashlight.position = { s_camera.position, 0 };
+        flashlight.direction = { s_camera.front, 0 };
+        flashlight.color = { 5, 5, 5, 1 };
+        gl::ubo_update(flashlight_ubo, { 0, sizeof(flashlight), &flashlight });
 
         // setup light presentation
         point_light_present.color = { 0, 0, 1, 0.5 };
         gl::light_present_init(&point_light_present);
 
         // setup shadow
-        gl::point_shadow_init({ 1024, 1024 }, sunlight.position);
+        gl::direct_shadow_init({ 1024, 1024 }, sunlight.direction);
+        gl::point_shadow_init({ 1024, 1024 }, flashlight.position);
 
         backpack_outline = gl::outline_init();
 
@@ -353,24 +359,38 @@ namespace app {
 
         gl::rect_tbn_init(plane);
         plane_material = gl::material_init(
-            "images/brickwall/diffuse.jpg",
-            null,
-            null,
-            "images/brickwall/normal.jpg",
-            "images/brickwall/parallax.jpg"
+                false,
+            "images/rust_pbr/albedo.png",
+            "images/rust_pbr/normal.png",
+            "images/brickwall/parallax.jpg",
+            "images/rust_pbr/metallic.png",
+            "images/rust_pbr/roughness.png"
         );
 
         gl::rect_tbn_init(window);
         window_material = gl::material_init(
+                false,
             "images/window.png"
         );
         gl::texture_2d_params window_material_diff_params;
         window_material_diff_params.s = GL_CLAMP_TO_EDGE;
         window_material_diff_params.t = GL_CLAMP_TO_EDGE;
-        gl::texture_update(window_material.diffuse, window_material_diff_params);
+        gl::texture_update(window_material.albedo, window_material_diff_params);
 
         gl::shader_use(material_shader);
-        backpack_material = backpack.model.materials[backpack.model.meshes.front().material_index];
+//        backpack_material = backpack.model.materials[backpack.model.meshes.front().material_index];
+        backpack_material = gl::material_init(
+                true,
+            "models/backpack/diffuse.jpg",
+            "models/backpack/normal.png",
+            null,
+            null,
+            "models/backpack/roughness.jpg",
+            "models/backpack/ao.jpg"
+        );
+        backpack_material.roughness_factor = 1;
+        backpack_material.ao_factor = 1;
+        backpack_material.metallic_factor = 0;
         gl::material_update(material_shader, backpack_material);
 
         gl::shader_use(blur_shader);
@@ -415,8 +435,10 @@ namespace app {
         gl::material_free(plane_material);
 
         gl::shader_free(material_shader);
-        gl::ubo_free(lights_ubo);
+
         gl::ubo_free(sunlight_ubo);
+        gl::ubo_free(lights_ubo);
+        gl::ubo_free(flashlight_ubo);
 
         gl::outline_free();
 
@@ -431,6 +453,9 @@ namespace app {
     }
 
     static void camera_control_update() {
+        if (!enable_camera)
+            return;
+
         float camera_speed = s_camera.speed / dt;
         glm::vec3& camera_pos = s_camera.position;
 
@@ -454,10 +479,13 @@ namespace app {
     static void simulate() {
         float t = begin_time;
         camera_control_update();
+        // bind flashlight to camera
+        flashlight.position = { s_camera.position, 0 };
+        flashlight.direction = { s_camera.front, 0 };
         // rotate object each frame
-//                float f = 0.2f;
-//                backpack_transform.rotation.y += f;
-        // translate point light up/down
+        float f = 0.1f;
+        backpack_transform.rotation.y += f;
+        // translate point lights up/down
         for (auto& point_light : point_lights) {
             point_light.position.y = 4 * sin(t/2) + 2;
         }
@@ -483,10 +511,35 @@ namespace app {
         ui::checkbox("Parallax Mapping", &enable_parallax_mapping);
         ui::checkbox("Blur", &enable_blur);
         ui::checkbox("SSAO", &enable_ssao);
+
+        ui::slider("Sunlight X", &sunlight.direction.x, -100, 100, 1);
+        ui::slider("Sunlight Y", &sunlight.direction.y, -100, 100, 1);
+        ui::slider("Sunlight Z", &sunlight.direction.z, -100, 100, 1);
+        ui::color_picker("Sunlight Color", sunlight.color);
+
+        ui::slider("PointLight_1 X", &point_lights[0].position.x, -25, 25, 1);
+        ui::slider("PointLight_1 Y", &point_lights[0].position.y, -25, 25, 1);
+        ui::slider("PointLight_1 Z", &point_lights[0].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_1 Color", point_lights[0].color);
+
+        ui::slider("PointLight_2 X", &point_lights[1].position.x, -25, 25, 1);
+        ui::slider("PointLight_2 Y", &point_lights[1].position.y, -25, 25, 1);
+        ui::slider("PointLight_2 Z", &point_lights[1].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_2 Color", point_lights[1].color);
+
+        ui::slider("PointLight_3 X", &point_lights[2].position.x, -25, 25, 1);
+        ui::slider("PointLight_3 Y", &point_lights[2].position.y, -25, 25, 1);
+        ui::slider("PointLight_3 Z", &point_lights[2].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_3 Color", point_lights[2].color);
+
+        ui::slider("PointLight_4 X", &point_lights[3].position.x, -25, 25, 1);
+        ui::slider("PointLight_4 Y", &point_lights[3].position.y, -25, 25, 1);
+        ui::slider("PointLight_4 Z", &point_lights[3].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_4 Color", point_lights[3].color);
     }
 
     static void render_materials_ui() {
-        ui::image(window_material.diffuse.id, 128, 128);
+        ui::image(window_material.albedo.id, 128, 128);
     }
 
     static void render_ui() {
@@ -502,23 +555,20 @@ namespace app {
         // render shadows
         {
             // render scene into direct shadows
-//                gl::direct_shadow_begin();
-//                {
-//                    gl::direct_shadow_update(s_light_dir.direction);
-//                    for (auto& window_transform : window_transforms) {
-//                        gl::direct_shadow_draw(window_transform, window_shadow);
-//                    }
-//                    gl::direct_shadow_draw(backpack_transform, backpack_shadow.elements);
-//                }
+            gl::direct_shadow_begin();
+            {
+                gl::direct_shadow_update(sunlight.direction);
+                gl::direct_shadow_draw(backpack_transform, backpack_shadow.elements);
+            }
             // render scene into point shadows
             gl::point_shadow_begin();
             {
-                gl::point_shadow_update(sunlight.position);
-                gl::point_shadow_draw(backpack_transform, backpack_shadow.elements);
                 for (auto& point_light : point_lights) {
                     gl::point_shadow_update(point_light.position);
                     gl::point_shadow_draw(backpack_transform, backpack_shadow.elements);
                 }
+                gl::point_shadow_update(flashlight.position);
+                gl::point_shadow_draw(backpack_transform, backpack_shadow.elements);
             }
         }
         if (msaa > 1) {
@@ -551,33 +601,30 @@ namespace app {
         // upload shadow maps
         {
             gl::shader_use(material_shader);
-//                gl::direct_shadow_update(material_shader);
+            gl::direct_shadow_update(material_shader);
             gl::point_shadow_update(material_shader);
         }
 
         // render and upload lights
+
+        // sunlight
         {
-            // sunlight
-            point_light_present.transform.translation = sunlight.position;
-            gl::light_present_update();
-            gl::ubo_update(sunlight_ubo, { 0, sizeof(sunlight), sunlight.to_float() });
+            gl::ubo_update(sunlight_ubo, { 0, sizeof(sunlight), &sunlight });
         }
+        // point lights
         {
-            // point lights
-            size_t point_light_size = point_lights.size();
-            for (int i = 0 ; i < point_light_size ; i++) {
-                auto& point_light = point_lights[i];
-                // render presentation
+            gl::ubo_update(lights_ubo, {0, sizeof(point_lights), point_lights.data() });
+            // update light presentation
+            for (auto& point_light : point_lights) {
                 point_light_present.transform.translation = point_light.position;
                 gl::light_present_update();
-                // upload data to ubo
-                gl::ubo_update(lights_ubo, {
-                        static_cast<long long>(i * sizeof(point_light)),
-                        sizeof(point_light),
-                        point_light.to_float()
-                });
             }
         }
+        // flashlight
+        {
+            gl::ubo_update(flashlight_ubo, {0, sizeof(flashlight), &flashlight });
+        }
+
         // render default objects
         {
             gl::shader_use(material_shader);

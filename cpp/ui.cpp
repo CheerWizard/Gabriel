@@ -215,6 +215,24 @@ namespace ui {
         nk_label(nk, std::to_string(max).c_str(), NK_TEXT_LEFT);
     }
 
+    void color_picker(const char* label, glm::vec4& color) {
+        nk_layout_row_dynamic(nk, 20, 1);
+        nk_label(nk, label, NK_TEXT_LEFT);
+        nk_layout_row_dynamic(nk, 25, 1);
+        nk_colorf c = { color.r, color.g, color.b };
+        if (nk_combo_begin_color(nk, nk_rgb_cf(c), nk_vec2(nk_widget_width(nk),400))) {
+            nk_layout_row_dynamic(nk, 120, 1);
+            c = nk_color_picker(nk, c, NK_RGB);
+            nk_layout_row_dynamic(nk, 25, 1);
+            color.r = nk_propertyf(nk, "#R:", 0, color.r, 1.0f, 0.01f,0.005f);
+            color.g = nk_propertyf(nk, "#G:", 0, color.g, 1.0f, 0.01f,0.005f);
+            color.b = nk_propertyf(nk, "#B:", 0, color.b, 1.0f, 0.01f,0.005f);
+            color.b = nk_propertyf(nk, "#A:", 0, color.a, 1.0f, 0.01f,0.005f);
+            color = { c.r, c.g, c.b, c.a };
+            nk_combo_end(nk);
+        }
+    }
+
     void checkbox(const char* label, int* value) {
         nk_layout_row_dynamic(nk, 20, 1);
         nk_checkbox_label(nk, label, value);

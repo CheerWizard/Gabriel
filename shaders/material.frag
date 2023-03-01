@@ -16,73 +16,76 @@ vec2 UV;
 vec3 N;
 
 struct LightPhong {
-    vec3 position;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float refraction;
+    vec3 position; // vec3 position
+    vec4 color;  // vec3 color + float refraction
 };
 
 struct LightDirectional {
     vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float refraction;
+    vec3 color;
 };
 
 struct LightPoint {
-    vec4 position; // vec3 position + float constant
-    vec4 ambient; // vec3 ambient + float linear
-    vec4 diffuse; // vec3 diffuse + float quadratic
-    vec4 specular; // vec3 specular + float refraction
+    vec3 position;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
+    float refraction;
 };
 
 struct LightSpot {
     vec3 position;
     vec3 direction;
+    vec3 color;
     float cutoff;
-    float outer_cutoff;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    float outer;
     float refraction;
 };
 
 struct Material {
-    // base color
+// base color
     vec4 color;
-    // diffuse
-    float diffuse_factor;
-    sampler2D diffuse;
-    bool enable_diffuse;
-    // specularity
-    float specular_factor;
-    sampler2D specular;
-    bool enable_specular;
-    float shininess;
-    // environment
-    samplerCube skybox;
-    bool enable_skybox;
-    float reflection;
-    float refraction;
-    // bumping
+    sampler2D albedo;
+    bool enable_albedo;
+// bumping
     sampler2D normal;
     bool enable_normal;
-    // parallax
+// parallax
     sampler2D parallax;
     bool enable_parallax;
     float height_scale;
     float parallax_min_layers;
     float parallax_max_layers;
+// metalness
+    float metallic_factor;
+    sampler2D metallic;
+    bool enable_metallic;
+// roughness
+    float roughness_factor;
+    sampler2D roughness;
+    bool enable_roughness;
+// AO
+    float ao_factor;
+    sampler2D ao;
+    bool enable_ao;
+// env
+    samplerCube env;
+    bool enable_env;
+    float reflection;
+    float refraction;
 };
 
 layout (std140, binding = 1) uniform Sunlight {
-    LightPoint sunlight;
+    LightDirectional sunlight;
 };
 
 layout (std140, binding = 2) uniform Lights {
     LightPoint light_points[4];
+};
+
+layout (std140, binding = 3) uniform FlashLight {
+    LightSpot flashlight;
 };
 
 uniform Material material;
@@ -100,22 +103,6 @@ vec3 sample_offset_directions[20] = vec3[]
     vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
-vec3 diffuse_function(vec3 light_dir, vec3 light_ambient, vec3 light_diffuse, vec3 material_diffuse)
-{
-    vec3 ambience = material.color.rgb * light_ambient * material_diffuse;
-    float diff_factor = max(dot(N, light_dir), 0);
-    vec3 diffuse = material.diffuse_factor * diff_factor * light_diffuse * material_diffuse;
-    return ambience + diffuse;
-}
-
-vec3 specular_function(vec3 light_dir, vec3 light_specular, vec3 material_specular)
-{
-    vec3 view_dir = normalize(tangent_view_pos - tangent_pos);
-    vec3 H = normalize(view_dir + light_dir);
-    float spec_factor = pow(max(dot(N, H), 0), material.shininess);
-    return material.specular_factor * spec_factor * light_specular * material_specular;
-}
-
 float attenuation_function(vec3 light_position, float q, float l, float c) {
     float d = length(light_position - tangent_pos);
     return 1.0 / ( q * d * d + l * d + c );
@@ -123,6 +110,8 @@ float attenuation_function(vec3 light_position, float q, float l, float c) {
 
 const float near = 0.1;
 const float far  = 100.0;
+
+const float PI   = 3.14159265359;
 
 float linear_depth(float depth) {
     // convert to NDC and then apply reversed non-linear equation
@@ -133,14 +122,14 @@ float linear_depth(float depth) {
 vec3 reflection_function() {
     vec3 I = normalize(tangent_pos - tangent_view_pos);
     vec3 R = reflect(I, N) * material.reflection;
-    return texture(material.skybox, R).rgb;
+    return texture(material.env, R).rgb;
 }
 
 vec3 refraction_function(float light_refraction) {
     float ratio = light_refraction / material.refraction;
     vec3 I = normalize(tangent_pos - tangent_view_pos);
     vec3 R = refract(I, N, ratio);
-    return texture(material.skybox, R).rgb;
+    return texture(material.env, R).rgb;
 }
 
 float direct_shadow_function(vec3 light_dir) {
@@ -227,6 +216,112 @@ vec2 parallax_function(vec2 uv, vec3 view_dir) {
     return final_uv;
 }
 
+vec3 fresnel_shlick(float cos_theta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
+}
+
+float distribution_ggx(vec3 H, float roughness)
+{
+    float a   = roughness * roughness;
+    float a2  = a * a;
+    float NH  = max(dot(N, H), 0);
+    float NH2 = NH * NH;
+    float x = (NH2 * (a2 - 1.0) + 1.0);
+
+    return a2 / (PI * x * x);
+}
+
+float geometry_shlick_ggx(float NV, float roughness)
+{
+    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0; // depends on light source type, for IBL it will change
+
+    return NV / (NV * (1.0 - k) + k);
+}
+
+float geometry_smith(vec3 V, vec3 L, float roughness)
+{
+    float NV = max(dot(N, V), 0);
+    float NL = max(dot(N, L), 0);
+    return geometry_shlick_ggx(NV, roughness) * geometry_shlick_ggx(NL, roughness);
+}
+
+vec3 lambert(vec3 kd, vec3 albedo)
+{
+    return kd * albedo / PI;
+}
+
+vec3 pbr(vec3 L, vec3 light_color, float radiance_factor, vec3 albedo, float metallic, float roughness) {
+
+    vec3 V = normalize(tangent_view_pos - tangent_pos);
+    vec3 H = normalize(V + L);
+    vec3 radiance = light_color * radiance_factor;
+
+    // diffuse refraction/specular reflection ratio on surface
+    vec3 F0 = vec3(0.04); // base reflection 0.04 covers most of dielectrics
+    F0      = mix(F0, albedo, metallic); // F0 = albedo color if it's a complete metal
+    vec3 F  = fresnel_shlick(max(dot(H, V), 0), F0);
+
+    // normal distribution halfway vector along rough surface
+    float D = distribution_ggx(H, roughness);
+
+    // geometry obstruction and geometry shadowing of microfacets
+    float G = geometry_smith(V, L, roughness);
+
+    // BRDF Cook-Torrance approximation
+    float y = 0.0001; // infinetely small number used when dot product N/V or N/L returns 0
+    vec3 specular = (D * G * F) / ( 4.0 * max(dot(N, V), 0) * max(dot(N, L), 0) + y);
+
+    // light contribution to reflectance equation
+    vec3 ks = F;
+    vec3 kd = vec3(1.0) - ks;
+    kd *= 1.0 - metallic;
+
+    // diffuse absorption/scatter using Lambert function
+    vec3 diffuse = lambert(kd, albedo);
+
+    // solve reflectance equation
+    return (diffuse + specular) * radiance * max(dot(N, L), 0);
+}
+
+vec3 pbr(LightPoint light_point, vec3 albedo, float metallic, float roughness) {
+    vec3 tangent_light_pos = TBN * light_point.position;
+    vec3 light_dir = normalize(tangent_light_pos - tangent_pos);
+    vec3 light_color = light_point.color;
+    float constant  = light_point.constant;
+    float linear    = light_point.linear;
+    float quadratic = light_point.quadratic;
+    float A = attenuation_function(tangent_light_pos, quadratic, linear, constant);
+    float light_point_shadow = point_shadow_function(tangent_light_pos);
+    float radiance_factor = A * (1.0 - light_point_shadow);
+
+    return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
+}
+
+vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness) {
+    vec3 tangent_light_pos = TBN * light_spot.position;
+    vec3 tangent_spot_dir = TBN * light_spot.direction;
+    vec3 light_dir = normalize(tangent_light_pos - tangent_pos);
+    vec3 light_color = light_spot.color;
+    vec3 spot_dir       = normalize(-tangent_spot_dir);
+    float theta         = dot(light_dir, spot_dir);
+    float cutoff        = light_spot.cutoff;
+    float gamma         = light_spot.outer;
+    float epsilon       = cutoff - gamma;
+    float I             = clamp((theta - gamma) / epsilon, 0.0, 1.0);
+    float spot_shadow = direct_shadow_function(light_dir);
+    float radiance_factor = I * (1.0 - spot_shadow);
+
+    return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
+}
+
+vec3 pbr(LightDirectional light_direct, vec3 albedo, float metallic, float roughness) {
+    vec3 light_dir = TBN * light_direct.direction;
+    vec3 light_color = light_direct.color;
+    float light_direct_shadow = direct_shadow_function(light_dir);
+    float radiance_factor = 1.0 - light_direct_shadow;
+    return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
+}
+
 void main()
 {
     // parallax mapping
@@ -246,80 +341,49 @@ void main()
         N = normalize(tangent_normal);
     }
 
-    // other mappings
-    vec4 material_diffuse = vec4(0.5, 0.5, 0.5, 1.0);
-    if (material.enable_diffuse) {
-        material_diffuse = texture(material.diffuse, UV);
+    // albedo mapping
+    vec4 albedo = material.color;
+    if (material.enable_albedo) {
+        albedo *= texture(material.albedo, UV);
     }
 
-    vec3 material_specular = vec3(1.0, 1.0, 1.0);
-    if (material.enable_specular) {
-        material_specular = texture(material.specular, UV).rgb;
+    // metal mapping
+    float metallic = material.metallic_factor;
+    if (material.enable_metallic) {
+        metallic *= texture(material.metallic, UV).r;
     }
 
-    vec3 diffuse = vec3(0.0);
-    vec3 specular = vec3(0.0);
-
-    // sunlight
-    LightPoint light_point = sunlight;
-    vec3 light_point_pos = TBN * light_point.position.xyz;
-    vec3 light_point_dir = normalize(light_point_pos - tangent_pos);
-    float constant = light_point.position.w;
-    float linear = light_point.ambient.w;
-    float quadratic = light_point.diffuse.w;
-    float refraction = light_point.specular.w;
-    float A = attenuation_function(light_point_pos, quadratic, linear, constant);
-    float light_point_shadow = point_shadow_function(light_point_pos);
-    diffuse += diffuse_function(light_point_dir, light_point.ambient.rgb, light_point.diffuse.rgb, material_diffuse.rgb) * A * (1.0 - light_point_shadow);
-    specular += specular_function(light_point_dir, light_point.specular.rgb, material_specular) * A * (1.0 - light_point_shadow);
-
-    // point lights
-    for (int i = 0 ; i < light_points.length() ; i++) {
-        light_point = light_points[i];
-        light_point_pos = TBN * light_point.position.xyz;
-        light_point_dir = normalize(light_point_pos - tangent_pos);
-        constant = light_point.position.w;
-        linear = light_point.ambient.w;
-        quadratic = light_point.diffuse.w;
-        refraction = light_point.specular.w;
-        A = attenuation_function(light_point_pos, quadratic, linear, constant);
-        light_point_shadow = point_shadow_function(light_point_pos);
-        diffuse += diffuse_function(light_point_dir, light_point.ambient.rgb, light_point.diffuse.rgb, material_diffuse.rgb) * A * (1.0 - light_point_shadow);
-        specular += specular_function(light_point_dir, light_point.specular.rgb, material_specular) * A * (1.0 - light_point_shadow);
+    // roughness mapping
+    float roughness = material.roughness_factor;
+    if (material.enable_roughness) {
+        roughness *= texture(material.roughness, UV).r;
     }
 
-//    vec3 phong_light_dir = normalize(tangent_light_phong_pos - tangent_pos);
-//    float phong_shadow = point_shadow_function(tangent_light_phong_pos);
-//
-//    diffuse += diffuse_function(phong_light_dir, light_phong.ambient, light_phong.diffuse, material_diffuse.rgb) * (1.0 - phong_shadow);
-//    specular += specular_function(phong_light_dir, light_phong.specular, material_specular) * (1.0 - phong_shadow);
+    // AO mapping
+    float ao = material.ao_factor;
+    if (material.enable_ao) {
+        ao *= texture(material.ao, UV).r;
+    }
 
-//    float direct_shadow = direct_shadow_function(tangent_light_direct_dir);
-//    diffuse += diffuse_function(tangent_light_direct_dir, light_directional.ambient, light_directional.diffuse, material_diffuse.rgb) * (1.0 - direct_shadow);
-//    specular += specular_function(tangent_light_direct_dir, light_directional.specular, material_specular) * (1.0 - direct_shadow);
+    // PBR
+    vec3 Lo = vec3(0);
 
-//    vec3 spot_light_dir = normalize(tangent_light_spot_pos - tangent_pos);
-//    vec3 spot_dir       = normalize(-tangent_light_spot_dir);
-//    float theta         = dot(spot_light_dir, spot_dir);
-//    float gamma         = light_spot.outer_cutoff;
-//    float epsilon       = light_spot.cutoff - gamma;
-//    float I             = clamp((theta - gamma) / epsilon, 0.0, 1.0);
-//    float spot_shadow = direct_shadow_function(spot_light_dir);
-//    diffuse += diffuse_function(spot_light_dir, light_spot.ambient, light_spot.diffuse, material_diffuse.rgb) * I;
-//    specular += specular_function(spot_light_dir, light_spot.specular, material_specular) * I;
+    // PBR sunlight
+    Lo += pbr(sunlight, albedo.rgb, metallic, roughness);
 
-//    if (material.enable_skybox) {
-//        vec3 reflection = reflection_function();
-//        vec3 phong_refraction = refraction_function(light_phong.refraction);
-//        vec3 directional_refraction = refraction_function(light_directional.refraction);
-//        vec3 point_refraction = refraction_function(light_point.refraction);
-//        vec3 spot_refraction = refraction_function(light_spot.refraction);
-//        vec3 refraction = spot_refraction;
-//    }
+    // PBR multiple point lights
+    int light_points_size = light_points.length();
+    for (int i = 0 ; i < light_points_size ; i++) {
+        Lo += pbr(light_points[i], albedo.rgb, metallic, roughness);
+    }
 
-    vec3 final_color = diffuse.rgb + specular;
+    // PBR flashlight
+    Lo += pbr(flashlight, albedo.rgb, metallic, roughness);
 
-    frag_color = vec4(final_color, material.color.a * material_diffuse.a);
+    vec3 ambient = vec3(0.03) * albedo.rgb * ao;
+    vec3 final_color = Lo + ambient;
+
+    frag_color = vec4(final_color, albedo.a);
 
     float brightness = dot(frag_color.rgb, vec3(0.2126, 0.7152, 0.0722));
     if (brightness > 1.0) {
@@ -328,6 +392,6 @@ void main()
         bright_color = vec4(0, 0, 0, 1);
     }
 
-//    fragment = vec4(fragment_color, 1.0);
-//    fragment = vec4(vec3(linear_depth(gl_FragCoord.z) / far), 1.0);
+    //    fragment = vec4(fragment_color, 1.0);
+    //    fragment = vec4(vec3(linear_depth(gl_FragCoord.z) / far), 1.0);
 }

@@ -3,6 +3,7 @@
 #include <shader.h>
 #include <buffers.h>
 #include <draw.h>
+#include <geometry.h>
 
 #include <gtc/type_ptr.hpp>
 

@@ -301,10 +301,10 @@ namespace gl {
         glGenBuffers(1, &ubo);
 
         glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-        glBufferData(GL_UNIFORM_BUFFER, size, null, GL_STATIC_DRAW);
+        glBufferData(GL_UNIFORM_BUFFER, size, null, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        glBindBufferRange(GL_UNIFORM_BUFFER, binding, ubo, 0, size);
+        glBindBufferBase(GL_UNIFORM_BUFFER, binding, ubo);
 
         return ubo;
     }
@@ -315,8 +315,11 @@ namespace gl {
 
     void ubo_update(u32 ubo, const ubo_data& ubo_data) {
         glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+        ubo_update(ubo_data);
+    }
+
+    void ubo_update(const ubo_data& ubo_data) {
         glBufferSubData(GL_UNIFORM_BUFFER, ubo_data.offset, ubo_data.size, ubo_data.data);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
     void ubo_free(u32 ubo) {
