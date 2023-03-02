@@ -14,11 +14,11 @@ namespace gl {
 
     template<typename T>
     struct sphere_vertices final {
-        int count = 0;
         T* vertices;
+        int count = 0;
 
         inline size_t size() const { return sizeof(T) * count; }
-        inline float* to_float() const { return (float*) &vertices[0].pos.x; }
+        inline float* to_float() const { return (float*) vertices; }
     };
 
     template<typename T>
@@ -94,7 +94,7 @@ namespace gl {
         }
 
         sphere.indices = new u32[indices.size()];
-        memcpy(sphere.indices, indices.data(), indices.size());
+        memcpy(sphere.indices, indices.data(), indices.size() * sizeof(u32));
 
         drawable.index_count = (int) indices.size();
 

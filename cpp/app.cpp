@@ -537,11 +537,13 @@ namespace app {
         flashlight.position = {camera.position, 0 };
         flashlight.direction = {camera.front, 0 };
         // rotate object each frame
-        float f = 0.1f;
+        float f = 0.05f;
+        sphere_transform.rotation.x += f;
         sphere_transform.rotation.y += f;
+        sphere_transform.rotation.z += f;
         // translate point lights up/down
         for (auto& point_light : point_lights) {
-            point_light.position.y = 4 * sin(t/2) + 2;
+            point_light.position.y = 10 * sin(t/2) + 2;
         }
         // sorting transparent drawables
         transparent_objects.clear();
