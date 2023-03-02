@@ -10,7 +10,7 @@ namespace io {
     using namespace gl;
 
     vertex_format vertex_mesh::format = {
-            { vec3, vec2, vec3, vec3, vec3 },
+            { vec3, vec2, vec3, vec3 },
             sizeof(vertex_mesh)
     };
 
@@ -42,12 +42,6 @@ namespace io {
                 mesh->mTangents[i].z,
         };
 
-        vertex.bitangent = {
-                mesh->mBitangents[i].x,
-                mesh->mBitangents[i].y,
-                mesh->mBitangents[i].z,
-        };
-
         return vertex;
     }
 
@@ -59,7 +53,7 @@ namespace io {
             const std::string& directory,
             u32 flags,
             texture& texture,
-            const texture_2d_params& params = {}
+            const texture_params& params = {}
     ) {
         aiString texture_file;
         material->Get(AI_MATKEY_TEXTURE(type, 0), texture_file);
@@ -72,7 +66,7 @@ namespace io {
             return;
         }
 
-        gl::texture2d_init(texture, texture_filepath.c_str(), flags & aiProcess_FlipUVs, params);
+        gl::texture_init(texture, texture_filepath.c_str(), flags & aiProcess_FlipUVs, params);
         if (texture.id != invalid_texture) {
             s_material_cache[texture_filepath] = texture;
         }
@@ -122,7 +116,9 @@ namespace io {
                 result.material_index = mesh->mMaterialIndex;
 
                 gl::material result_material;
-                gl::texture_2d_params material_params;
+                gl::texture_params material_params;
+                material_params.generate_mipmap = true;
+                material_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
                 material_params.srgb = true;
                 read_material(material, aiTextureType_BASE_COLOR, directory, flags, result_material.albedo, material_params);

@@ -28,7 +28,7 @@ namespace gl {
     };
 
     vertex_format vertex_tbn::format = {
-            { vec3, vec2, vec3, vec3, vec3 },
+            { vec3, vec2, vec3, vec3 },
             sizeof(vertex_tbn)
     };
 

@@ -27,20 +27,13 @@ namespace gl {
         glm::vec2 duv_1 = uv1 - uv0;
         glm::vec2 duv_2 = uv2 - uv0;
 
-        // Calculate tangent and bitangent with formula
+        // Calculate tangent
         float r = 1.0f / (duv_1.x * duv_2.y - duv_1.y * duv_2.x);
-
         glm::vec3 tangent = (dpos_1 * duv_2.y - dpos_2 * duv_1.y) * r;
         v0->tangent = tangent;
         v1->tangent = tangent;
         v2->tangent = tangent;
         v3->tangent = tangent;
-
-        glm::vec3 bitangent = (dpos_2 * duv_1.x - dpos_1 * duv_2.x) * r;
-        v0->bitangent = bitangent;
-        v1->bitangent = bitangent;
-        v2->bitangent = bitangent;
-        v3->bitangent = bitangent;
     }
 
 }

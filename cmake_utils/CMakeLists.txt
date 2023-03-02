@@ -2,6 +2,10 @@ if(DEBUG)
     add_definitions(-DDEBUG=1)
 endif(DEBUG)
 
+if(UI)
+    add_definitions(-DUI=1)
+endif(UI)
+
 # copying target dir to destination dir. If destination does not exist, create it.
 macro(copy_dir dir1 dir2)
     set(srcDir ${CMAKE_SOURCE_DIR}/${dir1})

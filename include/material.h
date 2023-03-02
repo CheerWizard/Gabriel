@@ -43,6 +43,9 @@ namespace gl {
         bool enable_env = false;
         float reflection = 1;
         float refraction = 1;
+        // env irradiance
+        texture env_irradiance = { 0,  GL_TEXTURE_CUBE_MAP, { "env_irradiance", 9 } };
+        bool enable_env_irradiance = false;
     };
 
     material material_init(

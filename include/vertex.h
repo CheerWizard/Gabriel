@@ -67,7 +67,6 @@ namespace gl {
         glm::fvec2 uv = { 0, 0 };
         glm::fvec3 normal = { 0, 0, 0 };
         glm::fvec3 tangent = { 0, 0, 0 };
-        glm::fvec3 bitangent = { 0, 0, 0 };
     };
 
     struct vertex_data_t final {

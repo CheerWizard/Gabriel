@@ -19,6 +19,7 @@ namespace gl {
         T v2 = { { -0.5f, -0.5f, 0 } };
         T v3 = { { -0.5, 0.5f, 0 } };
 
+        inline size_t size() const { return sizeof(rect_vertices<T>); }
         inline float* to_float() const { return (float*) &v0.pos.x; }
     };
 

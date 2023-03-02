@@ -45,6 +45,7 @@ namespace gl {
         T v22 = { { 0.5f,-0.5f,-0.5f } };
         T v23 = { { 0.5f,-0.5f,0.5f } };
 
+        inline size_t size() const { return sizeof(cube_vertices<T>); }
         inline float* to_float() const { return (float*) &v0.pos.x; }
     };
 

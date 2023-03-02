@@ -45,7 +45,7 @@ namespace gl {
         std::vector<drawable_elements> elements;
     };
 
-    void shadow_end(u32 fbo, int viewport_width, int viewport_height);
+    void shadow_end();
 
     void direct_shadow_init(const shadow_props& props, const glm::vec3& light_dir);
     void direct_shadow_free();

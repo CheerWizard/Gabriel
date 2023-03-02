@@ -15,6 +15,12 @@ namespace io {
         u8* data;
     };
 
+    struct hdr_image_data final {
+        int width, height, channels;
+        float* data;
+    };
+
     image_data image_read(const char* filepath, bool flip_uv = false);
+    hdr_image_data hdr_image_read(const char* filepath, bool flip_uv = false);
 
 }

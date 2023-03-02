@@ -40,4 +40,18 @@ namespace io {
         return result;
     }
 
+    hdr_image_data hdr_image_read(const char* filepath, bool flip_uv) {
+        hdr_image_data result;
+
+        stbi_set_flip_vertically_on_load(flip_uv);
+
+        result.data = stbi_loadf(filepath, &result.width, &result.height, &result.channels, 0);
+        if (!result.data) {
+            print_err("image_read(): failed to read image " << filepath);
+            return result;
+        }
+
+        return result;
+    }
+
 }

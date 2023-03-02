@@ -14,6 +14,7 @@ in vec3 tangent_view_pos;
 
 vec2 UV;
 vec3 N;
+vec3 V;
 
 struct LightPhong {
     vec3 position; // vec3 position
@@ -74,6 +75,9 @@ struct Material {
     bool enable_env;
     float reflection;
     float refraction;
+// env irradiance
+    samplerCube env_irradiance;
+    bool enable_env_irradiance;
 };
 
 layout (std140, binding = 1) uniform Sunlight {
@@ -120,14 +124,14 @@ float linear_depth(float depth) {
 }
 
 vec3 reflection_function() {
-    vec3 I = normalize(tangent_pos - tangent_view_pos);
+    vec3 I = -V;
     vec3 R = reflect(I, N) * material.reflection;
     return texture(material.env, R).rgb;
 }
 
 vec3 refraction_function(float light_refraction) {
     float ratio = light_refraction / material.refraction;
-    vec3 I = normalize(tangent_pos - tangent_view_pos);
+    vec3 I = -V;
     vec3 R = refract(I, N, ratio);
     return texture(material.env, R).rgb;
 }
@@ -178,17 +182,17 @@ float point_shadow_function(vec3 light_pos) {
     return shadow;
 }
 
-vec2 parallax_function(vec2 uv, vec3 view_dir) {
+vec2 parallax_function(vec2 uv) {
     float height_scale = material.height_scale;
     float min_layers = material.parallax_min_layers;
     float max_layers = material.parallax_max_layers;
-    float layers = mix(max_layers, min_layers, abs(dot(vec3(0.0, 0.0, 1.0), view_dir)));
+    float layers = mix(max_layers, min_layers, abs(dot(vec3(0.0, 0.0, 1.0), V)));
     // calculate the size of each layer
     float layer_depth = 1.0 / layers;
     // depth of current layer
     float current_layer_depth = 0.0;
     // the amount to shift the texture coordinates per layer (from vector P)
-    vec2 P = view_dir.xy / view_dir.z * height_scale;
+    vec2 P = V.xy / V.z * height_scale;
     vec2 delta_uv = P / layers;
 
     vec2 current_uv = uv;
@@ -216,8 +220,8 @@ vec2 parallax_function(vec2 uv, vec3 view_dir) {
     return final_uv;
 }
 
-vec3 fresnel_shlick(float cos_theta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
+vec3 fresnel_shlick(float cos_theta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
 float distribution_ggx(vec3 H, float roughness)
@@ -252,14 +256,13 @@ vec3 lambert(vec3 kd, vec3 albedo)
 
 vec3 pbr(vec3 L, vec3 light_color, float radiance_factor, vec3 albedo, float metallic, float roughness) {
 
-    vec3 V = normalize(tangent_view_pos - tangent_pos);
     vec3 H = normalize(V + L);
     vec3 radiance = light_color * radiance_factor;
 
     // diffuse refraction/specular reflection ratio on surface
     vec3 F0 = vec3(0.04); // base reflection 0.04 covers most of dielectrics
     F0      = mix(F0, albedo, metallic); // F0 = albedo color if it's a complete metal
-    vec3 F  = fresnel_shlick(max(dot(H, V), 0), F0);
+    vec3 F  = fresnel_shlick(max(dot(H, V), 0), F0, roughness);
 
     // normal distribution halfway vector along rough surface
     float D = distribution_ggx(H, roughness);
@@ -324,9 +327,11 @@ vec3 pbr(LightDirectional light_direct, vec3 albedo, float metallic, float rough
 
 void main()
 {
+    V = normalize(tangent_view_pos - tangent_pos);
+
     // parallax mapping
     if (material.enable_parallax) {
-        UV = parallax_function(f_uv, normalize(tangent_view_pos - tangent_pos));
+        UV = parallax_function(f_uv);
         if (UV.x > 1.0 || UV.y > 1.0 || UV.x < 0.0 || UV.y < 0.0)
             discard;
     } else {
@@ -380,8 +385,19 @@ void main()
     // PBR flashlight
     Lo += pbr(flashlight, albedo.rgb, metallic, roughness);
 
+    // PRB ambient part
     vec3 ambient = vec3(0.03) * albedo.rgb * ao;
-    vec3 final_color = Lo + ambient;
+    // IBL irradiance mapping
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo.rgb, metallic);
+    vec3 irradiance = texture(material.env_irradiance, N).rgb;
+    vec3 kS = fresnel_shlick(max(dot(N, V), 0.0), F0, roughness);
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
+    vec3 diffuse = irradiance * albedo.rgb;
+    ambient = (kD * diffuse) * ao;
+
+    vec3 final_color = ambient + Lo;
 
     frag_color = vec4(final_color, albedo.a);
 

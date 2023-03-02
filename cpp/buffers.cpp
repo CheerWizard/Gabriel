@@ -48,7 +48,7 @@ namespace gl {
         glDeleteBuffers(1, &ibo);
     }
 
-    u32 ibo_init(const u32 indices[], u32 index_count, int alloc_type) {
+    u32 ibo_init(u32* indices, u32 index_count, int alloc_type) {
         u32 id;
         glGenBuffers(1, &id);
 
@@ -56,6 +56,33 @@ namespace gl {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * index_count, indices, alloc_type);
 
         return id;
+    }
+
+    u32 ibo_init(const u32* indices, u32 index_count, int alloc_type) {
+        u32 id;
+        glGenBuffers(1, &id);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * index_count, indices, alloc_type);
+
+        return id;
+    }
+
+    static void fbo_attach(render_buffer* rbo) {
+        // render buffer objects
+        if (rbo) {
+            glGenRenderbuffers(1, &rbo->id);
+            glBindRenderbuffer(GL_RENDERBUFFER, rbo->id);
+
+            if (rbo->samples > 1) {
+                glRenderbufferStorageMultisample(GL_RENDERBUFFER, rbo->samples, rbo->format, rbo->width, rbo->height);
+            } else {
+                glRenderbufferStorage(GL_RENDERBUFFER, rbo->format, rbo->width, rbo->height);
+            }
+
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, rbo->type, GL_RENDERBUFFER, rbo->id);
+            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        }
     }
 
     u32 fbo_init(
@@ -74,94 +101,107 @@ namespace gl {
             size_t colors_size = colors->size();
             for (int i = 0 ; i < colors_size ; i++) {
                 auto& color = colors->operator[](i);
+                auto& texture = color.view;
+                const auto& params = color.params;
+                const auto& data = color.data;
 
-                glGenTextures(1, &color.texture.id);
-                glBindTexture(color.texture.type, color.texture.id);
+                glGenTextures(1, &texture.id);
+                glBindTexture(texture.type, texture.id);
 
-                if (color.samples > 1) {
-                    glTexImage2DMultisample(
-                            color.texture.type,
-                            color.samples,
-                            color.internal_format,
-                            color.width, color.height,
-                            GL_TRUE
-                    );
-                } else {
-                    glTexImage2D(
-                            color.texture.type, 0,
-                            color.internal_format,
-                            color.width, color.height,
-                            0,
-                            color.data_format,
-                            color.primitive_type,
-                            null
-                    );
+                if (texture.type == GL_TEXTURE_CUBE_MAP) {
+                    for (int j = 0 ; j < 6 ; j++) {
+                        glTexImage2D(
+                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
+                                0,
+                                GL_COLOR_ATTACHMENT0 + i,
+                                data.width, data.height,
+                                0,
+                                GL_COLOR_ATTACHMENT0 + i,
+                                data.primitive_type,
+                                data.data
+                        );
+                    }
+
+                    texture_params_update(texture, params);
+                    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture.id, 0);
                 }
+                else {
+                    if (texture.type == GL_TEXTURE_2D_MULTISAMPLE) {
+                        glTexImage2DMultisample(
+                                texture.type,
+                                data.samples,
+                                data.internal_format,
+                                data.width, data.height,
+                                GL_TRUE
+                        );
+                    } else {
+                        glTexImage2D(
+                                texture.type, 0,
+                                data.internal_format,
+                                data.width, data.height,
+                                0,
+                                data.data_format,
+                                data.primitive_type,
+                                data.data
+                        );
+                    }
 
-                glTexParameteri(color.texture.type, GL_TEXTURE_MIN_FILTER, color.min_filter);
-                glTexParameteri(color.texture.type, GL_TEXTURE_MAG_FILTER, color.mag_filter);
-
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, color.texture.type, color.texture.id, 0);
+                    texture_params_update(texture, params);
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture.type, texture.id, 0);
+                }
             }
         }
 
         // depth attachment
         if (depth) {
-            glGenTextures(1, &depth->texture.id);
-            glBindTexture(depth->texture.type, depth->texture.id);
+            auto& texture = depth->view;
+            const auto& params = depth->params;
+            const auto& data = depth->data;
 
-            if (depth->texture.type == GL_TEXTURE_CUBE_MAP) {
+            glGenTextures(1, &texture.id);
+            glBindTexture(texture.type, texture.id);
+
+            if (texture.type == GL_TEXTURE_CUBE_MAP) {
                 for (int i = 0 ; i < 6 ; i++) {
                     glTexImage2D(
                             GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                             0,
                             GL_DEPTH_COMPONENT,
-                            depth->width, depth->height,
+                            data.width, data.height,
                             0,
                             GL_DEPTH_COMPONENT,
-                            depth->primitive_type,
-                            null
+                            data.primitive_type,
+                            data.data
                     );
                 }
 
-                glTexParameteri(depth->texture.type, GL_TEXTURE_MIN_FILTER, depth->min_filter);
-                glTexParameteri(depth->texture.type, GL_TEXTURE_MAG_FILTER, depth->mag_filter);
-                glTexParameteri(depth->texture.type, GL_TEXTURE_WRAP_S, depth->wrap_s);
-                glTexParameteri(depth->texture.type, GL_TEXTURE_WRAP_T, depth->wrap_t);
-                glTexParameteri(depth->texture.type, GL_TEXTURE_WRAP_R, depth->wrap_r);
-                glTexParameterfv(depth->texture.type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(depth->border));
-
-                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth->texture.id, 0);
+                texture_params_update(texture, params);
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture.id, 0);
             }
             else {
-                if (depth->samples > 1) {
+                if (texture.type == GL_TEXTURE_2D_MULTISAMPLE) {
                     glTexImage2DMultisample(
-                            depth->texture.type,
-                            depth->samples,
+                            texture.type,
+                            data.samples,
                             GL_DEPTH_COMPONENT,
-                            depth->width, depth->height,
+                            data.width, data.height,
                             GL_TRUE
                     );
                 } else {
                     glTexImage2D(
-                            depth->texture.type,
+                            texture.type,
                             0,
                             GL_DEPTH_COMPONENT,
-                            depth->width, depth->height,
+                            data.width, data.height,
                             0,
                             GL_DEPTH_COMPONENT,
-                            depth->primitive_type,
-                            null
+                            data.primitive_type,
+                            data.data
                     );
                 }
 
-                glTexParameteri(depth->texture.type, GL_TEXTURE_MIN_FILTER, depth->min_filter);
-                glTexParameteri(depth->texture.type, GL_TEXTURE_MAG_FILTER, depth->mag_filter);
-                glTexParameteri(depth->texture.type, GL_TEXTURE_WRAP_S, depth->wrap_s);
-                glTexParameteri(depth->texture.type, GL_TEXTURE_WRAP_T, depth->wrap_t);
-                glTexParameterfv(depth->texture.type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(depth->border));
-
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth->texture.type, depth->texture.id, 0);
+                texture_params_update(texture, params);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture.type, texture.id, 0);
             }
         }
 
@@ -172,7 +212,7 @@ namespace gl {
             u32 depth_stencil_type = depth_stencil->type;
             glBindTexture(depth_stencil_type, depth_stencil_id);
 
-            if (depth_stencil->samples > 1) {
+            if (depth_stencil_type == GL_TEXTURE_2D_MULTISAMPLE) {
                 glTexImage2DMultisample(
                         depth_stencil_type,
                         depth_stencil->samples,
@@ -188,34 +228,14 @@ namespace gl {
                         0,
                         GL_DEPTH_STENCIL,
                         depth_stencil->primitive_type,
-                        null
+                        depth_stencil->data
                 );
             }
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, depth_stencil_type, depth_stencil_id, 0);
         }
 
-        // render buffer objects
-        if (rbo) {
-            glGenRenderbuffers(1, &rbo->id);
-            glBindRenderbuffer(GL_RENDERBUFFER, rbo->id);
-
-            if (rbo->samples > 1) {
-                glRenderbufferStorageMultisample(
-                        GL_RENDERBUFFER,
-                        rbo->samples,
-                        GL_DEPTH24_STENCIL8,
-                        rbo->width, rbo->height);
-            } else {
-                glRenderbufferStorage(
-                        GL_RENDERBUFFER,
-                        GL_DEPTH24_STENCIL8,
-                        rbo->width, rbo->height);
-            }
-
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo->id);
-            glBindRenderbuffer(GL_RENDERBUFFER, 0);
-        }
+        fbo_attach(rbo);
 
         if (!colors || colors->empty()) {
             glDrawBuffer(GL_NONE);
@@ -240,6 +260,23 @@ namespace gl {
         return id;
     }
 
+    u32 fbo_init(render_buffer& rbo) {
+        u32 id;
+        glGenFramebuffers(1, &id);
+        fbo_bind(id);
+
+        fbo_attach(&rbo);
+
+        auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            print_err("fbo_init(): Failed to complete framebuffer!");
+            print_err("Error status=" << status);
+        }
+
+        fbo_unbind();
+        return id;
+    }
+
     void fbo_bind(u32 fbo) {
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     }
@@ -253,18 +290,18 @@ namespace gl {
     }
 
     void fbo_free_attachment(color_attachment& color) {
-        texture_free(color.texture.id);
+        texture_free(color.view.id);
     }
 
     void fbo_free_attachment(std::vector<color_attachment>& colors) {
         for (auto& color : colors) {
-            texture_free(color.texture.id);
+            texture_free(color.view.id);
         }
         colors.clear();
     }
 
     void fbo_free_attachment(depth_attachment& depth) {
-        texture_free(depth.texture.id);
+        texture_free(depth.view.id);
     }
 
     void fbo_free_attachment(depth_stencil_attachment& depth_stencil) {
@@ -294,6 +331,11 @@ namespace gl {
             }
             glDrawBuffers(buffers_size, buffers);
         }
+    }
+
+    void fbo_update(const render_buffer& rbo) {
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo.id);
+        glRenderbufferStorage(GL_RENDERBUFFER, rbo.format, rbo.width, rbo.height);
     }
 
     u32 ubo_init(u32 binding, long long size) {

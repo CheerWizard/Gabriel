@@ -6,11 +6,11 @@ namespace gl {
     static int internal_formats[4] = { GL_RED, GL_RG, GL_RGB, GL_RGBA };
     static int internal_formats_srgb[2] = { GL_SRGB, GL_SRGB_ALPHA };
 
-    void texture2d_init(
+    void texture_init(
             texture& texture,
             const char* filepath,
             bool flip_uv,
-            const texture_2d_params& params
+            const texture_params& params
     ) {
         io::image_data image = io::image_read(filepath, flip_uv);
         if (!image.data)
@@ -27,15 +27,15 @@ namespace gl {
             texture_data.internal_format = internal_formats[image.channels - 1];
         }
 
-        texture2d_init(texture, texture_data, params);
+        texture_init(texture, texture_data, params);
 
         free(image.data);
     }
 
-    void texture2d_init(
+    void texture_init(
             texture& texture,
             const texture_data& texture_data,
-            const texture_2d_params& params
+            const texture_params& params
     ) {
         u32 texture_type = GL_TEXTURE_2D;
         texture.type = texture_type;
@@ -54,11 +54,31 @@ namespace gl {
             glGenerateMipmap(texture_type);
         }
 
-        glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
-        glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, params.s);
-        glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, params.t);
-        glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, params.min_filter);
-        glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, params.mag_filter);
+        texture_params_update(texture, params);
+    }
+
+    void texture_hdr_init(
+            texture& texture,
+            const char* filepath,
+            bool flip_uv
+    ) {
+        io::hdr_image_data image = io::hdr_image_read(filepath, flip_uv);
+        if (!image.data)
+            return;
+
+        gl::texture_data texture_data = { image.width, image.height, GL_RGB16F, GL_RGB, GL_FLOAT, image.data };
+
+        texture_params params;
+        params.min_filter = GL_LINEAR;
+        params.mag_filter = GL_LINEAR;
+        params.s = GL_CLAMP_TO_EDGE;
+        params.t = GL_CLAMP_TO_EDGE;
+        params.r = GL_CLAMP_TO_EDGE;
+        params.generate_mipmap = false;
+
+        texture_init(texture, texture_data, params);
+
+        free(image.data);
     }
 
     void texture_free(u32 tbo) {
@@ -80,29 +100,25 @@ namespace gl {
         glBindTexture(texture.type, texture.id);
     }
 
-    void texture_update(const texture& texture, const texture_2d_params& params) {
-        glBindTexture(texture.type, texture.id);
-        glTexParameterfv(texture.type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
-        glTexParameteri(texture.type, GL_TEXTURE_WRAP_S, params.s);
-        glTexParameteri(texture.type, GL_TEXTURE_WRAP_T, params.t);
-        glTexParameteri(texture.type, GL_TEXTURE_MIN_FILTER, params.min_filter);
-        glTexParameteri(texture.type, GL_TEXTURE_MAG_FILTER, params.mag_filter);
+    void texture_params_update(const texture& texture, const texture_params& params) {
+        u32 texture_type = texture.type;
+        glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
+        glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, params.s);
+        glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, params.t);
+        glTexParameteri(texture_type, GL_TEXTURE_WRAP_R, params.r);
+        glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, params.min_filter);
+        glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, params.mag_filter);
     }
 
-    void texture_update(const texture& texture, const texture_3d_params& params) {
+    void texture_params_bind(const texture& texture, const texture_params& params) {
         glBindTexture(texture.type, texture.id);
-        glTexParameterfv(texture.type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
-        glTexParameteri(texture.type, GL_TEXTURE_WRAP_S, params.s);
-        glTexParameteri(texture.type, GL_TEXTURE_WRAP_T, params.t);
-        glTexParameteri(texture.type, GL_TEXTURE_WRAP_R, params.r);
-        glTexParameteri(texture.type, GL_TEXTURE_MIN_FILTER, params.min_filter);
-        glTexParameteri(texture.type, GL_TEXTURE_MAG_FILTER, params.mag_filter);
+        texture_params_update(texture, params);
     }
 
     void texture_cube_init(
             texture& texture,
             const std::array<texture_face, 6>& faces,
-            const texture_3d_params& params
+            const texture_params& params
     ) {
         texture.type = GL_TEXTURE_CUBE_MAP;
         glGenTextures(1, &texture.id);
@@ -148,12 +164,30 @@ namespace gl {
             free(data);
         }
 
-        glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, params.s);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, params.t);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, params.r);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, params.min_filter);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, params.mag_filter);
+        texture_params_update(texture, params);
+    }
+
+    void texture_cube_init(
+            texture& texture,
+            const texture_data& data,
+            const texture_params& params
+    ) {
+        texture.type = GL_TEXTURE_CUBE_MAP;
+        glGenTextures(1, &texture.id);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture.id);
+
+        for (int i = 0 ; i < 6 ; i++) {
+            glTexImage2D(
+                    GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+                    data.internal_format,
+                    data.width, data.height, 0,
+                    data.data_format,
+                    data.primitive_type,
+                    data.data
+            );
+        }
+
+        texture_params_update(texture, params);
     }
 
 }

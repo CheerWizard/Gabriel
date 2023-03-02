@@ -13,30 +13,38 @@ namespace gl {
             const char* ao_path
     ) {
         material new_material;
+        gl::texture_params params;
+        params.generate_mipmap = true;
+        params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+
         if (albedo_path) {
-            gl::texture_2d_params params;
             params.srgb = true;
-            gl::texture2d_init(new_material.albedo, albedo_path, flip_uv, params);
+            gl::texture_init(new_material.albedo, albedo_path, flip_uv, params);
             new_material.enable_albedo = new_material.albedo.id != invalid_texture;
         }
         if (normal_path) {
-            gl::texture2d_init(new_material.normal, normal_path, flip_uv);
+            params.srgb = false;
+            gl::texture_init(new_material.normal, normal_path, flip_uv);
             new_material.enable_normal = new_material.normal.id != invalid_texture;
         }
         if (parallax_path) {
-            gl::texture2d_init(new_material.parallax, parallax_path, flip_uv);
+            params.srgb = false;
+            gl::texture_init(new_material.parallax, parallax_path, flip_uv);
             new_material.enable_parallax = new_material.parallax.id != invalid_texture;
         }
         if (metallic_path) {
-            gl::texture2d_init(new_material.metallic, metallic_path, flip_uv);
+            params.srgb = false;
+            gl::texture_init(new_material.metallic, metallic_path, flip_uv);
             new_material.enable_metallic = new_material.metallic.id != invalid_texture;
         }
         if (roughness_path) {
-            gl::texture2d_init(new_material.roughness, roughness_path, flip_uv);
+            params.srgb = false;
+            gl::texture_init(new_material.roughness, roughness_path, flip_uv);
             new_material.enable_roughness = new_material.roughness.id != invalid_texture;
         }
         if (ao_path) {
-            gl::texture2d_init(new_material.ao, ao_path, flip_uv);
+            params.srgb = false;
+            gl::texture_init(new_material.ao, ao_path, flip_uv);
             new_material.enable_ao = new_material.ao.id != invalid_texture;
         }
         return new_material;
@@ -84,6 +92,12 @@ namespace gl {
             glActiveTexture(GL_TEXTURE0 + material.env.sampler.value);
             glBindTexture(material.env.type, material.env.id);
         }
+
+        if (material.enable_env_irradiance) {
+            shader_set_uniform_struct(shader, "material", material.env_irradiance.sampler);
+            glActiveTexture(GL_TEXTURE0 + material.env_irradiance.sampler.value);
+            glBindTexture(material.env_irradiance.type, material.env_irradiance.id);
+        }
     }
 
     void material_update(u32 shader, gl::material& material) {
@@ -111,6 +125,8 @@ namespace gl {
         shader_set_uniform_structb(shader, "material", "enable_env", material.enable_env);
         shader_set_uniform_structf(shader, "material", "reflection", material.reflection);
         shader_set_uniform_structf(shader, "material", "refraction", material.refraction);
+
+        shader_set_uniform_structb(shader, "material", "enable_env_irradiance", material.enable_env_irradiance);
     }
 
     void material_free(material& m) {
@@ -121,6 +137,7 @@ namespace gl {
         texture_free(m.roughness.id);
         texture_free(m.ao.id);
         texture_free(m.env.id);
+        texture_free(m.env_irradiance.id);
     }
 
 }

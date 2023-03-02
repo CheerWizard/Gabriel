@@ -16,6 +16,7 @@ namespace gl {
         T v1 = { { 0.5f, -0.5f, 0 } };
         T v2 = { { 0, 0.5f, 0 } };
 
+        inline size_t size() const { return sizeof(triangle<T>); }
         inline float* to_float() const { return (float*) &v0.pos.x; }
     };
 

@@ -29,8 +29,8 @@ namespace gl {
             "shaders/direct_shadow.frag"
         });
 
-        direct_shadow = { props.width, props.height };
-        direct_shadow.texture.sampler = {"direct_shadow_sampler", 0 };
+        direct_shadow.data = { props.width, props.height };
+        direct_shadow.view.sampler = {"direct_shadow_sampler", 0 };
 
         direct_shadow_fbo = gl::fbo_init(null, &direct_shadow, null, null);
 
@@ -47,12 +47,12 @@ namespace gl {
             "shaders/point_shadow.geom"
         });
 
-        point_shadow = { props.width, props.height };
-        point_shadow.texture.type = GL_TEXTURE_CUBE_MAP;
-        point_shadow.wrap_t = GL_CLAMP_TO_EDGE;
-        point_shadow.wrap_s = GL_CLAMP_TO_EDGE;
-        point_shadow.wrap_r = GL_CLAMP_TO_EDGE;
-        point_shadow.texture.sampler = { "point_shadow_sampler", 1 };
+        point_shadow.data = { props.width, props.height };
+        point_shadow.view.type = GL_TEXTURE_CUBE_MAP;
+        point_shadow.params.s = GL_CLAMP_TO_EDGE;
+        point_shadow.params.t = GL_CLAMP_TO_EDGE;
+        point_shadow.params.r = GL_CLAMP_TO_EDGE;
+        point_shadow.view.sampler = { "point_shadow_sampler", 1 };
 
         point_shadow_fbo = gl::fbo_init(null, &point_shadow, null, null);
 
@@ -92,13 +92,11 @@ namespace gl {
         shader_use(point_shadow_shader);
     }
 
-    void shadow_end(u32 fbo, int viewport_width, int viewport_height) {
+    void shadow_end() {
         shader_use(0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         glCullFace(GL_BACK);
-        fbo_bind(fbo);
-        glViewport(0, 0, viewport_width, viewport_height);
     }
 
     void direct_shadow_update(const glm::vec3& light_dir) {
@@ -135,12 +133,12 @@ namespace gl {
 
     void direct_shadow_update(u32 shader) {
         shader_set_uniform(shader, direct_light_space);
-        texture_update(shader, direct_shadow.texture);
+        texture_update(shader, direct_shadow.view);
     }
 
     void point_shadow_update(u32 shader) {
         shader_set_uniform(shader, point_shadow_far_plane);
-        texture_update(shader, point_shadow.texture);
+        texture_update(shader, point_shadow.view);
     }
 
     void direct_shadow_draw(transform& transform, const drawable_elements& drawable) {

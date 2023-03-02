@@ -24,7 +24,7 @@ namespace gl {
 
         glBindBuffer(GL_ARRAY_BUFFER, id);
         vertex_data_t vertex_data {};
-        vertex_data.size = sizeof(T);
+        vertex_data.size = geometry.size();
         vertex_data.data = geometry.to_float();
         glBufferData(GL_ARRAY_BUFFER, vertex_data.size, vertex_data.data, alloc_type);
 
@@ -60,36 +60,32 @@ namespace gl {
 
     void ibo_bind(u32 ibo);
     void ibo_free(u32 ibo);
-    u32 ibo_init(const u32 indices[], u32 index_count, int alloc_type);
+    u32 ibo_init(u32* indices, u32 index_count, int alloc_type);
+    u32 ibo_init(const u32* indices, u32 index_count, int alloc_type);
 
     struct color_attachment final {
-        int width = 800;
-        int height = 600;
-        int samples = 1;
-        int internal_format = GL_RGB;
-        u32 data_format = GL_RGB;
-        u32 primitive_type = GL_UNSIGNED_BYTE;
-        int min_filter = GL_LINEAR;
-        int mag_filter = GL_LINEAR;
-        gl::texture texture;
+        gl::texture view;
+        gl::texture_params params;
+        gl::texture_data data;
 
         color_attachment() = default;
-        color_attachment(int w, int h) : width(w), height(h) {}
-        color_attachment(int w, int h, int s) : width(w), height(h), samples(s) {}
+
+        color_attachment(int w, int h) {
+            data.width = w;
+            data.height = h;
+        }
+
+        color_attachment(int w, int h, int s) {
+            data.width = w;
+            data.height = h;
+            data.samples = s;
+        }
     };
 
     struct depth_attachment final {
-        int width = 800;
-        int height = 600;
-        int samples = 1;
-        u32 primitive_type = GL_FLOAT;
-        int min_filter = GL_NEAREST;
-        int mag_filter = GL_NEAREST;
-        int wrap_s = GL_CLAMP_TO_BORDER;
-        int wrap_t = GL_CLAMP_TO_BORDER;
-        int wrap_r = GL_CLAMP_TO_BORDER;
-        glm::vec4 border = { 1, 1, 1, 1 };
-        gl::texture texture;
+        gl::texture view;
+        gl::texture_params params;
+        gl::texture_data data;
     };
 
     struct depth_stencil_attachment final {
@@ -97,6 +93,7 @@ namespace gl {
         int height = 600;
         int samples = 1;
         u32 primitive_type = GL_UNSIGNED_INT_24_8;
+        void* data = null;
         u32 id = 0;
         u32 type = GL_TEXTURE_2D;
     };
@@ -104,8 +101,16 @@ namespace gl {
     struct render_buffer final {
         int width = 800;
         int height = 600;
+        int format = GL_DEPTH24_STENCIL8;
+        int type = GL_DEPTH_STENCIL_ATTACHMENT;
         int samples = 1;
         u32 id = 0;
+
+        render_buffer() = default;
+
+        render_buffer(int w, int h) : width(w), height(h) {}
+
+        render_buffer(int w, int h, int s) : width(w), height(h), samples(s) {}
     };
 
     u32 fbo_init(
@@ -114,10 +119,13 @@ namespace gl {
             depth_stencil_attachment* depth_stencil,
             render_buffer* rbo
     );
+    u32 fbo_init(render_buffer& rbo);
     void fbo_free(u32 fbo);
 
     void fbo_bind(u32 fbo);
     void fbo_unbind();
+
+    void fbo_update(const render_buffer& rbo);
 
     void fbo_free_attachment(color_attachment& color);
     void fbo_free_attachment(std::vector<color_attachment>& colors);
