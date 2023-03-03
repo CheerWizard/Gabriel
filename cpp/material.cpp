@@ -18,7 +18,7 @@ namespace gl {
         params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
         if (albedo_path) {
-            params.srgb = true;
+            params.srgb = false;
             gl::texture_init(new_material.albedo, albedo_path, flip_uv, params);
             new_material.enable_albedo = new_material.albedo.id != invalid_texture;
         }
@@ -87,16 +87,22 @@ namespace gl {
             glBindTexture(material.ao.type, material.ao.id);
         }
 
-        if (material.enable_env) {
-            shader_set_uniform_struct(shader, "material", material.env.sampler);
-            glActiveTexture(GL_TEXTURE0 + material.env.sampler.value);
-            glBindTexture(material.env.type, material.env.id);
-        }
-
         if (material.enable_env_irradiance) {
             shader_set_uniform_struct(shader, "material", material.env_irradiance.sampler);
             glActiveTexture(GL_TEXTURE0 + material.env_irradiance.sampler.value);
             glBindTexture(material.env_irradiance.type, material.env_irradiance.id);
+        }
+
+        if (material.enable_env_prefilter) {
+            shader_set_uniform_struct(shader, "material", material.env_prefilter.sampler);
+            glActiveTexture(GL_TEXTURE0 + material.env_prefilter.sampler.value);
+            glBindTexture(material.env_prefilter.type, material.env_prefilter.id);
+        }
+
+        if (material.enable_brdf_convolution) {
+            shader_set_uniform_struct(shader, "material", material.env_brdf_convolution.sampler);
+            glActiveTexture(GL_TEXTURE0 + material.env_brdf_convolution.sampler.value);
+            glBindTexture(material.env_brdf_convolution.type, material.env_brdf_convolution.id);
         }
     }
 
@@ -122,11 +128,12 @@ namespace gl {
         shader_set_uniform_structb(shader, "material", "enable_ao", material.enable_ao);
         shader_set_uniform_structf(shader, "material", "ao_factor", material.ao_factor);
 
-        shader_set_uniform_structb(shader, "material", "enable_env", material.enable_env);
-        shader_set_uniform_structf(shader, "material", "reflection", material.reflection);
-        shader_set_uniform_structf(shader, "material", "refraction", material.refraction);
-
         shader_set_uniform_structb(shader, "material", "enable_env_irradiance", material.enable_env_irradiance);
+
+        shader_set_uniform_structb(shader, "material", "enable_env_prefilter", material.enable_env_prefilter);
+        shader_set_uniform_structi(shader, "material", "env_prefilter_mip_levels", material.env_prefilter_mip_levels);
+
+        shader_set_uniform_structb(shader, "material", "enable_brdf_convolution", material.enable_brdf_convolution);
     }
 
     void material_free(material& m) {
@@ -136,8 +143,15 @@ namespace gl {
         texture_free(m.metallic.id);
         texture_free(m.roughness.id);
         texture_free(m.ao.id);
-        texture_free(m.env.id);
         texture_free(m.env_irradiance.id);
+        texture_free(m.env_prefilter.id);
+        texture_free(m.env_brdf_convolution.id);
+    }
+
+    void material_free(std::vector<material>& materials) {
+        for (auto& m : materials) {
+            material_free(m);
+        }
     }
 
 }

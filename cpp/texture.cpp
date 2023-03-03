@@ -100,6 +100,11 @@ namespace gl {
         glBindTexture(texture.type, texture.id);
     }
 
+    void texture_generate_mipmaps(const texture& t) {
+        glBindTexture(t.type, t.id);
+        glGenerateMipmap(t.type);
+    }
+
     void texture_params_update(const texture& texture, const texture_params& params) {
         u32 texture_type = texture.type;
         glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
@@ -188,6 +193,10 @@ namespace gl {
         }
 
         texture_params_update(texture, params);
+
+        if (params.generate_mipmap) {
+            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        }
     }
 
 }

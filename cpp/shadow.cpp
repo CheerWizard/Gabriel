@@ -34,7 +34,7 @@ namespace gl {
 
         direct_shadow_fbo = gl::fbo_init(null, &direct_shadow, null, null);
 
-        direct_shadow_begin();
+        shader_use(direct_shadow_shader);
         direct_shadow_update(light_dir);
     }
 

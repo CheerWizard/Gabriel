@@ -120,12 +120,12 @@ namespace io {
                 material_params.generate_mipmap = true;
                 material_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
-                material_params.srgb = true;
+                material_params.srgb = false;
                 read_material(material, aiTextureType_BASE_COLOR, directory, flags, result_material.albedo, material_params);
                 result_material.enable_albedo = result_material.albedo.id != invalid_texture;
 
                 material_params.srgb = false;
-                read_material(material, aiTextureType_HEIGHT, directory, flags, result_material.normal, material_params);
+                read_material(material, aiTextureType_NORMALS, directory, flags, result_material.normal, material_params);
                 result_material.enable_normal = result_material.normal.id != invalid_texture;
 
                 read_material(material, aiTextureType_DISPLACEMENT, directory, flags, result_material.parallax, material_params);

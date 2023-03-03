@@ -55,6 +55,8 @@ namespace win {
 
         glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &gpu_props::max_attrs_allowed);
 
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
 #ifdef UI
         ui::init(s_win);
 #endif

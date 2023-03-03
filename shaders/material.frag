@@ -3,18 +3,17 @@
 layout(location = 0) out vec4 frag_color;
 layout(location = 1) out vec4 bright_color;
 
-in vec3 f_pos;
 in vec2 f_uv;
 in vec4 direct_light_space_pos;
 
-in mat3 TBN;
-in vec3 tangent_pos;
-in vec3 tangent_normal;
-in vec3 tangent_view_pos;
+in vec3 world_pos;
+in vec3 world_normal;
+in vec3 world_view_pos;
 
 vec2 UV;
 vec3 N;
 vec3 V;
+vec3 R;
 
 struct LightPhong {
     vec3 position; // vec3 position
@@ -70,14 +69,16 @@ struct Material {
     float ao_factor;
     sampler2D ao;
     bool enable_ao;
-// env
-    samplerCube env;
-    bool enable_env;
-    float reflection;
-    float refraction;
 // env irradiance
     samplerCube env_irradiance;
     bool enable_env_irradiance;
+// env roughness prefilter
+    samplerCube env_prefilter;
+    bool enable_env_prefilter;
+    int env_prefilter_mip_levels;
+// env BRDF convolution
+    sampler2D env_brdf_convolution;
+    bool enable_brdf_convolution;
 };
 
 layout (std140, binding = 1) uniform Sunlight {
@@ -107,8 +108,9 @@ vec3 sample_offset_directions[20] = vec3[]
     vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
-float attenuation_function(vec3 light_position, float q, float l, float c) {
-    float d = length(light_position - tangent_pos);
+float attenuation_function(vec3 light_position, float q, float l, float c)
+{
+    float d = length(light_position - world_pos);
     return 1.0 / ( q * d * d + l * d + c );
 }
 
@@ -117,26 +119,15 @@ const float far  = 100.0;
 
 const float PI   = 3.14159265359;
 
-float linear_depth(float depth) {
+float linear_depth(float depth)
+{
     // convert to NDC and then apply reversed non-linear equation
     float z = depth * 2.0 - 1.0;
     return (2.0 * near * far) / (far + near - z * (far - near));
 }
 
-vec3 reflection_function() {
-    vec3 I = -V;
-    vec3 R = reflect(I, N) * material.reflection;
-    return texture(material.env, R).rgb;
-}
-
-vec3 refraction_function(float light_refraction) {
-    float ratio = light_refraction / material.refraction;
-    vec3 I = -V;
-    vec3 R = refract(I, N, ratio);
-    return texture(material.env, R).rgb;
-}
-
-float direct_shadow_function(vec3 light_dir) {
+float direct_shadow_function(vec3 light_dir)
+{
     vec3 proj_coords = direct_light_space_pos.xyz / direct_light_space_pos.w;
     proj_coords = proj_coords * 0.5 + 0.5;
 
@@ -162,12 +153,13 @@ float direct_shadow_function(vec3 light_dir) {
     return shadow;
 }
 
-float point_shadow_function(vec3 light_pos) {
-    vec3 fragment_dir = tangent_pos - light_pos;
+float point_shadow_function(vec3 light_pos)
+{
+    vec3 fragment_dir = world_pos - light_pos;
     float shadow = 0.0;
     float bias = 0.15;
     int samples = sample_offset_directions.length();
-    float view_distance = length(tangent_view_pos - tangent_pos);
+    float view_distance = length(world_view_pos - world_pos);
     float disk_radius = (1.0 + (view_distance / far_plane)) / 25.0;
     float current_depth = length(fragment_dir);
 
@@ -182,7 +174,8 @@ float point_shadow_function(vec3 light_pos) {
     return shadow;
 }
 
-vec2 parallax_function(vec2 uv) {
+vec2 parallax_function(vec2 uv)
+{
     float height_scale = material.height_scale;
     float min_layers = material.parallax_min_layers;
     float max_layers = material.parallax_max_layers;
@@ -220,7 +213,13 @@ vec2 parallax_function(vec2 uv) {
     return final_uv;
 }
 
-vec3 fresnel_shlick(float cos_theta, vec3 F0, float roughness) {
+vec3 fresnel_shlick(float cos_theta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
+}
+
+vec3 fresnel_shlick_rough(float cos_theta, vec3 F0, float roughness)
+{
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
@@ -237,8 +236,7 @@ float distribution_ggx(vec3 H, float roughness)
 
 float geometry_shlick_ggx(float NV, float roughness)
 {
-    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0; // depends on light source type, for IBL it will change
-
+    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
     return NV / (NV * (1.0 - k) + k);
 }
 
@@ -254,7 +252,8 @@ vec3 lambert(vec3 kd, vec3 albedo)
     return kd * albedo / PI;
 }
 
-vec3 pbr(vec3 L, vec3 light_color, float radiance_factor, vec3 albedo, float metallic, float roughness) {
+vec3 pbr(vec3 L, vec3 light_color, float radiance_factor, vec3 albedo, float metallic, float roughness)
+{
 
     vec3 H = normalize(V + L);
     vec3 radiance = light_color * radiance_factor;
@@ -262,7 +261,7 @@ vec3 pbr(vec3 L, vec3 light_color, float radiance_factor, vec3 albedo, float met
     // diffuse refraction/specular reflection ratio on surface
     vec3 F0 = vec3(0.04); // base reflection 0.04 covers most of dielectrics
     F0      = mix(F0, albedo, metallic); // F0 = albedo color if it's a complete metal
-    vec3 F  = fresnel_shlick(max(dot(H, V), 0), F0, roughness);
+    vec3 F  = fresnel_shlick(max(dot(H, V), 0), F0);
 
     // normal distribution halfway vector along rough surface
     float D = distribution_ggx(H, roughness);
@@ -286,24 +285,26 @@ vec3 pbr(vec3 L, vec3 light_color, float radiance_factor, vec3 albedo, float met
     return (diffuse + specular) * radiance * max(dot(N, L), 0);
 }
 
-vec3 pbr(LightPoint light_point, vec3 albedo, float metallic, float roughness) {
-    vec3 tangent_light_pos = TBN * light_point.position;
-    vec3 light_dir = normalize(tangent_light_pos - tangent_pos);
+vec3 pbr(LightPoint light_point, vec3 albedo, float metallic, float roughness)
+{
+    vec3 tangent_light_pos = light_point.position;
+    vec3 light_dir = normalize(tangent_light_pos - world_pos);
     vec3 light_color = light_point.color;
     float constant  = light_point.constant;
     float linear    = light_point.linear;
     float quadratic = light_point.quadratic;
     float A = attenuation_function(tangent_light_pos, quadratic, linear, constant);
     float light_point_shadow = point_shadow_function(tangent_light_pos);
-    float radiance_factor = A * (1.0 - light_point_shadow);
+    float radiance_factor = A * (1.0);
 
     return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
 }
 
-vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness) {
-    vec3 tangent_light_pos = TBN * light_spot.position;
-    vec3 tangent_spot_dir = TBN * light_spot.direction;
-    vec3 light_dir = normalize(tangent_light_pos - tangent_pos);
+vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness)
+{
+    vec3 tangent_light_pos = light_spot.position;
+    vec3 tangent_spot_dir = light_spot.direction;
+    vec3 light_dir = normalize(tangent_light_pos - world_pos);
     vec3 light_color = light_spot.color;
     vec3 spot_dir       = normalize(-tangent_spot_dir);
     float theta         = dot(light_dir, spot_dir);
@@ -312,22 +313,23 @@ vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness) {
     float epsilon       = cutoff - gamma;
     float I             = clamp((theta - gamma) / epsilon, 0.0, 1.0);
     float spot_shadow = direct_shadow_function(light_dir);
-    float radiance_factor = I * (1.0 - spot_shadow);
+    float radiance_factor = I * (1.0);
 
     return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
 }
 
-vec3 pbr(LightDirectional light_direct, vec3 albedo, float metallic, float roughness) {
-    vec3 light_dir = TBN * light_direct.direction;
+vec3 pbr(LightDirectional light_direct, vec3 albedo, float metallic, float roughness)
+{
+    vec3 light_dir = light_direct.direction;
     vec3 light_color = light_direct.color;
     float light_direct_shadow = direct_shadow_function(light_dir);
-    float radiance_factor = 1.0 - light_direct_shadow;
+    float radiance_factor = 1.0;
     return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
 }
 
 void main()
 {
-    V = normalize(tangent_view_pos - tangent_pos);
+    V = normalize(world_view_pos - world_pos);
 
     // parallax mapping
     if (material.enable_parallax) {
@@ -340,17 +342,31 @@ void main()
 
     // normal mapping
     if (material.enable_normal) {
-        N = texture(material.normal, UV).xyz;
-        N = N * 2.0 - 1.0;
+        vec3 tangentNormal = texture(material.normal, UV).xyz * 2.0 - 1.0;
+
+        vec3 Q1  = dFdx(world_pos);
+        vec3 Q2  = dFdy(world_pos);
+        vec2 st1 = dFdx(UV);
+        vec2 st2 = dFdy(UV);
+
+        N = normalize(world_normal);
+        vec3 T = normalize(Q1*st2.t - Q2*st1.t);
+        vec3 B = -normalize(cross(N, T));
+        mat3 TBN = mat3(T, B, N);
+
+        N = normalize(TBN * tangentNormal);
     } else {
-        N = normalize(tangent_normal);
+        N = normalize(world_normal);
     }
+
+    R = reflect(-V, N);
 
     // albedo mapping
     vec4 albedo = material.color;
     if (material.enable_albedo) {
         albedo *= texture(material.albedo, UV);
     }
+    albedo = vec4(pow(albedo.rgb, vec3(2.2)), albedo.a);
 
     // metal mapping
     float metallic = material.metallic_factor;
@@ -388,14 +404,27 @@ void main()
     // PRB ambient part
     vec3 ambient = vec3(0.03) * albedo.rgb * ao;
     // IBL irradiance mapping
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo.rgb, metallic);
-    vec3 irradiance = texture(material.env_irradiance, N).rgb;
-    vec3 kS = fresnel_shlick(max(dot(N, V), 0.0), F0, roughness);
-    vec3 kD = 1.0 - kS;
-    kD *= 1.0 - metallic;
-    vec3 diffuse = irradiance * albedo.rgb;
-    ambient = (kD * diffuse) * ao;
+    if (material.enable_env_irradiance) {
+        vec3 F0 = vec3(0.04);
+        F0 = mix(F0, albedo.rgb, metallic);
+        vec3 F = fresnel_shlick_rough(max(dot(N, V), 0.0), F0, roughness);
+
+        // indirect diffuse part
+        vec3 irradiance = texture(material.env_irradiance, N).rgb;
+        vec3 kS = F;
+        vec3 kD = 1.0 - kS;
+        kD *= 1.0 - metallic;
+        vec3 diffuse = irradiance * albedo.rgb;
+
+        // indirect specular part
+        // prefiltering roughness on LOD
+        vec3 prefiltered_color = textureLod(material.env_prefilter, R, roughness * (material.env_prefilter_mip_levels - 1)).rgb;
+        // BRDF convolution
+        vec2 brdf  = texture(material.env_brdf_convolution, vec2(max(dot(N, V), 0.0), roughness)).rg;
+        vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
+
+        ambient = (kD * diffuse + specular) * ao;
+    }
 
     vec3 final_color = ambient + Lo;
 

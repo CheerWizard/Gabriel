@@ -37,25 +37,37 @@ namespace app {
 
     static io::drawable_elements plane;
     static gl::transform plane_transform = {
-            { 0, -2, 0 },
-            { 90, 180, 0 },
-            { 20, 20, 20 }
+            { 0, -2, 4 },
+            { 0, 0, 0 },
+            { 1, 0.5, 1 }
     };
     static gl::material plane_material;
 
     static io::drawable_elements sphere;
-    static gl::transform sphere_transform = {
-            { 0, 0, 0 },
-            { 90, 180, 0 },
-            { 1, 1, 1 }
+    static std::vector<gl::transform> sphere_transforms = {
+            {
+                    { 0, 0, 0 },
+                    { 0, 0, 0 },
+                    { 1, 1, 1 }
+            },
+            {
+                    { 0, 0, 4 },
+                    { 0, 0, 0 },
+                    { 1, 1, 1 }
+            },
+            {
+                    { 0, 0, 8 },
+                    { 0, 0, 0 },
+                    { 1, 1, 1 }
+            }
     };
-    static gl::material sphere_material;
+    static std::vector<gl::material> sphere_materials;
     static io::drawable_elements sphere_shadow;
 
     static io::drawable_model model;
     static gl::transform model_transform = {
-            { 0, 0, 0 },
-            { 0, 0, 0 },
+            { 5, 0, 5 },
+            { 0, 90, 0 },
             { 1, 1, 1 }
     };
     static gl::material model_material;
@@ -94,6 +106,7 @@ namespace app {
 
     static u32 hdr_env_fbo;
     static gl::render_buffer hdr_env_rbo;
+    static int env_resolution = 512;
 
     static u32 hdr_to_cubemap_shader;
     static gl::texture env_hdr_texture;
@@ -103,7 +116,14 @@ namespace app {
 
     static u32 env_shader;
     static gl::drawable_elements env_cube;
-    static gl::texture env_cubemap;
+    static gl::texture env_cube_map;
+
+    static u32 hdr_prefilter_convolution_shader;
+    static gl::texture env_prefilter_map;
+    static int env_prefilter_mip_levels = 5;
+
+    static u32 brdf_convolution_shader;
+    static gl::texture env_brdf_convolution_map;
 
     static void window_error(int error, const char* msg) {
         print_err("window_error: error=" << error << ", msg=" << msg);
@@ -124,6 +144,24 @@ namespace app {
     static int enable_normal_mapping = true;
     static int enable_parallax_mapping = true;
     static int enable_irradiance_mapping = true;
+    static int enable_env_prefilter = true;
+    static int enable_brdf_convolution = true;
+
+    static void update_mappings_state() {
+        for (auto& sphere_material : sphere_materials) {
+            sphere_material.enable_env_irradiance = enable_irradiance_mapping;
+            sphere_material.enable_env_prefilter = enable_env_prefilter;
+            sphere_material.enable_brdf_convolution = enable_brdf_convolution;
+        }
+
+        plane_material.enable_env_irradiance = enable_irradiance_mapping;
+        plane_material.enable_env_prefilter = enable_env_prefilter;
+        plane_material.enable_brdf_convolution = enable_brdf_convolution;
+
+        model_material.enable_env_irradiance = enable_irradiance_mapping;
+        model_material.enable_env_prefilter = enable_env_prefilter;
+        model_material.enable_brdf_convolution = enable_brdf_convolution;
+    }
 
     static void key_press(int key) {
         print("key_press(): " << key);
@@ -131,14 +169,20 @@ namespace app {
         if (key == KEY::Escape)
             win::close();
 
-        if (key == KEY::N)
+        if (key == KEY::N) {
             enable_normal_mapping = !enable_normal_mapping;
+            update_mappings_state();
+        }
 
-        if (key == KEY::P)
+        if (key == KEY::P) {
             enable_parallax_mapping = !enable_parallax_mapping;
+            update_mappings_state();
+        }
 
-        if (key == KEY::I)
+        if (key == KEY::I) {
             enable_irradiance_mapping = !enable_irradiance_mapping;
+            update_mappings_state();
+        }
 
         if (key == KEY::B)
             enable_blur = !enable_blur;
@@ -212,6 +256,14 @@ namespace app {
             "shaders/hdr_irradiance.vert",
             "shaders/hdr_irradiance.frag"
         });
+        hdr_prefilter_convolution_shader = gl::shader_init({
+            "shaders/hdr_prefilter_convolution.vert",
+            "shaders/hdr_prefilter_convolution.frag"
+        });
+        brdf_convolution_shader = gl::shader_init({
+            "shaders/brdf_convolution.vert",
+            "shaders/brdf_convolution.frag"
+        });
         env_shader = gl::shader_init({
             "shaders/cubemap.vert",
             "shaders/hdr_cubemap.frag"
@@ -228,6 +280,7 @@ namespace app {
         gl::color_attachment scene_color = { win::props().width, win::props().height };
         scene_color.data.internal_format = GL_RGBA16F;
         scene_color.data.data_format = GL_RGBA;
+        scene_color.data.primitive_type = GL_FLOAT;
         gl::color_attachment scene_bright_color = scene_color;
         scene_colors.emplace_back(scene_color); // main
         scene_colors.emplace_back(scene_bright_color); // brightness
@@ -238,6 +291,7 @@ namespace app {
         gl::color_attachment msaa_color = { win::props().width, win::props().height, msaa };
         msaa_color.data.internal_format = GL_RGBA16F;
         msaa_color.data.data_format = GL_RGBA;
+        msaa_color.data.primitive_type = GL_FLOAT;
         msaa_color.view.type = GL_TEXTURE_2D_MULTISAMPLE;
         gl::color_attachment msaa_bright_color = msaa_color;
         msaa_colors.emplace_back(msaa_color); // main
@@ -249,6 +303,7 @@ namespace app {
         gl::color_attachment blur_color = { win::props().width, win::props().height };
         blur_color.data.internal_format = GL_RGBA16F;
         blur_color.data.data_format = GL_RGBA;
+        blur_color.data.primitive_type = GL_FLOAT;
         blur_colors.emplace_back(blur_color);
         blur_fbo = gl::fbo_init(&blur_colors, null, null, null);
 
@@ -299,21 +354,41 @@ namespace app {
         ssao_fbo = gl::fbo_init(&ssao_colors, null, null, null);
 
         // setup env
-        hdr_env_rbo = {512, 512 };
+        hdr_env_rbo = {env_resolution, env_resolution };
         hdr_env_rbo.format = GL_DEPTH_COMPONENT24;
         hdr_env_rbo.type = GL_DEPTH_ATTACHMENT;
         hdr_env_fbo = gl::fbo_init(hdr_env_rbo);
-
-        gl::texture_hdr_init(env_hdr_texture, "images/hdr/Tropical_Beach_3k.hdr", true);
-        gl::texture_cube_init(
-                env_cubemap,
-                { 512, 512, GL_RGB16F, GL_RGB, GL_FLOAT },
-                { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE }
-        );
+        // create env maps
+        gl::texture_hdr_init(env_hdr_texture, "images/hdr/Arches_E_PineTree_3k.hdr", true);
+        gl::texture_params env_map_params;
+        env_map_params.s = GL_CLAMP_TO_EDGE;
+        env_map_params.t = GL_CLAMP_TO_EDGE;
+        env_map_params.r = GL_CLAMP_TO_EDGE;
+        env_map_params.min_filter = GL_LINEAR;
+        env_map_params.mag_filter = GL_LINEAR;
         gl::texture_cube_init(
                 env_irradiance_map,
                 { 32, 32, GL_RGB16F, GL_RGB, GL_FLOAT },
-                { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE }
+                env_map_params
+        );
+        gl::texture_init(
+                env_brdf_convolution_map,
+                { env_resolution, env_resolution, GL_RG16F, GL_RG, GL_FLOAT },
+                env_map_params
+        );
+        env_map_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+        gl::texture_cube_init(
+                env_cube_map,
+                { env_resolution, env_resolution, GL_RGB16F, GL_RGB, GL_FLOAT },
+                env_map_params
+        );
+        env_map_params.generate_mipmap = true;
+        int env_prefilter_width = 128;
+        int env_prefilter_height = 128;
+        gl::texture_cube_init(
+                env_prefilter_map,
+                { env_prefilter_width, env_prefilter_height, GL_RGB16F, GL_RGB, GL_FLOAT },
+                env_map_params
         );
         // create unit cube for hdr conversions and env skybox
         gl::cube_default_init(env_cube, {});
@@ -328,16 +403,17 @@ namespace app {
         };
         // create HDR env cube map
         gl::fbo_bind(hdr_env_fbo);
-        glViewport(0, 0, 512, 512);
+        glViewport(0, 0, env_resolution, env_resolution);
         gl::shader_use(hdr_to_cubemap_shader);
         gl::texture_update(hdr_to_cubemap_shader, env_hdr_texture);
         gl::shader_set_uniform4m(hdr_to_cubemap_shader, "perspective", cube_perspective);
         for (int i = 0; i < 6; i++) {
             gl::shader_set_uniform4m(hdr_to_cubemap_shader, "view", cube_views[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, env_cubemap.id, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, env_cube_map.id, 0);
             gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             gl::draw(env_cube);
         }
+        gl::texture_generate_mipmaps(env_cube_map);
         // create HDR env irradiance map
         gl::fbo_bind(hdr_env_fbo);
         glViewport(0, 0, 32, 32);
@@ -345,7 +421,7 @@ namespace app {
         hdr_env_rbo.height = 32;
         gl::fbo_update(hdr_env_rbo);
         gl::shader_use(hdr_irradiance_shader);
-        gl::texture_update(hdr_irradiance_shader, env_cubemap);
+        gl::texture_update(hdr_irradiance_shader, env_cube_map);
         gl::shader_set_uniform4m(hdr_irradiance_shader, "perspective", cube_perspective);
         for (int i = 0; i < 6; i++) {
             gl::shader_set_uniform4m(hdr_irradiance_shader, "view", cube_views[i]);
@@ -353,35 +429,73 @@ namespace app {
             gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             gl::draw(env_cube);
         }
+        // create HDR env prefilter map
+        gl::fbo_bind(hdr_env_fbo);
+        gl::shader_use(hdr_prefilter_convolution_shader);
+        gl::texture_update(hdr_prefilter_convolution_shader, env_cube_map);
+        gl::shader_set_uniform4m(hdr_prefilter_convolution_shader, "perspective", cube_perspective);
+        int mip_w = env_prefilter_width * 2;
+        int mip_h = env_prefilter_height * 2;
+        for (int mip = 0 ; mip < env_prefilter_mip_levels ; mip++) {
+            // resize framebuffer according to mip size.
+            mip_w /= 2;
+            mip_h /= 2;
+            glViewport(0, 0, mip_w, mip_h);
+            hdr_env_rbo.width = mip_w;
+            hdr_env_rbo.height = mip_h;
+            gl::fbo_update(hdr_env_rbo);
+            // update roughness on each mip
+            float roughness = (float) mip / (float) (env_prefilter_mip_levels - 1);
+            gl::shader_set_uniformf(hdr_prefilter_convolution_shader, "roughness", roughness);
+            float resolution = (float) env_resolution;
+            gl::shader_set_uniformf(hdr_prefilter_convolution_shader, "resolution", resolution);
+            // capture mip texture on each cube face
+            for (int i = 0; i < 6; i++) {
+                gl::shader_set_uniform4m(hdr_prefilter_convolution_shader, "view", cube_views[i]);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, env_prefilter_map.id, mip);
+                gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                gl::draw(env_cube);
+            }
+        }
+        // create env BRDF convolution map
+        u32 brdf_conv_rect_vao = gl::vao_init();
+        gl::fbo_bind(hdr_env_fbo);
+        glViewport(0, 0, env_resolution, env_resolution);
+        hdr_env_rbo.width = env_resolution;
+        hdr_env_rbo.height = env_resolution;
+        gl::fbo_update(hdr_env_rbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, env_brdf_convolution_map.id, 0);
+        gl::shader_use(brdf_convolution_shader);
+        gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        gl::draw_quad(brdf_conv_rect_vao);
+
         gl::fbo_unbind();
 
-        // setup sunlight
+        // setup uniform buffers
         sunlight_ubo = gl::ubo_init(1, sizeof(sunlight));
+        lights_ubo = gl::ubo_init(2, sizeof(point_lights));
+        flashlight_ubo = gl::ubo_init(3, sizeof(flashlight));
+
+        // setup sunlight
         sunlight.color = { 0, 0, 0, 1 };
+        sunlight.direction = { 1, 1, 1, 0 };
         gl::ubo_update(sunlight_ubo, { 0, sizeof(sunlight), &sunlight });
 
         // setup lights
-        lights_ubo = gl::ubo_init(2, sizeof(point_lights));
-        point_lights[0].position = { -5, 2, -5, 1 };
-        point_lights[0].color = { 237, 213, 158, 1 };
-        point_lights[0].quadratic = 1;
-        point_lights[1].position = { 5, 2, -5, 1 };
-        point_lights[1].color = { 0, 0, 0, 1 };
-        point_lights[1].quadratic = 1;
-        point_lights[2].position = { -5, 2, 5, 1 };
-        point_lights[2].color = { 0, 0, 0, 1 };
-        point_lights[2].quadratic = 1;
-        point_lights[2].constant = 1;
-        point_lights[3].position = { 5, 2, 5, 1 };
-        point_lights[3].color = { 0, 0, 0, 1 };
-        point_lights[3].quadratic = 1;
+        point_lights[0].position = { -4, -1, 0, 1 };
+        point_lights[0].color = { 1, 0, 0, 1 };
+        point_lights[1].position = { 4, -1, 0, 1 };
+        point_lights[1].color = { 0, 1, 0, 1 };
+        point_lights[2].position = { -4, -1, 8, 1 };
+        point_lights[2].color = { 0, 0, 1, 1 };
+        point_lights[3].position = { 4, -1, 8, 1 };
+        point_lights[3].color = { 1, 0, 1, 1 };
         gl::ubo_update(lights_ubo, { 0, sizeof(point_lights), point_lights.data() });
 
         // setup flashlight
-        flashlight_ubo = gl::ubo_init(3, sizeof(flashlight));
-        flashlight.position = {camera.position, 0 };
-        flashlight.direction = {camera.front, 0 };
-        flashlight.color = { 5, 5, 5, 1 };
+        flashlight.position = { camera.position, 0 };
+        flashlight.direction = { camera.front, 0 };
+        flashlight.color = { 0, 0, 0, 1 };
         gl::ubo_update(flashlight_ubo, { 0, sizeof(flashlight), &flashlight });
 
         // setup light presentation
@@ -393,51 +507,97 @@ namespace app {
         gl::point_shadow_init({ 1024, 1024 }, flashlight.position);
 
         // setup 3D model
-        model = io::model_init("models/backpack/");
+        model = io::model_init("models/backpack/backpack.obj");
         model_shadow = gl::shadow_model_init(model);
         model_material = gl::material_init(
                 true,
                 "models/backpack/diffuse.jpg",
-                "models/backpack/normal.png",
                 null,
                 null,
-                "models/backpack/roughness.jpg",
+                null,
+                null,
                 "models/backpack/ao.jpg"
         );
-        model_material.env_irradiance = env_irradiance_map;
+        model_material.env_irradiance.id = env_irradiance_map.id;
+        model_material.env_prefilter.id = env_prefilter_map.id;
+        model_material.env_brdf_convolution.id = env_brdf_convolution_map.id;
+        model_material.env_prefilter_mip_levels = env_prefilter_mip_levels;
         model_material.metallic_factor = 0;
-        model_material.roughness_factor = 1;
+        model_material.roughness_factor = 0;
         model_material.ao_factor = 1;
 
         // setup sphere
         gl::sphere_tbn_init(sphere);
         gl::sphere_default_init(sphere_shadow);
-        sphere_material = gl::material_init(
-                false,
-                "images/rust_pbr/albedo.png",
-                "images/rust_pbr/normal.png",
-                null,
-                "images/rust_pbr/metallic.png",
-                "images/rust_pbr/roughness.png"
-        );
-        sphere_material.env_irradiance = env_irradiance_map;
-        sphere_material.metallic_factor = 1;
-        sphere_material.roughness_factor = 1;
-        sphere_material.ao_factor = 1;
+        sphere_materials.resize(sphere_transforms.size());
+        {
+            sphere_materials[0] = gl::material_init(
+                    false,
+                    "images/bumpy-rockface1-bl/albedo.png",
+                    "images/bumpy-rockface1-bl/normal.png",
+                    null,
+                    "images/bumpy-rockface1-bl/metallic.png",
+                    "images/bumpy-rockface1-bl/roughness.png",
+                    "images/bumpy-rockface1-bl/ao.png"
+            );
+            sphere_materials[0].env_irradiance.id = env_irradiance_map.id;
+            sphere_materials[0].env_prefilter.id = env_prefilter_map.id;
+            sphere_materials[0].env_brdf_convolution.id = env_brdf_convolution_map.id;
+            sphere_materials[0].env_prefilter_mip_levels = env_prefilter_mip_levels;
+            sphere_materials[0].metallic_factor = 1;
+            sphere_materials[0].roughness_factor = 1;
+            sphere_materials[0].ao_factor = 1;
+
+            sphere_materials[1] = gl::material_init(
+                    false,
+                    "images/rust_pbr/albedo.png",
+                    "images/rust_pbr/normal.png",
+                    null,
+                    "images/rust_pbr/metallic.png",
+                    "images/rust_pbr/roughness.png",
+                    null
+            );
+            sphere_materials[1].env_irradiance.id = env_irradiance_map.id;
+            sphere_materials[1].env_prefilter.id = env_prefilter_map.id;
+            sphere_materials[1].env_brdf_convolution.id = env_brdf_convolution_map.id;
+            sphere_materials[1].env_prefilter_mip_levels = env_prefilter_mip_levels;
+            sphere_materials[1].metallic_factor = 1;
+            sphere_materials[1].roughness_factor = 1;
+            sphere_materials[1].ao_factor = 1;
+
+            sphere_materials[2] = gl::material_init(
+                    false,
+                    "images/light-gold-bl/albedo.png",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+            sphere_materials[2].env_irradiance.id = env_irradiance_map.id;
+            sphere_materials[2].env_prefilter.id = env_prefilter_map.id;
+            sphere_materials[2].env_brdf_convolution.id = env_brdf_convolution_map.id;
+            sphere_materials[2].env_prefilter_mip_levels = env_prefilter_mip_levels;
+            sphere_materials[2].metallic_factor = 0;
+            sphere_materials[2].roughness_factor = 0;
+            sphere_materials[2].ao_factor = 1;
+            sphere_materials[2].enable_normal = false;
+        }
 
         // setup horizontal plane
-        gl::rect_tbn_init(plane);
+        gl::cube_tbn_init(plane);
         plane_material = gl::material_init(
-                false,
-            "images/rust_pbr/albedo.png",
-            "images/rust_pbr/normal.png",
+            false,
             null,
-            "images/rust_pbr/metallic.png",
-            "images/rust_pbr/roughness.png"
+            null
         );
-        plane_material.env_irradiance = env_irradiance_map;
-        plane_material.metallic_factor = 1;
-        plane_material.roughness_factor = 1;
+        plane_material.color = { 1, 1, 1, 1 };
+        plane_material.env_irradiance.id = env_irradiance_map.id;
+        plane_material.env_prefilter.id = env_prefilter_map.id;
+        plane_material.env_brdf_convolution.id = env_brdf_convolution_map.id;
+        plane_material.env_prefilter_mip_levels = env_prefilter_mip_levels;
+        plane_material.metallic_factor = 0;
+        plane_material.roughness_factor = 0.1;
         plane_material.ao_factor = 1;
 
         gl::shader_use(blur_shader);
@@ -450,17 +610,21 @@ namespace app {
     static void free() {
         gl::drawable_free(sphere);
         gl::drawable_free(sphere_shadow);
-        gl::material_free(sphere_material);
+        gl::material_free(sphere_materials);
 
         gl::shader_free(hdr_to_cubemap_shader);
         gl::shader_free(hdr_irradiance_shader);
+        gl::shader_free(hdr_prefilter_convolution_shader);
+        gl::shader_free(brdf_convolution_shader);
         gl::shader_free(env_shader);
-        gl::drawable_free(env_cube);
         gl::fbo_free(hdr_env_fbo);
         gl::fbo_free_attachment(hdr_env_rbo);
         gl::texture_free(env_hdr_texture.id);
         gl::texture_free(env_irradiance_map.id);
-        gl::texture_free(env_cubemap.id);
+        gl::texture_free(env_cube_map.id);
+        gl::texture_free(env_prefilter_map.id);
+        gl::texture_free(env_brdf_convolution_map.id);
+        gl::drawable_free(env_cube);
 
         gl::shader_free(screen_shader);
         gl::vao_free(screen_vao);
@@ -538,26 +702,15 @@ namespace app {
         flashlight.direction = {camera.front, 0 };
         // rotate object each frame
         float f = 0.05f;
-        sphere_transform.rotation.x += f;
-        sphere_transform.rotation.y += f;
-        sphere_transform.rotation.z += f;
+        sphere_transforms[0].rotation.y += f;
+        sphere_transforms[1].rotation.y += f * 2;
+        sphere_transforms[2].rotation.y += f * 4;
         // translate point lights up/down
         for (auto& point_light : point_lights) {
             point_light.position.y = 10 * sin(t/2) + 2;
         }
         // sorting transparent drawables
         transparent_objects.clear();
-
-        model_material.enable_normal = enable_normal_mapping;
-        sphere_material.enable_normal = enable_normal_mapping;
-        plane_material.enable_normal = enable_normal_mapping;
-
-        plane_material.enable_parallax = enable_parallax_mapping;
-        sphere_material.enable_parallax = enable_irradiance_mapping;
-
-        model_material.enable_env_irradiance = enable_irradiance_mapping;
-        sphere_material.enable_env_irradiance = enable_irradiance_mapping;
-        plane_material.enable_env_irradiance = enable_irradiance_mapping;
     }
 
     static void render_screen_ui() {
@@ -603,29 +756,30 @@ namespace app {
     }
 
     static void render_scene() {
-        // render Shadow pass
-        {
-            // render direct shadow
-            gl::direct_shadow_begin();
-            {
-                gl::direct_shadow_update(sunlight.direction);
-                gl::direct_shadow_draw(model_transform, model_shadow.elements);
-                gl::direct_shadow_draw(sphere_transform, sphere_shadow);
-            }
-            // render point shadow
-            gl::point_shadow_begin();
-            {
-                for (auto& point_light : point_lights) {
-                    gl::point_shadow_update(point_light.position);
-                    gl::point_shadow_draw(model_transform, model_shadow.elements);
-                    gl::point_shadow_draw(sphere_transform, sphere_shadow);
-                }
-                gl::point_shadow_update(flashlight.position);
-                gl::point_shadow_draw(model_transform, model_shadow.elements);
-                gl::point_shadow_draw(sphere_transform, sphere_shadow);
-            }
-        }
-        gl::shadow_end();
+//        // render Shadow pass
+//        {
+//            // render direct shadow
+//            gl::direct_shadow_begin();
+//            {
+//                gl::direct_shadow_update(sunlight.direction);
+//                gl::direct_shadow_draw(model_transform, model_shadow.elements);
+//                for (auto& sphere_transform : sphere_transforms) {
+//                    gl::direct_shadow_draw(sphere_transform, sphere_shadow);
+//                }
+//            }
+//            // render point shadow
+//            gl::point_shadow_begin();
+//            {
+//                for (auto& point_light : point_lights) {
+//                    gl::point_shadow_update(point_light.position);
+//                    gl::point_shadow_draw(model_transform, model_shadow.elements);
+//                    for (auto& sphere_transform : sphere_transforms) {
+//                        gl::point_shadow_draw(sphere_transform, sphere_shadow);
+//                    }
+//                }
+//            }
+//        }
+//        gl::shadow_end();
 
         // render MSAA or Scene pass
         if (msaa > 1) {
@@ -647,16 +801,16 @@ namespace app {
         {
             glDepthFunc(GL_LEQUAL);
             gl::shader_use(env_shader);
-            gl::texture_update(env_shader, env_cubemap);
+            gl::texture_update(env_shader, env_cube_map);
             gl::draw(env_cube);
             glDepthFunc(GL_LESS);
         }
 
         // upload shadow maps
         {
-            gl::shader_use(material_shader);
-            gl::direct_shadow_update(material_shader);
-            gl::point_shadow_update(material_shader);
+//            gl::shader_use(material_shader);
+//            gl::direct_shadow_update(material_shader);
+//            gl::point_shadow_update(material_shader);
         }
 
         // render and upload lights
@@ -687,9 +841,15 @@ namespace app {
             gl::transform_update(material_shader, plane_transform);
             gl::draw(plane);
 
-            gl::material_update(material_shader, sphere_material);
-            gl::transform_update(material_shader, sphere_transform);
-            gl::draw(sphere);
+            for (int i = 0 ; i < sphere_transforms.size() ; i++) {
+                gl::material_update(material_shader, sphere_materials[i]);
+                gl::transform_update(material_shader, sphere_transforms[i]);
+                gl::draw(sphere);
+            }
+
+            gl::material_update(material_shader, model_material);
+            gl::transform_update(material_shader, model_transform);
+            gl::draw(model.elements);
         }
 
         // render outlined objects

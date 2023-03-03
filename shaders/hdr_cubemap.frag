@@ -8,7 +8,7 @@ layout(location = 1) out vec4 bright_color;
 uniform samplerCube sampler;
 
 void main() {
-    vec3 color = texture(sampler, f_pos).rgb;
+    vec3 color = textureLod(sampler, f_pos, 0.0).rgb;
 
     // tonemapping + gamma correction
     color = color / (color + vec3(1.0));

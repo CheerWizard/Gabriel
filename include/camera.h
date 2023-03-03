@@ -30,7 +30,7 @@ namespace gl {
     glm::mat4 perspective_mat(const perspective_data& data);
 
     struct camera final {
-        glm::vec3 position = { 0, 0, 3 };
+        glm::vec3 position = { 0, 0, 10 };
         glm::vec3 front = { 0, 0, -1 };
         glm::vec3 up = { 0, 1, 0 };
         float pitch = 0;

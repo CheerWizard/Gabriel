@@ -38,14 +38,16 @@ namespace gl {
         float ao_factor = 0.5f;
         texture ao = { 0, GL_TEXTURE_2D, { "ao", 7 } };
         bool enable_ao = false;
-        // env
-        texture env = { 0,  GL_TEXTURE_CUBE_MAP, { "env", 8 } };
-        bool enable_env = false;
-        float reflection = 1;
-        float refraction = 1;
         // env irradiance
-        texture env_irradiance = { 0,  GL_TEXTURE_CUBE_MAP, { "env_irradiance", 9 } };
+        texture env_irradiance = { 0,  GL_TEXTURE_CUBE_MAP, { "env_irradiance", 8 } };
         bool enable_env_irradiance = false;
+        // env roughness prefilter
+        texture env_prefilter = { 0,  GL_TEXTURE_CUBE_MAP, { "env_prefilter", 9 } };
+        bool enable_env_prefilter = false;
+        int env_prefilter_mip_levels = 5;
+        // env BRDF convolution
+        texture env_brdf_convolution = { 0, GL_TEXTURE_2D, { "env_brdf_convolution", 10 } };
+        bool enable_brdf_convolution = false;
     };
 
     material material_init(
@@ -58,6 +60,7 @@ namespace gl {
             const char* ao_path = null
     );
     void material_free(material& material);
+    void material_free(std::vector<material>& materials);
 
     void material_update_textures(u32 shader, material& material);
     void material_update(u32 shader, material& material);

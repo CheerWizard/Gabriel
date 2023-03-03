@@ -83,4 +83,6 @@ namespace gl {
     void texture_params_bind(const texture& texture, const texture_params& params);
     void texture_params_update(const texture& texture, const texture_params& params);
 
+    void texture_generate_mipmaps(const gl::texture& texture);
+
 }

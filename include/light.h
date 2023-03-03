@@ -35,9 +35,9 @@ namespace gl {
     struct light_point final {
         glm::vec4 position = { 0, 0, 0, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
-        float constant = 0.0f;
-        float linear = 0.0f;
-        float quadratic = 1.0f;
+        float constant = 1.0f;
+        float linear = 0.09f;
+        float quadratic = 0.032f;
         float refraction = 1.0f;
     };
 
