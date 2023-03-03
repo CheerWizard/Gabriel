@@ -81,31 +81,24 @@ namespace app {
     static float screen_exposure = 1.0f;
     static gl::color_attachment final_render_target;
 
-    static u32 scene_fbo;
-    static std::vector<gl::color_attachment> scene_colors;
-    static gl::render_buffer scene_rbo;
+    static gl::frame_buffer scene_fbo;
 
-    static u32 msaa_fbo;
-    static std::vector<gl::color_attachment> msaa_colors;
-    static gl::render_buffer msaa_rbo;
+    static gl::frame_buffer msaa_fbo;
     static int msaa = 8;
 
-    static u32 blur_fbo;
-    static std::vector<gl::color_attachment> blur_colors;
+    static gl::frame_buffer blur_fbo;
     static u32 blur_shader;
     static float blur_offset = 1.0 / 300.0;
     static int enable_blur = false;
 
-    static u32 ssao_fbo;
-    static std::vector<gl::color_attachment> ssao_colors;
+    static gl::frame_buffer ssao_fbo;
     static u32 ssao_shader;
     static std::vector<glm::vec3> ssao_kernel;
     static std::vector<glm::vec3> ssao_noise;
     static gl::texture ssao_noise_texture;
     static int enable_ssao = false;
 
-    static u32 hdr_env_fbo;
-    static gl::render_buffer hdr_env_rbo;
+    static gl::frame_buffer hdr_env_fbo;
     static int env_resolution = 512;
 
     static u32 hdr_to_cubemap_shader;
@@ -139,6 +132,10 @@ namespace app {
 
     static void framebuffer_resized(int w, int h) {
         gl::camera_resize(camera, w, h);
+        gl::fbo_resize(scene_fbo, w, h);
+        gl::fbo_resize(msaa_fbo, w, h);
+        gl::fbo_resize(blur_fbo, w, h);
+        gl::fbo_resize(ssao_fbo, w, h);
     }
 
     static int enable_normal_mapping = true;
@@ -282,10 +279,11 @@ namespace app {
         scene_color.data.data_format = GL_RGBA;
         scene_color.data.primitive_type = GL_FLOAT;
         gl::color_attachment scene_bright_color = scene_color;
-        scene_colors.emplace_back(scene_color); // main
-        scene_colors.emplace_back(scene_bright_color); // brightness
-        scene_rbo = { win::props().width, win::props().height };
-        scene_fbo = gl::fbo_init(&scene_colors, null, null, &scene_rbo);
+        scene_fbo.colors.emplace_back(scene_color); // main
+        scene_fbo.colors.emplace_back(scene_bright_color); // brightness
+        scene_fbo.rbo = { win::props().width, win::props().height };
+        scene_fbo.flags |= gl::init_render_buffer;
+        gl::fbo_init(scene_fbo);
 
         // setup MSAA frame
         gl::color_attachment msaa_color = { win::props().width, win::props().height, msaa };
@@ -294,18 +292,19 @@ namespace app {
         msaa_color.data.primitive_type = GL_FLOAT;
         msaa_color.view.type = GL_TEXTURE_2D_MULTISAMPLE;
         gl::color_attachment msaa_bright_color = msaa_color;
-        msaa_colors.emplace_back(msaa_color); // main
-        msaa_colors.emplace_back(msaa_bright_color); // brightness
-        msaa_rbo = { win::props().width, win::props().height, msaa };
-        msaa_fbo = gl::fbo_init(&msaa_colors, null, null, &msaa_rbo);
+        msaa_fbo.colors.emplace_back(msaa_color); // main
+        msaa_fbo.colors.emplace_back(msaa_bright_color); // brightness
+        msaa_fbo.rbo = { win::props().width, win::props().height, msaa };
+        msaa_fbo.flags |= gl::init_render_buffer;
+        gl::fbo_init(msaa_fbo);
 
         // setup Blur frame
         gl::color_attachment blur_color = { win::props().width, win::props().height };
         blur_color.data.internal_format = GL_RGBA16F;
         blur_color.data.data_format = GL_RGBA;
         blur_color.data.primitive_type = GL_FLOAT;
-        blur_colors.emplace_back(blur_color);
-        blur_fbo = gl::fbo_init(&blur_colors, null, null, null);
+        blur_fbo.colors.emplace_back(blur_color);
+        gl::fbo_init(blur_fbo);
 
         // setup SSAO
         // SSAO kernels
@@ -350,14 +349,14 @@ namespace app {
         ssao_color.data.primitive_type = GL_FLOAT;
         ssao_color.params.min_filter = GL_NEAREST;
         ssao_color.params.mag_filter = GL_NEAREST;
-        ssao_colors.emplace_back(ssao_color);
-        ssao_fbo = gl::fbo_init(&ssao_colors, null, null, null);
+        ssao_fbo.colors.emplace_back(ssao_color);
+        gl::fbo_init(ssao_fbo);
 
         // setup env
-        hdr_env_rbo = {env_resolution, env_resolution };
-        hdr_env_rbo.format = GL_DEPTH_COMPONENT24;
-        hdr_env_rbo.type = GL_DEPTH_ATTACHMENT;
-        hdr_env_fbo = gl::fbo_init(hdr_env_rbo);
+        hdr_env_fbo.rbo = { env_resolution, env_resolution };
+        hdr_env_fbo.rbo.format = GL_DEPTH_COMPONENT24;
+        hdr_env_fbo.rbo.type = GL_DEPTH_ATTACHMENT;
+        gl::fbo_init_rbo(hdr_env_fbo);
         // create env maps
         gl::texture_hdr_init(env_hdr_texture, "images/hdr/Arches_E_PineTree_3k.hdr", true);
         gl::texture_params env_map_params;
@@ -402,7 +401,7 @@ namespace app {
                 glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
         };
         // create HDR env cube map
-        gl::fbo_bind(hdr_env_fbo);
+        gl::fbo_bind(hdr_env_fbo.id);
         glViewport(0, 0, env_resolution, env_resolution);
         gl::shader_use(hdr_to_cubemap_shader);
         gl::texture_update(hdr_to_cubemap_shader, env_hdr_texture);
@@ -415,11 +414,11 @@ namespace app {
         }
         gl::texture_generate_mipmaps(env_cube_map);
         // create HDR env irradiance map
-        gl::fbo_bind(hdr_env_fbo);
+        gl::fbo_bind(hdr_env_fbo.id);
         glViewport(0, 0, 32, 32);
-        hdr_env_rbo.width = 32;
-        hdr_env_rbo.height = 32;
-        gl::fbo_update(hdr_env_rbo);
+        hdr_env_fbo.rbo.width = 32;
+        hdr_env_fbo.rbo.height = 32;
+        gl::fbo_update(hdr_env_fbo.rbo);
         gl::shader_use(hdr_irradiance_shader);
         gl::texture_update(hdr_irradiance_shader, env_cube_map);
         gl::shader_set_uniform4m(hdr_irradiance_shader, "perspective", cube_perspective);
@@ -430,7 +429,7 @@ namespace app {
             gl::draw(env_cube);
         }
         // create HDR env prefilter map
-        gl::fbo_bind(hdr_env_fbo);
+        gl::fbo_bind(hdr_env_fbo.id);
         gl::shader_use(hdr_prefilter_convolution_shader);
         gl::texture_update(hdr_prefilter_convolution_shader, env_cube_map);
         gl::shader_set_uniform4m(hdr_prefilter_convolution_shader, "perspective", cube_perspective);
@@ -441,9 +440,9 @@ namespace app {
             mip_w /= 2;
             mip_h /= 2;
             glViewport(0, 0, mip_w, mip_h);
-            hdr_env_rbo.width = mip_w;
-            hdr_env_rbo.height = mip_h;
-            gl::fbo_update(hdr_env_rbo);
+            hdr_env_fbo.rbo.width = mip_w;
+            hdr_env_fbo.rbo.height = mip_h;
+            gl::fbo_update(hdr_env_fbo.rbo);
             // update roughness on each mip
             float roughness = (float) mip / (float) (env_prefilter_mip_levels - 1);
             gl::shader_set_uniformf(hdr_prefilter_convolution_shader, "roughness", roughness);
@@ -459,11 +458,11 @@ namespace app {
         }
         // create env BRDF convolution map
         u32 brdf_conv_rect_vao = gl::vao_init();
-        gl::fbo_bind(hdr_env_fbo);
+        gl::fbo_bind(hdr_env_fbo.id);
         glViewport(0, 0, env_resolution, env_resolution);
-        hdr_env_rbo.width = env_resolution;
-        hdr_env_rbo.height = env_resolution;
-        gl::fbo_update(hdr_env_rbo);
+        hdr_env_fbo.rbo.width = env_resolution;
+        hdr_env_fbo.rbo.height = env_resolution;
+        gl::fbo_update(hdr_env_fbo.rbo);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, env_brdf_convolution_map.id, 0);
         gl::shader_use(brdf_convolution_shader);
         gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -618,7 +617,6 @@ namespace app {
         gl::shader_free(brdf_convolution_shader);
         gl::shader_free(env_shader);
         gl::fbo_free(hdr_env_fbo);
-        gl::fbo_free_attachment(hdr_env_rbo);
         gl::texture_free(env_hdr_texture.id);
         gl::texture_free(env_irradiance_map.id);
         gl::texture_free(env_cube_map.id);
@@ -631,23 +629,17 @@ namespace app {
 
         gl::shader_free(blur_shader);
         gl::fbo_free(blur_fbo);
-        gl::fbo_free_attachment(blur_colors);
 
         gl::shader_free(ssao_shader);
         gl::fbo_free(ssao_fbo);
-        gl::fbo_free_attachment(ssao_colors);
         gl::texture_free(ssao_noise_texture.id);
 
         gl::point_shadow_free();
         gl::direct_shadow_free();
 
         gl::fbo_free(msaa_fbo);
-        gl::fbo_free_attachment(msaa_rbo);
-        gl::fbo_free_attachment(msaa_colors);
 
         gl::fbo_free(scene_fbo);
-        gl::fbo_free_attachment(scene_rbo);
-        gl::fbo_free_attachment(scene_colors);
 
         gl::drawable_free(plane);
         gl::material_free(plane_material);
@@ -783,9 +775,9 @@ namespace app {
 
         // render MSAA or Scene pass
         if (msaa > 1) {
-            gl::fbo_bind(msaa_fbo);
+            gl::fbo_bind(msaa_fbo.id);
         } else {
-            gl::fbo_bind(scene_fbo);
+            gl::fbo_bind(scene_fbo.id);
         }
         glViewport(0, 0, win::props().width, win::props().height);
         gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -878,11 +870,11 @@ namespace app {
         if (msaa > 1) {
             int w = win::props().width;
             int h = win::props().height;
-            gl::fbo_blit(msaa_fbo, w, h, scene_fbo, w, h, msaa_colors.size());
+            gl::fbo_blit(msaa_fbo.id, w, h, scene_fbo.id, w, h, msaa_fbo.colors.size());
         }
 
         // scene -> post effects
-        final_render_target = scene_colors[0];
+        final_render_target = scene_fbo.colors[0];
 
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_STENCIL_TEST);
@@ -892,12 +884,12 @@ namespace app {
         {
             // blur effect
             if (enable_blur) {
-                gl::fbo_bind(blur_fbo);
+                gl::fbo_bind(blur_fbo.id);
                 gl::clear_display(1, 1, 1, 1, GL_COLOR_BUFFER_BIT);
                 gl::shader_use(blur_shader);
                 gl::texture_update(blur_shader, final_render_target.view);
                 gl::draw_quad(screen_vao);
-                final_render_target = blur_colors[0];
+                final_render_target = blur_fbo.colors[0];
             }
         }
 

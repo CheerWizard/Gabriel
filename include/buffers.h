@@ -113,14 +113,26 @@ namespace gl {
         render_buffer(int w, int h, int s) : width(w), height(h), samples(s) {}
     };
 
-    u32 fbo_init(
-            std::vector<color_attachment>* colors,
-            depth_attachment* depth,
-            depth_stencil_attachment* depth_stencil,
-            render_buffer* rbo
-    );
-    u32 fbo_init(render_buffer& rbo);
-    void fbo_free(u32 fbo);
+    enum frame_buffer_flags : u8 {
+        init_colors = 1,
+        init_depth = 2,
+        init_depth_stencil = 4,
+        init_render_buffer = 8,
+        init_default = init_colors,
+    };
+
+    struct frame_buffer final {
+        u32 id = 0;
+        std::vector<color_attachment> colors;
+        depth_attachment depth;
+        depth_stencil_attachment depth_stencil;
+        render_buffer rbo;
+        u8 flags = init_default;
+    };
+
+    void fbo_init(frame_buffer& fbo);
+    void fbo_init_rbo(frame_buffer& fbo);
+    void fbo_free(frame_buffer& fbo);
 
     void fbo_bind(u32 fbo);
     void fbo_unbind();
@@ -140,6 +152,8 @@ namespace gl {
             int buffer_bit = GL_COLOR_BUFFER_BIT,
             int filter = GL_NEAREST
     );
+
+    void fbo_resize(frame_buffer& fbo, int w, int h);
 
     struct ubo_data final {
         long long offset;

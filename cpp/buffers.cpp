@@ -85,22 +85,16 @@ namespace gl {
         }
     }
 
-    u32 fbo_init(
-            std::vector<color_attachment>* colors,
-            depth_attachment* depth,
-            depth_stencil_attachment* depth_stencil,
-            render_buffer* rbo
-    ) {
-        u32 id;
-        glGenFramebuffers(1, &id);
+    void fbo_init(frame_buffer& fbo) {
+        glGenFramebuffers(1, &fbo.id);
 
-        fbo_bind(id);
+        fbo_bind(fbo.id);
 
         // color attachments
-        if (colors) {
-            size_t colors_size = colors->size();
+        if (fbo.flags & init_colors) {
+            size_t colors_size = fbo.colors.size();
             for (int i = 0 ; i < colors_size ; i++) {
-                auto& color = colors->operator[](i);
+                auto& color = fbo.colors.operator[](i);
                 auto& texture = color.view;
                 const auto& params = color.params;
                 const auto& data = color.data;
@@ -153,10 +147,10 @@ namespace gl {
         }
 
         // depth attachment
-        if (depth) {
-            auto& texture = depth->view;
-            const auto& params = depth->params;
-            const auto& data = depth->data;
+        if (fbo.flags & frame_buffer_flags::init_depth) {
+            auto& texture = fbo.depth.view;
+            const auto& params = fbo.depth.params;
+            const auto& data = fbo.depth.data;
 
             glGenTextures(1, &texture.id);
             glBindTexture(texture.type, texture.id);
@@ -206,47 +200,49 @@ namespace gl {
         }
 
         // depth-stencil attachments
-        if (depth_stencil) {
-            glGenTextures(1, &depth_stencil->id);
-            u32 depth_stencil_id = depth_stencil->id;
-            u32 depth_stencil_type = depth_stencil->type;
+        if (fbo.flags & frame_buffer_flags::init_depth_stencil) {
+            glGenTextures(1, &fbo.depth_stencil.id);
+            u32 depth_stencil_id = fbo.depth_stencil.id;
+            u32 depth_stencil_type = fbo.depth_stencil.type;
             glBindTexture(depth_stencil_type, depth_stencil_id);
 
             if (depth_stencil_type == GL_TEXTURE_2D_MULTISAMPLE) {
                 glTexImage2DMultisample(
                         depth_stencil_type,
-                        depth_stencil->samples,
+                        fbo.depth_stencil.samples,
                         GL_DEPTH24_STENCIL8,
-                        depth_stencil->width, depth_stencil->height,
+                        fbo.depth_stencil.width, fbo.depth_stencil.height,
                         GL_TRUE
                 );
             } else {
                 glTexImage2D(
                         depth_stencil_type, 0,
                         GL_DEPTH24_STENCIL8,
-                        depth_stencil->width, depth_stencil->height,
+                        fbo.depth_stencil.width, fbo.depth_stencil.height,
                         0,
                         GL_DEPTH_STENCIL,
-                        depth_stencil->primitive_type,
-                        depth_stencil->data
+                        fbo.depth_stencil.primitive_type,
+                        fbo.depth_stencil.data
                 );
             }
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, depth_stencil_type, depth_stencil_id, 0);
         }
 
-        fbo_attach(rbo);
+        if (fbo.flags & frame_buffer_flags::init_render_buffer) {
+            fbo_attach(&fbo.rbo);
+        }
 
-        if (!colors || colors->empty()) {
+        if (fbo.colors.empty()) {
             glDrawBuffer(GL_NONE);
             glReadBuffer(GL_NONE);
         } else {
-            int colors_size = colors->size();
+            size_t colors_size = fbo.colors.size();
             u32* color_attachments = (u32*) calloc(colors_size, sizeof(u32));
             for (int i = 0 ; i < colors_size ; i++) {
                 color_attachments[i] = GL_COLOR_ATTACHMENT0 + i;
             }
-            glDrawBuffers(colors_size, color_attachments);
+            glDrawBuffers((int) colors_size, color_attachments);
         }
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -256,16 +252,13 @@ namespace gl {
         }
 
         fbo_unbind();
-
-        return id;
     }
 
-    u32 fbo_init(render_buffer& rbo) {
-        u32 id;
-        glGenFramebuffers(1, &id);
-        fbo_bind(id);
+    void fbo_init_rbo(frame_buffer& fbo) {
+        glGenFramebuffers(1, &fbo.id);
+        fbo_bind(fbo.id);
 
-        fbo_attach(&rbo);
+        fbo_attach(&fbo.rbo);
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
@@ -274,7 +267,6 @@ namespace gl {
         }
 
         fbo_unbind();
-        return id;
     }
 
     void fbo_bind(u32 fbo) {
@@ -285,8 +277,24 @@ namespace gl {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void fbo_free(u32 fbo) {
-        glDeleteFramebuffers(1, &fbo);
+    void fbo_free(frame_buffer& fbo) {
+        glDeleteFramebuffers(1, &fbo.id);
+
+        if (fbo.flags & frame_buffer_flags::init_colors) {
+            fbo_free_attachment(fbo.colors);
+        }
+
+        if (fbo.flags & frame_buffer_flags::init_depth) {
+            fbo_free_attachment(fbo.depth);
+        }
+
+        if (fbo.flags & frame_buffer_flags::init_depth_stencil) {
+            fbo_free_attachment(fbo.depth_stencil);
+        }
+
+        if (fbo.flags & frame_buffer_flags::init_render_buffer) {
+            fbo_free_attachment(fbo.rbo);
+        }
     }
 
     void fbo_free_attachment(color_attachment& color) {
@@ -297,7 +305,6 @@ namespace gl {
         for (auto& color : colors) {
             texture_free(color.view.id);
         }
-        colors.clear();
     }
 
     void fbo_free_attachment(depth_attachment& depth) {
@@ -336,6 +343,26 @@ namespace gl {
     void fbo_update(const render_buffer& rbo) {
         glBindRenderbuffer(GL_RENDERBUFFER, rbo.id);
         glRenderbufferStorage(GL_RENDERBUFFER, rbo.format, rbo.width, rbo.height);
+    }
+
+    void fbo_resize(frame_buffer& fbo, int w, int h) {
+        for (auto& color : fbo.colors) {
+            color.data.width = w;
+            color.data.height = h;
+        }
+
+        fbo.depth.data.width = w;
+        fbo.depth.data.height = h;
+
+        fbo.depth_stencil.width = w;
+        fbo.depth_stencil.height = h;
+
+        fbo.rbo.width = w;
+        fbo.rbo.height = h;
+
+        fbo_free(fbo);
+        glViewport(0, 0, w, h);
+        fbo_init(fbo);
     }
 
     u32 ubo_init(u32 binding, long long size) {

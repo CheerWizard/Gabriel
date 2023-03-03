@@ -5,14 +5,12 @@ namespace gl {
     // directional shadows
     static gl::shadow_props direct_shadow_props;
     static u32 direct_shadow_shader;
-    static u32 direct_shadow_fbo;
-    static gl::depth_attachment direct_shadow;
+    static frame_buffer direct_shadow_fbo;
     static gl::uniform_m4f direct_light_space = {"direct_light_space" };
     // point shadows
     static gl::shadow_props point_shadow_props;
     static u32 point_shadow_shader;
-    static u32 point_shadow_fbo;
-    static gl::depth_attachment point_shadow;
+    static frame_buffer point_shadow_fbo;
     static uniform_f point_shadow_far_plane = { "far_plane", 25 };
     static uniform_v3f point_shadow_light_pos = { "light_pos" };
 
@@ -29,10 +27,10 @@ namespace gl {
             "shaders/direct_shadow.frag"
         });
 
-        direct_shadow.data = { props.width, props.height };
-        direct_shadow.view.sampler = {"direct_shadow_sampler", 0 };
-
-        direct_shadow_fbo = gl::fbo_init(null, &direct_shadow, null, null);
+        direct_shadow_fbo.depth.data = { props.width, props.height };
+        direct_shadow_fbo.depth.view.sampler = {"direct_shadow_sampler", 0 };
+        direct_shadow_fbo.flags = init_depth;
+        gl::fbo_init(direct_shadow_fbo);
 
         shader_use(direct_shadow_shader);
         direct_shadow_update(light_dir);
@@ -47,14 +45,14 @@ namespace gl {
             "shaders/point_shadow.geom"
         });
 
-        point_shadow.data = { props.width, props.height };
-        point_shadow.view.type = GL_TEXTURE_CUBE_MAP;
-        point_shadow.params.s = GL_CLAMP_TO_EDGE;
-        point_shadow.params.t = GL_CLAMP_TO_EDGE;
-        point_shadow.params.r = GL_CLAMP_TO_EDGE;
-        point_shadow.view.sampler = { "point_shadow_sampler", 1 };
-
-        point_shadow_fbo = gl::fbo_init(null, &point_shadow, null, null);
+        point_shadow_fbo.depth.data = { props.width, props.height };
+        point_shadow_fbo.depth.view.type = GL_TEXTURE_CUBE_MAP;
+        point_shadow_fbo.depth.params.s = GL_CLAMP_TO_EDGE;
+        point_shadow_fbo.depth.params.t = GL_CLAMP_TO_EDGE;
+        point_shadow_fbo.depth.params.r = GL_CLAMP_TO_EDGE;
+        point_shadow_fbo.depth.view.sampler = { "point_shadow_sampler", 1 };
+        point_shadow_fbo.flags = init_depth;
+        gl::fbo_init(point_shadow_fbo);
 
         shader_use(point_shadow_shader);
         point_shadow_update(light_pos);
@@ -63,18 +61,16 @@ namespace gl {
     void direct_shadow_free() {
         shader_free(direct_shadow_shader);
         fbo_free(direct_shadow_fbo);
-        fbo_free_attachment(direct_shadow);
     }
 
     void point_shadow_free() {
         shader_free(point_shadow_shader);
         fbo_free(point_shadow_fbo);
-        fbo_free_attachment(point_shadow);
     }
 
     void direct_shadow_begin() {
         glViewport(0, 0, direct_shadow_props.width, direct_shadow_props.height);
-        fbo_bind(direct_shadow_fbo);
+        fbo_bind(direct_shadow_fbo.id);
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -84,7 +80,7 @@ namespace gl {
 
     void point_shadow_begin() {
         glViewport(0, 0, point_shadow_props.width, point_shadow_props.height);
-        fbo_bind(point_shadow_fbo);
+        fbo_bind(point_shadow_fbo.id);
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -133,12 +129,12 @@ namespace gl {
 
     void direct_shadow_update(u32 shader) {
         shader_set_uniform(shader, direct_light_space);
-        texture_update(shader, direct_shadow.view);
+        texture_update(shader, direct_shadow_fbo.depth.view);
     }
 
     void point_shadow_update(u32 shader) {
         shader_set_uniform(shader, point_shadow_far_plane);
-        texture_update(shader, point_shadow.view);
+        texture_update(shader, point_shadow_fbo.depth.view);
     }
 
     void direct_shadow_draw(transform& transform, const drawable_elements& drawable) {
