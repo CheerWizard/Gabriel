@@ -18,35 +18,35 @@ namespace gl {
         params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
         if (albedo_path) {
-            params.srgb = false;
             gl::texture_init(new_material.albedo, albedo_path, flip_uv, params);
             new_material.enable_albedo = new_material.albedo.id != invalid_texture;
         }
+
         if (normal_path) {
-            params.srgb = false;
             gl::texture_init(new_material.normal, normal_path, flip_uv);
             new_material.enable_normal = new_material.normal.id != invalid_texture;
         }
+
         if (parallax_path) {
-            params.srgb = false;
             gl::texture_init(new_material.parallax, parallax_path, flip_uv);
             new_material.enable_parallax = new_material.parallax.id != invalid_texture;
         }
+
         if (metallic_path) {
-            params.srgb = false;
             gl::texture_init(new_material.metallic, metallic_path, flip_uv);
             new_material.enable_metallic = new_material.metallic.id != invalid_texture;
         }
+
         if (roughness_path) {
-            params.srgb = false;
             gl::texture_init(new_material.roughness, roughness_path, flip_uv);
             new_material.enable_roughness = new_material.roughness.id != invalid_texture;
         }
+
         if (ao_path) {
-            params.srgb = false;
             gl::texture_init(new_material.ao, ao_path, flip_uv);
             new_material.enable_ao = new_material.ao.id != invalid_texture;
         }
+
         return new_material;
     }
 

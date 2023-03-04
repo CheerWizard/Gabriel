@@ -22,5 +22,6 @@ namespace io {
 
     image_data image_read(const char* filepath, bool flip_uv = false);
     hdr_image_data hdr_image_read(const char* filepath, bool flip_uv = false);
+    void free(void* data);
 
 }

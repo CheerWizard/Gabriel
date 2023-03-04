@@ -34,6 +34,7 @@ namespace gl {
         int mag_filter = GL_LINEAR;
         bool generate_mipmap = false;
         bool srgb = false;
+        float lod_bias = -0.4f;
     };
 
     struct texture_face final {

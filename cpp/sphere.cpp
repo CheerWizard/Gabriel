@@ -33,4 +33,26 @@ namespace gl {
         return sphere;
     }
 
+    void sphere_tbn_displace(
+            sphere_tbn& sphere,
+            drawable_elements& drawable,
+            const char* displacement_path,
+            bool flip_uv,
+            float scale,
+            float shift
+    ) {
+        sphere_displace<vertex_tbn>(sphere, drawable, displacement_path, flip_uv, scale, shift, [](vertex_tbn& V) {
+            V.normal = V.pos;
+
+            glm::vec3 right = { 1, 0, 0 };
+            glm::vec3 up = { 0, 1, 0 };
+
+            if (glm::dot(up, V.normal) == 1) {
+                V.tangent = right;
+            } else {
+                V.tangent = glm::normalize(glm::cross(up, V.normal));
+            }
+        });
+    }
+
 }

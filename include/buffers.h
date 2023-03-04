@@ -52,16 +52,22 @@ namespace gl {
     template<typename T>
     void vbo_update(u32 vbo, const T& geometry) {
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
         vertex_data_t vertex_data {};
-        vertex_data.size = sizeof(T);
+        vertex_data.size = geometry.size();
         vertex_data.data = geometry.to_float();
         glBufferSubData(GL_ARRAY_BUFFER, 0, vertex_data.size, vertex_data.data);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    void ibo_bind(u32 ibo);
-    void ibo_free(u32 ibo);
     u32 ibo_init(u32* indices, u32 index_count, int alloc_type);
     u32 ibo_init(const u32* indices, u32 index_count, int alloc_type);
+    void ibo_free(u32 ibo);
+    void ibo_bind(u32 ibo);
+
+    void ibo_update(u32 ibo, u32* indices, u32 index_count);
+    void ibo_update(u32 ibo, const u32* indices, u32 index_count);
 
     struct color_attachment final {
         gl::texture view;

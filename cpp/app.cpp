@@ -20,13 +20,15 @@ namespace app {
     static float dt = 6;
     static float begin_time = 0;
 
+    static bool enable_fullscreen = false;
+
     static u32 material_shader;
     static u32 sunlight_ubo;
     static u32 lights_ubo;
     static u32 flashlight_ubo;
 
     static gl::camera camera;
-    static bool enable_camera = false;
+    static bool enable_camera = true;
 
     static gl::light_dir sunlight;
 
@@ -39,11 +41,13 @@ namespace app {
     static gl::transform plane_transform = {
             { 0, -2, 4 },
             { 0, 0, 0 },
-            { 1, 0.5, 1 }
+            { 10, 0.25, 10 }
     };
     static gl::material plane_material;
 
     static io::drawable_elements sphere;
+    static io::drawable_elements sphere_rock;
+    static io::sphere_tbn sphere_rock_geometry;
     static std::vector<gl::transform> sphere_transforms = {
             {
                     { 0, 0, 0 },
@@ -63,11 +67,13 @@ namespace app {
     };
     static std::vector<gl::material> sphere_materials;
     static io::drawable_elements sphere_shadow;
+    static gl::drawable_elements sphere_rock_shadow;
+    static gl::sphere_default sphere_rock_shadow_geometry;
 
     static io::drawable_model model;
     static gl::transform model_transform = {
-            { 5, 0, 5 },
-            { 0, 90, 0 },
+            { -3, -0.1, 5 },
+            { 0, 0, 0 },
             { 1, 1, 1 }
     };
     static gl::material model_material;
@@ -119,7 +125,7 @@ namespace app {
     static gl::texture env_brdf_convolution_map;
 
     static void window_error(int error, const char* msg) {
-        print_err("window_error: error=" << error << ", msg=" << msg);
+        print_err("window_error(): error=" << error << ", msg=" << msg);
     }
 
     static void window_close() {
@@ -127,7 +133,11 @@ namespace app {
     }
 
     static void window_resized(int w, int h) {
-        print("window_resized()");
+        print("window_resized(): width=" << w << ", height=" << h);
+    }
+
+    static void window_positioned(int x, int y) {
+        print("window_positioned(): x=" << x << ", y=" << y);
     }
 
     static void framebuffer_resized(int w, int h) {
@@ -189,6 +199,14 @@ namespace app {
 
         if (key == KEY::C)
             enable_camera = !enable_camera;
+
+        if (key == KEY::F) {
+            enable_fullscreen = !enable_fullscreen;
+            if (enable_fullscreen)
+                win::set_full_screen();
+            else
+                win::set_windowed();
+        }
     }
 
     static void key_release(int key) {
@@ -216,12 +234,12 @@ namespace app {
     }
 
     static void init() {
-        win::init({ 1920, 1000, "CGP", true });
-//        win::disable_cursor();
+        win::init({ 0, 0, 800, 600, "CGP", win::win_flags::sync });
 
         win::event_registry::window_error = window_error;
         win::event_registry::window_close = window_close;
         win::event_registry::window_resized = window_resized;
+        win::event_registry::window_positioned = window_positioned;
         win::event_registry::framebuffer_resized = framebuffer_resized;
         win::event_registry::key_press = key_press;
         win::event_registry::key_release = key_release;
@@ -483,12 +501,24 @@ namespace app {
         // setup lights
         point_lights[0].position = { -4, -1, 0, 1 };
         point_lights[0].color = { 1, 0, 0, 1 };
+        point_lights[0].constant = 0;
+        point_lights[0].linear = 0;
+        point_lights[0].quadratic = 1;
         point_lights[1].position = { 4, -1, 0, 1 };
         point_lights[1].color = { 0, 1, 0, 1 };
+        point_lights[1].constant = 0;
+        point_lights[1].linear = 0;
+        point_lights[1].quadratic = 1;
         point_lights[2].position = { -4, -1, 8, 1 };
         point_lights[2].color = { 0, 0, 1, 1 };
+        point_lights[2].constant = 0;
+        point_lights[2].linear = 0;
+        point_lights[2].quadratic = 1;
         point_lights[3].position = { 4, -1, 8, 1 };
         point_lights[3].color = { 1, 0, 1, 1 };
+        point_lights[3].constant = 0;
+        point_lights[3].linear = 0;
+        point_lights[3].quadratic = 1;
         gl::ubo_update(lights_ubo, { 0, sizeof(point_lights), point_lights.data() });
 
         // setup flashlight
@@ -511,23 +541,30 @@ namespace app {
         model_material = gl::material_init(
                 true,
                 "models/backpack/diffuse.jpg",
+                "models/backpack/normal.png",
                 null,
-                null,
-                null,
-                null,
+                "models/backpack/specular.jpg",
+                "models/backpack/roughness.jpg",
                 "models/backpack/ao.jpg"
         );
         model_material.env_irradiance.id = env_irradiance_map.id;
+        model_material.enable_env_irradiance = true;
         model_material.env_prefilter.id = env_prefilter_map.id;
-        model_material.env_brdf_convolution.id = env_brdf_convolution_map.id;
         model_material.env_prefilter_mip_levels = env_prefilter_mip_levels;
-        model_material.metallic_factor = 0;
-        model_material.roughness_factor = 0;
+        model_material.enable_env_prefilter = true;
+        model_material.env_brdf_convolution.id = env_brdf_convolution_map.id;
+        model_material.enable_brdf_convolution = true;
+        model_material.metallic_factor = 1;
+        model_material.roughness_factor = 1;
         model_material.ao_factor = 1;
 
         // setup sphere
-        gl::sphere_tbn_init(sphere);
-        gl::sphere_default_init(sphere_shadow);
+        gl::sphere_tbn_init(sphere, 64, 64);
+        gl::sphere_default_init(sphere_shadow, 64, 64);
+        // setup rock sphere
+        sphere_rock_geometry = gl::sphere_tbn_init(sphere_rock, 2047, 2047);
+        sphere_rock_shadow_geometry = gl::sphere_default_init(sphere_rock_shadow, 64, 64);
+
         sphere_materials.resize(sphere_transforms.size());
         {
             sphere_materials[0] = gl::material_init(
@@ -540,26 +577,35 @@ namespace app {
                     "images/bumpy-rockface1-bl/ao.png"
             );
             sphere_materials[0].env_irradiance.id = env_irradiance_map.id;
+            sphere_materials[0].enable_env_irradiance = true;
             sphere_materials[0].env_prefilter.id = env_prefilter_map.id;
-            sphere_materials[0].env_brdf_convolution.id = env_brdf_convolution_map.id;
             sphere_materials[0].env_prefilter_mip_levels = env_prefilter_mip_levels;
+            sphere_materials[0].enable_env_prefilter = true;
+            sphere_materials[0].env_brdf_convolution.id = env_brdf_convolution_map.id;
+            sphere_materials[0].enable_brdf_convolution = true;
             sphere_materials[0].metallic_factor = 1;
             sphere_materials[0].roughness_factor = 1;
             sphere_materials[0].ao_factor = 1;
 
+            gl::sphere_tbn_displace(sphere_rock_geometry, sphere_rock, "images/bumpy-rockface1-bl/height.png", false, 3.0f);
+            gl::sphere_default_displace(sphere_rock_shadow_geometry, sphere_rock_shadow, "images/bumpy-rockface1-bl/height.png", false, 3.0f, 0, [](gl::vertex_default& V) {});
+
             sphere_materials[1] = gl::material_init(
                     false,
-                    "images/rust_pbr/albedo.png",
-                    "images/rust_pbr/normal.png",
+                    "images/cheap-plywood1-bl/albedo.png",
+                    "images/cheap-plywood1-bl/normal.png",
                     null,
-                    "images/rust_pbr/metallic.png",
-                    "images/rust_pbr/roughness.png",
-                    null
+                    "images/cheap-plywood1-bl/metallic.png",
+                    "images/cheap-plywood1-bl/roughness.png",
+                    "images/cheap-plywood1-bl/ao.png"
             );
             sphere_materials[1].env_irradiance.id = env_irradiance_map.id;
+            sphere_materials[1].enable_env_irradiance = true;
             sphere_materials[1].env_prefilter.id = env_prefilter_map.id;
-            sphere_materials[1].env_brdf_convolution.id = env_brdf_convolution_map.id;
             sphere_materials[1].env_prefilter_mip_levels = env_prefilter_mip_levels;
+            sphere_materials[1].enable_env_prefilter = true;
+            sphere_materials[1].env_brdf_convolution.id = env_brdf_convolution_map.id;
+            sphere_materials[1].enable_brdf_convolution = true;
             sphere_materials[1].metallic_factor = 1;
             sphere_materials[1].roughness_factor = 1;
             sphere_materials[1].ao_factor = 1;
@@ -567,36 +613,36 @@ namespace app {
             sphere_materials[2] = gl::material_init(
                     false,
                     "images/light-gold-bl/albedo.png",
+                    "images/light-gold-bl/normal.png",
                     null,
-                    null,
-                    null,
-                    null,
+                    "images/light-gold-bl/metallic.png",
+                    "images/light-gold-bl/roughness.png",
                     null
             );
             sphere_materials[2].env_irradiance.id = env_irradiance_map.id;
+            sphere_materials[2].enable_env_irradiance = true;
             sphere_materials[2].env_prefilter.id = env_prefilter_map.id;
-            sphere_materials[2].env_brdf_convolution.id = env_brdf_convolution_map.id;
             sphere_materials[2].env_prefilter_mip_levels = env_prefilter_mip_levels;
-            sphere_materials[2].metallic_factor = 0;
-            sphere_materials[2].roughness_factor = 0;
+            sphere_materials[2].enable_env_prefilter = true;
+            sphere_materials[2].env_brdf_convolution.id = env_brdf_convolution_map.id;
+            sphere_materials[2].enable_brdf_convolution = true;
+            sphere_materials[2].metallic_factor = 1;
+            sphere_materials[2].roughness_factor = 1;
             sphere_materials[2].ao_factor = 1;
-            sphere_materials[2].enable_normal = false;
         }
 
         // setup horizontal plane
         gl::cube_tbn_init(plane);
-        plane_material = gl::material_init(
-            false,
-            null,
-            null
-        );
         plane_material.color = { 1, 1, 1, 1 };
         plane_material.env_irradiance.id = env_irradiance_map.id;
+        plane_material.enable_env_irradiance = true;
         plane_material.env_prefilter.id = env_prefilter_map.id;
-        plane_material.env_brdf_convolution.id = env_brdf_convolution_map.id;
         plane_material.env_prefilter_mip_levels = env_prefilter_mip_levels;
+        plane_material.enable_env_prefilter = true;
+        plane_material.env_brdf_convolution.id = env_brdf_convolution_map.id;
+        plane_material.enable_brdf_convolution = true;
         plane_material.metallic_factor = 0;
-        plane_material.roughness_factor = 0.1;
+        plane_material.roughness_factor = 0;
         plane_material.ao_factor = 1;
 
         gl::shader_use(blur_shader);
@@ -610,6 +656,8 @@ namespace app {
         gl::drawable_free(sphere);
         gl::drawable_free(sphere_shadow);
         gl::material_free(sphere_materials);
+        gl::drawable_free(sphere_rock);
+        gl::drawable_free(sphere_rock_shadow);
 
         gl::shader_free(hdr_to_cubemap_shader);
         gl::shader_free(hdr_irradiance_shader);
@@ -690,8 +738,8 @@ namespace app {
         float t = begin_time;
         camera_control_update();
         // bind flashlight to camera
-        flashlight.position = {camera.position, 0 };
-        flashlight.direction = {camera.front, 0 };
+        flashlight.position = { camera.position, 0 };
+        flashlight.direction = { camera.front, 0 };
         // rotate object each frame
         float f = 0.05f;
         sphere_transforms[0].rotation.y += f;
@@ -699,7 +747,7 @@ namespace app {
         sphere_transforms[2].rotation.y += f * 4;
         // translate point lights up/down
         for (auto& point_light : point_lights) {
-            point_light.position.y = 10 * sin(t/2) + 2;
+            point_light.position.y = 5 * sin(t/5) + 2;
         }
         // sorting transparent drawables
         transparent_objects.clear();
@@ -833,7 +881,10 @@ namespace app {
             gl::transform_update(material_shader, plane_transform);
             gl::draw(plane);
 
-            for (int i = 0 ; i < sphere_transforms.size() ; i++) {
+            gl::material_update(material_shader, sphere_materials[0]);
+            gl::transform_update(material_shader, sphere_transforms[0]);
+            gl::draw(sphere_rock);
+            for (int i = 1 ; i < sphere_transforms.size() ; i++) {
                 gl::material_update(material_shader, sphere_materials[i]);
                 gl::transform_update(material_shader, sphere_transforms[i]);
                 gl::draw(sphere);

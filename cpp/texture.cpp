@@ -52,6 +52,7 @@ namespace gl {
         glTexImage2D(texture_type, 0, internal_format, width, height, 0, data_format, primitive_type, data);
         if (params.generate_mipmap) {
             glGenerateMipmap(texture_type);
+            glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, params.lod_bias);
         }
 
         texture_params_update(texture, params);
@@ -196,6 +197,7 @@ namespace gl {
 
         if (params.generate_mipmap) {
             glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+            glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, params.lod_bias);
         }
     }
 

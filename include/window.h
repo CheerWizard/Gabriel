@@ -7,10 +7,17 @@
 
 namespace win {
 
+    enum win_flags : u8 {
+        none = 0,
+        sync = 1,
+        fullscreen = 2
+    };
+
     struct window_props final {
+        int x, y;
         int width, height;
         const char* title;
-        bool sync = false;
+        u8 flags = win_flags::none;
         int major_version = 4;
         int minor_version = 2;
         int profile_version = GLFW_OPENGL_CORE_PROFILE;
@@ -18,6 +25,12 @@ namespace win {
 
     void init(const window_props& props);
     void free();
+
+    void set_full_screen();
+    void set_windowed();
+
+    void enable_sync();
+    void disable_sync();
 
     void poll();
     void swap();
@@ -39,6 +52,7 @@ namespace win {
     typedef void (*event_window_error)(int, const char*);
     typedef void (*event_window_resized)(int, int);
     typedef void (*event_window_close)();
+    typedef void (*event_window_positioned)(int, int);
 
     typedef void (*event_framebuffer_resized)(int, int);
 
@@ -54,6 +68,7 @@ namespace win {
         static event_window_error window_error;
         static event_window_resized window_resized;
         static event_window_close window_close;
+        static event_window_positioned window_positioned;
 
         static event_framebuffer_resized framebuffer_resized;
 

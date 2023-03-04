@@ -68,6 +68,18 @@ namespace gl {
         return id;
     }
 
+    void ibo_update(u32 ibo, u32* indices, u32 index_count) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(u32) * index_count, indices);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
+    void ibo_update(u32 ibo, const u32* indices, u32 index_count) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(u32) * index_count, indices);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
     static void fbo_attach(render_buffer* rbo) {
         // render buffer objects
         if (rbo) {

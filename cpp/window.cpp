@@ -3,14 +3,29 @@
 
 #include <glad/glad.h>
 
+#include <unordered_map>
+
 namespace win {
 
-    static window_props s_props;
-    static GLFWwindow* s_win;
+    static window_props win_props;
+    static GLFWwindow* window;
+    static GLFWmonitor* primary_monitor;
+    static std::unordered_map<GLFWmonitor*, const GLFWvidmode*> video_modes;
+
+    static int window_mode_width;
+    static int window_mode_height;
+    static int window_mode_x;
+    static int window_mode_y;
 
     int gpu_props::max_attrs_allowed;
 
     void init(const window_props& props) {
+        win_props = props;
+        window_mode_x = props.x;
+        window_mode_y = props.y;
+        window_mode_width = props.width;
+        window_mode_height = props.height;
+
         glfwSetErrorCallback([](int error, const char* msg) {
             print_err("GLFW error=" << error << ", msg=" << msg);
             if (event_registry::window_error) {
@@ -27,18 +42,30 @@ namespace win {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, props.major_version);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, props.minor_version);
         glfwWindowHint(GLFW_OPENGL_PROFILE, props.profile_version);
+
 #ifdef __APPLE__
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-        s_win = glfwCreateWindow(props.width, props.height, props.title, null, null);
-        if (!s_win) {
+        primary_monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* primary_mode = glfwGetVideoMode(primary_monitor);
+        window_mode_x = primary_mode->width / 4;
+        window_mode_y = primary_mode->height / 4;
+        video_modes[primary_monitor] = primary_mode;
+
+        glfwWindowHint(GLFW_RED_BITS, primary_mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, primary_mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, primary_mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, primary_mode->refreshRate);
+
+        window = glfwCreateWindow(props.width, props.height, props.title, null, null);
+        if (!window) {
             glfwTerminate();
             print_err("Failed to create GLFW window");
             assert(false);
         }
 
-        glfwMakeContextCurrent(s_win);
+        glfwMakeContextCurrent(window);
 
         int glStatus = gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
         if (glStatus == GLFW_FALSE) {
@@ -47,9 +74,12 @@ namespace win {
             assert(false);
         }
 
-        s_props = props;
+        if (props.flags & win_flags::fullscreen)
+            set_full_screen();
+        else
+            set_windowed();
 
-        glfwSwapInterval(props.sync);
+        glfwSwapInterval(props.flags & win_flags::sync);
 
         glViewport(0, 0, props.width, props.height);
 
@@ -58,7 +88,8 @@ namespace win {
         glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 #ifdef UI
-        ui::init(s_win);
+        ui::init(window);
+        disable_cursor();
 #endif
     }
 
@@ -66,9 +97,35 @@ namespace win {
 #ifdef UI
         ui::free();
 #else
-        glfwDestroyWindow(s_win);
+        glfwDestroyWindow(window);
 #endif
         glfwTerminate();
+    }
+
+    void set_full_screen() {
+        window_mode_x = win_props.x;
+        window_mode_y = win_props.y;
+        window_mode_width = win_props.width;
+        window_mode_height = win_props.height;
+        auto& mode = video_modes[primary_monitor];
+        glfwSetWindowMonitor(window, primary_monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    }
+
+    void set_windowed() {
+        win_props.x = window_mode_x;
+        win_props.y = window_mode_y;
+        win_props.width = window_mode_width;
+        win_props.height = window_mode_height;
+        auto& refresh_rate = video_modes[primary_monitor]->refreshRate;
+        glfwSetWindowMonitor(window, null, win_props.x, win_props.y, win_props.width, win_props.height, refresh_rate);
+    }
+
+    void enable_sync() {
+        glfwSwapInterval(true);
+    }
+
+    void disable_sync() {
+        glfwSwapInterval(false);
     }
 
     void poll() {
@@ -76,48 +133,49 @@ namespace win {
     }
 
     void swap() {
-        glfwSwapBuffers(s_win);
+        glfwSwapBuffers(window);
     }
 
     void close() {
-        glfwSetWindowShouldClose(s_win, GLFW_TRUE);
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
     bool is_open() {
-        return !glfwWindowShouldClose(s_win);
+        return !glfwWindowShouldClose(window);
     }
 
     float get_aspect_ratio() {
-        return (float) s_props.width / (float) s_props.height;
+        return (float) win_props.width / (float) win_props.height;
     }
 
     window_props& props() {
-        return s_props;
+        return win_props;
     }
 
     void disable_cursor() {
-        glfwSetInputMode(s_win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
     bool is_key_press(int key) {
-        return glfwGetKey(s_win, key) == GLFW_PRESS;
+        return glfwGetKey(window, key) == GLFW_PRESS;
     }
 
     bool is_mouse_press(int button) {
-        return glfwGetMouseButton(s_win, button) == GLFW_PRESS;
+        return glfwGetMouseButton(window, button) == GLFW_PRESS;
     }
 
     bool is_key_release(int key) {
-        return glfwGetKey(s_win, key) == GLFW_RELEASE;
+        return glfwGetKey(window, key) == GLFW_RELEASE;
     }
 
     bool is_mouse_release(int button) {
-        return glfwGetMouseButton(s_win, button) == GLFW_RELEASE;
+        return glfwGetMouseButton(window, button) == GLFW_RELEASE;
     }
 
     event_window_error event_registry::window_error = null;
     event_window_resized event_registry::window_resized = null;
     event_window_close event_registry::window_close = null;
+    event_window_positioned event_registry::window_positioned = null;
 
     event_framebuffer_resized event_registry::framebuffer_resized = null;
 
@@ -137,21 +195,29 @@ namespace win {
         glfwSetErrorCallback([](int error, const char* msg) {
             event_handler(window_error, error, msg)
         });
-        glfwSetWindowSizeCallback(s_win, [](GLFWwindow* win, int w, int h) {
-            s_props.width = w;
-            s_props.height = h;
-            event_handler(window_resized, w, h)
-        });
-        glfwSetWindowCloseCallback(s_win, [](GLFWwindow* win) {
+
+        glfwSetWindowCloseCallback(window, [](GLFWwindow* win) {
             event_handler(window_close)
         });
 
-        glfwSetFramebufferSizeCallback(s_win, [](GLFWwindow* win, int w, int h) {
+        glfwSetWindowSizeCallback(window, [](GLFWwindow* win, int w, int h) {
+            win_props.width = w;
+            win_props.height = h;
+            event_handler(window_resized, w, h)
+        });
+
+        glfwSetWindowPosCallback(window, [](GLFWwindow* win, int x, int y) {
+            win_props.x = x;
+            win_props.y = y;
+            event_handler(window_positioned, x, y)
+        });
+
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int w, int h) {
             glViewport(0, 0, w, h);
             event_handler(framebuffer_resized, w, h)
         });
 
-        glfwSetKeyCallback(s_win, [](GLFWwindow* win, int key, int scancode, int action, int mods) {
+        glfwSetKeyCallback(window, [](GLFWwindow* win, int key, int scancode, int action, int mods) {
             if (action == GLFW_PRESS) {
                 event_handler(key_press, key)
             } else if (action == GLFW_RELEASE) {
@@ -159,7 +225,7 @@ namespace win {
             }
         });
 
-        glfwSetMouseButtonCallback(s_win, [](GLFWwindow* win, int button, int action, int mods) {
+        glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods) {
             if (action == GLFW_PRESS) {
                 event_handler(mouse_press, button)
             } else if (action == GLFW_RELEASE) {
@@ -167,11 +233,11 @@ namespace win {
             }
         });
 
-        glfwSetCursorPosCallback(s_win, [](GLFWwindow* win, double x, double y) {
+        glfwSetCursorPosCallback(window, [](GLFWwindow* win, double x, double y) {
             event_handler(mouse_cursor, x, y)
         });
 
-        glfwSetScrollCallback(s_win, [](GLFWwindow* win, double x, double y) {
+        glfwSetScrollCallback(window, [](GLFWwindow* win, double x, double y) {
             event_handler(mouse_scroll, x, y)
         });
     }

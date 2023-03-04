@@ -54,4 +54,8 @@ namespace io {
         return result;
     }
 
+    void free(void* data) {
+        stbi_image_free(data);
+    }
+
 }

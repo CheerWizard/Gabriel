@@ -25,6 +25,8 @@ namespace gl {
     struct sphere final {
         sphere_vertices<T> vertices;
         u32* indices;
+        int x_segments = 64;
+        int y_segments = 64;
     };
 
     typedef sphere<vertex_default> sphere_default;
@@ -40,8 +42,8 @@ namespace gl {
         drawable.type = GL_TRIANGLE_STRIP;
         drawable.vao = vao_init();
         vao_bind(drawable.vao);
-        drawable.vbo = vbo_init(sphere.vertices, T::format, GL_STATIC_DRAW);
-        drawable.ibo = ibo_init(sphere.indices, drawable.index_count, GL_STATIC_DRAW);
+        drawable.vbo = vbo_init(sphere.vertices, T::format, GL_DYNAMIC_DRAW);
+        drawable.ibo = ibo_init(sphere.indices, drawable.index_count, GL_DYNAMIC_DRAW);
     }
 
     template<typename T>
@@ -55,6 +57,8 @@ namespace gl {
         int vertex_count = (x_segments + 1) * (y_segments + 1);
         sphere.vertices.vertices = new T[vertex_count];
         sphere.vertices.count = vertex_count;
+        sphere.x_segments = x_segments;
+        sphere.y_segments = y_segments;
 
         int i = 0;
         auto& vertices = sphere.vertices.vertices;
@@ -101,7 +105,62 @@ namespace gl {
         return sphere;
     }
 
+    template<typename T>
+    void sphere_displace(
+            gl::sphere<T>& sphere,
+            drawable_elements& drawable,
+            const char* displacement_filepath,
+            bool flip_uv = false,
+            float scale = 1.0f,
+            float shift = 0.0f,
+            const std::function<void(T&)>& update_vertex_function = [](T& t) {}
+    ) {
+        // todo consider to move image reading and pass image data instead
+        io::image_data image = io::image_read(displacement_filepath, flip_uv);
+        auto& vertices = sphere.vertices.vertices;
+        int image_width = image.width;
+        int w = sphere.x_segments < image_width ? sphere.x_segments : image_width - 1;
+        int h = sphere.y_segments < image.height ? sphere.y_segments : image.height - 1;
+        int channels = image.channels;
+        u8* data = image.data;
+
+        int k = 0;
+        for (int i = 0; i <= h; i++)
+        {
+            for (int j = 0; j <= w; j++)
+            {
+                auto& V = vertices[k];
+                // retrieve texel for (i, j) uv
+                u8* texel = data + (j + image_width * i) * channels;
+                // raw height at coordinate
+                float y = texel[0];
+                y = y * scale + shift;
+                y /= (float) image_width;
+                // displace vertex height position
+                V.pos.y += y;
+                update_vertex_function(V);
+                k++;
+            }
+        }
+
+        vao_bind(drawable.vao);
+        vbo_update(drawable.vbo, sphere.vertices);
+
+        io::free(image.data);
+    }
+
     sphere_default sphere_default_init(drawable_elements& drawable, int x_segments = 64, int y_segments = 64);
     sphere_tbn sphere_tbn_init(drawable_elements& drawable, int x_segments = 64, int y_segments = 64);
+
+    constexpr auto sphere_default_displace = &sphere_displace<vertex_default>;
+
+    void sphere_tbn_displace(
+            sphere_tbn& sphere,
+            drawable_elements& drawable,
+            const char* displacement_path,
+            bool flip_uv = false,
+            float scale = 1.0f,
+            float shift = 0.0f
+    );
 
 }
