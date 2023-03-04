@@ -9,51 +9,64 @@
 
 namespace gl {
 
-    u32 vao_init();
-    void vao_bind(u32 vao);
-    void vao_free(u32 vao);
+    struct VertexArray final {
+        u32 id;
 
-    void vbo_bind(u32 vbo);
-    void vbo_free(u32 vbo);
-    void vbo_set_format(const vertex_format& format);
+        void init();
+        void bind() const;
+        void free();
+        void draw_quad() const;
+    };
+
+    struct VertexBuffer final {
+        u32 id;
+
+        void init();
+        template<typename T>
+        void init(const T& geometry, const VertexFormat& format, int alloc_type);
+        template<typename T>
+        void init(const std::vector<T>& geometries, const VertexFormat& format, int alloc_type);
+
+        void bind() const;
+
+        static void set_format(const VertexFormat& format);
+        template<typename T>
+        void update(const T& geometry);
+
+        void free();
+    };
 
     template<typename T>
-    u32 vbo_init(const T& geometry, const vertex_format& format, int alloc_type) {
-        u32 id;
+    void VertexBuffer::init(const T &geometry, const VertexFormat &format, int alloc_type) {
         glGenBuffers(1, &id);
 
         glBindBuffer(GL_ARRAY_BUFFER, id);
-        vertex_data_t vertex_data {};
+        VertexData vertex_data {};
         vertex_data.size = geometry.size();
         vertex_data.data = geometry.to_float();
         glBufferData(GL_ARRAY_BUFFER, vertex_data.size, vertex_data.data, alloc_type);
 
-        vbo_set_format(format);
-
-        return id;
+        set_format(format);
     }
 
     template<typename T>
-    u32 vbo_init(const std::vector<T>& geometries, const vertex_format& format, int alloc_type) {
-        u32 id;
+    void VertexBuffer::init(const std::vector<T> &geometries, const VertexFormat &format, int alloc_type) {
         glGenBuffers(1, &id);
 
         glBindBuffer(GL_ARRAY_BUFFER, id);
-        vertex_data_t vertex_data {};
+        VertexData vertex_data {};
         vertex_data.size = sizeof(T) * geometries.size();
         vertex_data.data = geometries.begin()->to_float();
         glBufferData(GL_ARRAY_BUFFER, vertex_data.size, vertex_data.data, alloc_type);
 
-        vbo_set_format(format);
-
-        return id;
+        set_format(format);
     }
 
     template<typename T>
-    void vbo_update(u32 vbo, const T& geometry) {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    void VertexBuffer::update(const T& geometry) {
+        glBindBuffer(GL_ARRAY_BUFFER, id);
 
-        vertex_data_t vertex_data {};
+        VertexData vertex_data {};
         vertex_data.size = geometry.size();
         vertex_data.data = geometry.to_float();
         glBufferSubData(GL_ARRAY_BUFFER, 0, vertex_data.size, vertex_data.data);
@@ -61,50 +74,61 @@ namespace gl {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    u32 ibo_init(u32* indices, u32 index_count, int alloc_type);
-    u32 ibo_init(const u32* indices, u32 index_count, int alloc_type);
-    void ibo_free(u32 ibo);
-    void ibo_bind(u32 ibo);
+    struct IndexBuffer final {
+        u32 id;
 
-    void ibo_update(u32 ibo, u32* indices, u32 index_count);
-    void ibo_update(u32 ibo, const u32* indices, u32 index_count);
+        void init(u32* indices, u32 index_count, int alloc_type);
+        void init(const u32* indices, u32 index_count, int alloc_type);
 
-    struct color_attachment final {
-        gl::texture view;
-        gl::texture_params params;
-        gl::texture_data data;
+        void free();
 
-        color_attachment() = default;
+        void bind() const;
 
-        color_attachment(int w, int h) {
+        void update(u32* indices, u32 index_count);
+        void update(const u32* indices, u32 index_count);
+    };
+
+    struct ColorAttachment final {
+        gl::Texture view;
+        gl::TextureParams params;
+        gl::TextureData data;
+
+        ColorAttachment() = default;
+
+        ColorAttachment(int w, int h) {
             data.width = w;
             data.height = h;
         }
 
-        color_attachment(int w, int h, int s) {
+        ColorAttachment(int w, int h, int s) {
             data.width = w;
             data.height = h;
             data.samples = s;
         }
+
+        void free();
     };
 
-    struct depth_attachment final {
-        gl::texture view;
-        gl::texture_params params;
-        gl::texture_data data;
+    struct DepthAttachment final {
+        gl::Texture view;
+        gl::TextureParams params;
+        gl::TextureData data;
+
+        void free();
     };
 
-    struct depth_stencil_attachment final {
+    struct DepthStencilAttachment final {
         int width = 800;
         int height = 600;
         int samples = 1;
         u32 primitive_type = GL_UNSIGNED_INT_24_8;
         void* data = null;
-        u32 id = 0;
-        u32 type = GL_TEXTURE_2D;
+        Texture view;
+
+        void free();
     };
 
-    struct render_buffer final {
+    struct RenderBuffer final {
         int width = 800;
         int height = 600;
         int format = GL_DEPTH24_STENCIL8;
@@ -112,14 +136,18 @@ namespace gl {
         int samples = 1;
         u32 id = 0;
 
-        render_buffer() = default;
+        RenderBuffer() = default;
 
-        render_buffer(int w, int h) : width(w), height(h) {}
+        RenderBuffer(int w, int h) : width(w), height(h) {}
 
-        render_buffer(int w, int h, int s) : width(w), height(h), samples(s) {}
+        RenderBuffer(int w, int h, int s) : width(w), height(h), samples(s) {}
+
+        void free();
+
+        void update();
     };
 
-    enum frame_buffer_flags : u8 {
+    enum FrameBufferFlags : u8 {
         init_colors = 1,
         init_depth = 2,
         init_depth_stencil = 4,
@@ -127,49 +155,51 @@ namespace gl {
         init_default = init_colors,
     };
 
-    struct frame_buffer final {
+    struct FrameBuffer final {
         u32 id = 0;
-        std::vector<color_attachment> colors;
-        depth_attachment depth;
-        depth_stencil_attachment depth_stencil;
-        render_buffer rbo;
+        std::vector<ColorAttachment> colors;
+        DepthAttachment depth;
+        DepthStencilAttachment depth_stencil;
+        RenderBuffer rbo;
         u8 flags = init_default;
+
+        void init();
+        void init_with_render_buffer();
+        void free();
+
+        void bind();
+        static void unbind();
+
+        void free_colors();
+
+        void attach_colors();
+        void attach_depth();
+        void attach_depth_stencil();
+        void attach_render_buffer();
+
+        void resize(int w, int h);
+
+        static void blit(
+                u32 in_fbo, int in_w, int in_h,
+                u32 out_fbo, int out_w, int out_h,
+                int buffers_size = 1,
+                int buffer_bit = GL_COLOR_BUFFER_BIT,
+                int filter = GL_NEAREST
+        );
     };
 
-    void fbo_init(frame_buffer& fbo);
-    void fbo_init_rbo(frame_buffer& fbo);
-    void fbo_free(frame_buffer& fbo);
-
-    void fbo_bind(u32 fbo);
-    void fbo_unbind();
-
-    void fbo_update(const render_buffer& rbo);
-
-    void fbo_free_attachment(color_attachment& color);
-    void fbo_free_attachment(std::vector<color_attachment>& colors);
-    void fbo_free_attachment(depth_attachment& depth);
-    void fbo_free_attachment(depth_stencil_attachment& depth_stencil);
-    void fbo_free_attachment(render_buffer& rbo);
-
-    void fbo_blit(
-            u32 in_fbo, int in_w, int in_h,
-            u32 out_fbo, int out_w, int out_h,
-            int buffers_size = 1,
-            int buffer_bit = GL_COLOR_BUFFER_BIT,
-            int filter = GL_NEAREST
-    );
-
-    void fbo_resize(frame_buffer& fbo, int w, int h);
-
-    struct ubo_data final {
+    struct UniformData final {
         long long offset;
         long long size;
         void* data;
     };
 
-    u32 ubo_init(u32 binding, long long size);
-    void ubo_bind(u32 ubo);
-    void ubo_update(u32 ubo, const ubo_data& ubo_data);
-    void ubo_update(const ubo_data& ubo_data);
-    void ubo_free(u32 ubo);
+    struct UniformBuffer final {
+        u32 id;
+
+        void init(u32 binding, long long size);
+        void bind();
+        void update(const UniformData& ubo_data);
+        void free();
+    };
 }

@@ -6,17 +6,19 @@
 
 namespace gl {
 
-    struct outline_t final {
+    struct Outline final {
         float thickness = 0.02f;
         glm::vec4 color = { 1, 1, 0, 1 };
+
+        void init();
+
+        static void free();
+
+        static void begin();
+
+        static void end();
+
+        void draw(Transform& transform, const DrawableElements& drawable);
     };
-
-    outline_t outline_init();
-    void outline_free();
-
-    void outline_begin();
-    void outline_end();
-
-    void outline_draw(gl::transform& transform, const gl::drawable_elements& drawable, outline_t& outline);
 
 }

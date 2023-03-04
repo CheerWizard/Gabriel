@@ -13,58 +13,109 @@
 namespace gl {
 
     template<typename T>
-    struct rect_vertices final {
+    struct RectVertices final {
         T v0 = { { 0.5f, 0.5f, 0 } };
         T v1 = { { 0.5f, -0.5f, 0 } };
         T v2 = { { -0.5f, -0.5f, 0 } };
         T v3 = { { -0.5, 0.5f, 0 } };
 
-        inline size_t size() const { return sizeof(rect_vertices<T>); }
+        inline size_t size() const { return sizeof(RectVertices<T>); }
         inline float* to_float() const { return (float*) &v0.pos.x; }
     };
 
     template<typename T>
-    struct rect final {
-        rect_vertices<T> vertices;
+    static void init_uv(RectVertices<T>& vertices) {
+        vertices.v0.uv = { 0, 0 };
+        vertices.v1.uv = { 0, 1 };
+        vertices.v2.uv = { 1, 1 };
+        vertices.v3.uv = { 1, 0 };
+    }
+
+    template<typename T>
+    static void init_normal(RectVertices<T>& vertices) {
+        glm::vec3 normal = -glm::normalize(glm::cross(
+                vertices.v1.pos - vertices.v0.pos,
+                vertices.v3.pos - vertices.v0.pos
+        ));
+        vertices.v0.normal = normal;
+        vertices.v1.normal = normal;
+        vertices.v2.normal = normal;
+        vertices.v3.normal = normal;
+    }
+
+    template<typename T>
+    static void init_tbn(RectVertices<T>& vertices) {
+        init_tbn(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
+    }
+
+    template<typename T>
+    struct Rect final {
+        RectVertices<T> vertices;
         u32 indices[6] = {
                 0, 1, 3,
                 1, 2, 3
         };
+
+        void init(DrawableElements& drawable);
+        void init_uv(DrawableElements& drawable);
+        void init_normal_uv(DrawableElements& drawable);
+        void init_tbn(DrawableElements& drawable);
     };
 
-    typedef rect<vertex_solid> rect_solid;
-    typedef rect<vertex_uv> rect_uv;
-    typedef rect<vertex_solid_normal> rect_solid_normal;
-    typedef rect<vertex_uv_normal> rect_uv_normal;
-    typedef rect<vertex_tbn> rect_tbn;
+    typedef Rect<VertexSolid> RectSolid;
+    typedef Rect<VertexUV> RectUV;
+    typedef Rect<VertexSolidNormal> RectSolidNormal;
+    typedef Rect<VertexUVNormal> RectUVNormal;
+    typedef Rect<VertexTBN> RectTBN;
 
     template<typename T>
-    void rect_init(drawable_elements& drawable, const rect<T>& rect)
+    void Rect<T>::init(DrawableElements& drawable)
     {
-        drawable.vao = vao_init();
-        vao_bind(drawable.vao);
-        drawable.vbo = vbo_init(rect.vertices, T::format, GL_STATIC_DRAW);
-        drawable.ibo = ibo_init(rect.indices, 6, GL_STATIC_DRAW);
+        drawable.vao.init();
+        drawable.vao.bind();
+        drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
+        drawable.ibo.init(indices, 6, GL_STATIC_DRAW);
         drawable.index_count = 6;
     }
 
     template<typename T>
-    std::vector<rect<T>> rects_init(
-            drawable_elements& drawable,
-            u32 count,
-            const std::function<rect<T>(u32)>& rect_factory_fn = [](u32 i) { return rect<T>(); })
-    {
-        std::vector<rect_vertices<T>> vertices;
-        std::vector<u32> indices;
-        std::vector<rect<T>> rects;
+    void Rect<T>::init_uv(DrawableElements &drawable) {
+        gl::init_uv(vertices);
+        init(drawable);
+    }
 
-        drawable.vao = vao_init();
-        vao_bind(drawable.vao);
+    template<typename T>
+    void Rect<T>::init_normal_uv(DrawableElements &drawable) {
+        gl::init_uv(vertices);
+        gl::init_normal(vertices);
+        init(drawable);
+    }
+
+    template<typename T>
+    void Rect<T>::init_tbn(DrawableElements &drawable) {
+        gl::init_uv(vertices);
+        gl::init_normal(vertices);
+        gl::init_tbn(vertices);
+        init(drawable);
+    }
+
+    template<typename T>
+    std::vector<Rect<T>> rects_init(
+            DrawableElements& drawable,
+            u32 count,
+            const std::function<Rect<T>(u32)>& rect_factory_fn = [](u32 i) { return Rect<T>(); })
+    {
+        std::vector<RectVertices<T>> vertices;
+        std::vector<u32> indices;
+        std::vector<Rect<T>> rects;
+
+        drawable.vao.init();
+        drawable.vao.bind();
         vertices.reserve(count * 4);
         indices.reserve(count * 6);
         int index_offset = 0;
         for (u32 i = 0 ; i < count ; i++) {
-            rect<T> new_rect = rect_factory_fn(i);
+            Rect<T> new_rect = rect_factory_fn(i);
             vertices.emplace_back(new_rect.vertices);
             for (u32& index : new_rect.indices) {
                 indices.emplace_back(index + index_offset);
@@ -72,24 +123,10 @@ namespace gl {
             rects.emplace_back(new_rect);
             index_offset += 4;
         }
-        drawable.vbo = vbo_init(vertices, T::format, GL_STATIC_DRAW);
-        drawable.ibo = ibo_init(indices.data(), indices.size(), GL_STATIC_DRAW);
+        drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
+        drawable.ibo.init(indices.data(), indices.size(), GL_STATIC_DRAW);
 
         return rects;
     }
-
-    void rect_uv_init(drawable_elements& drawable);
-    void rect_uv_normal_init(drawable_elements& drawable);
-    void rect_tbn_init(drawable_elements& drawable);
-
-    constexpr auto rect_default_init = &rect_init<vertex_default>;
-
-    constexpr auto rect_solid_init = &rect_init<vertex_solid>;
-    constexpr auto rect_solid_normal_init = &rect_init<vertex_solid_normal>;
-
-    constexpr auto rects_solid_init = &rects_init<vertex_solid>;
-    constexpr auto rects_solid_normal_init = &rects_init<vertex_solid_normal>;
-    constexpr auto rects_uv_init = &rects_init<vertex_uv>;
-    constexpr auto rects_uv_normal_init = &rects_init<vertex_uv_normal>;
 
 }

@@ -1,6 +1,6 @@
 #include <app.h>
 
 int main() {
-    app::run();
+    gl::App().run();
     return 0;
 }

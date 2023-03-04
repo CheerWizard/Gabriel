@@ -1,4 +1,4 @@
-#version 420 core
+#version 460 core
 
 layout(location = 0) out vec4 frag_color;
 layout(location = 1) out vec4 bright_color;

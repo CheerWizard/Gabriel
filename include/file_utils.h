@@ -8,20 +8,20 @@
 
 namespace io {
 
-    std::string file_read(const char* filepath);
+    std::string read_file_string(const char* filepath);
 
-    struct image_data final {
+    struct ImageData final {
         int width, height, channels;
         u8* data;
     };
 
-    struct hdr_image_data final {
+    struct HDRImageData final {
         int width, height, channels;
         float* data;
     };
 
-    image_data image_read(const char* filepath, bool flip_uv = false);
-    hdr_image_data hdr_image_read(const char* filepath, bool flip_uv = false);
+    ImageData read_image(const char* filepath, bool flip_uv = false);
+    HDRImageData read_hdr_image(const char* filepath, bool flip_uv = false);
     void free(void* data);
 
 }

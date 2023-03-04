@@ -2,6 +2,7 @@
 
 #include <shader.h>
 #include <buffers.h>
+#include <draw.h>
 
 #include <gtc/type_ptr.hpp>
 
@@ -11,55 +12,45 @@
 namespace gl {
 
     template<typename T>
-    struct triangle {
+    struct Triangle {
         T v0 = { { -0.5f, -0.5f, 0 } };
         T v1 = { { 0.5f, -0.5f, 0 } };
         T v2 = { { 0, 0.5f, 0 } };
 
-        inline size_t size() const { return sizeof(triangle<T>); }
+        inline size_t size() const { return sizeof(Triangle<T>); }
         inline float* to_float() const { return (float*) &v0.pos.x; }
+
+        void init(DrawableVertices& drawable);
     };
 
-    typedef triangle<vertex_solid> triangle_solid;
-    typedef triangle<vertex_uv> triangle_uv;
-    typedef triangle<vertex_solid_normal> triangle_solid_normal;
-    typedef triangle<vertex_uv_normal> triangle_uv_normal;
+    typedef Triangle<VertexSolid> TriangleSolid;
+    typedef Triangle<VertexUV> TriangleUV;
+    typedef Triangle<VertexSolidNormal> TriangleSolidNormal;
+    typedef Triangle<VertexUVNormal> TriangleUVNormal;
 
     template<typename T>
-    void triangle_init(u32 vao, u32& vbo, const triangle<T>& triangle)
+    void Triangle<T>::init(DrawableVertices &drawable)
     {
-        vao_bind(vao);
-        vbo_init(triangle, T::format, GL_STATIC_DRAW);
+        drawable.vao.bind();
+        drawable.vbo.init(this, T::format, GL_STATIC_DRAW);
     }
 
     template<typename T>
-    std::vector<triangle<T>> triangles_init(
-            u32 vao,
-            u32& vbo,
+    std::vector<Triangle<T>> triangles_init(
+            DrawableVertices& drawable,
             u32 count,
-            const std::function<triangle<T>(u32)>& triangle_factory_fn = [](u32 i) { return triangle<T>(); }
-    )
-    {
-        std::vector<triangle<T>> triangles;
+            const std::function<Triangle<T>(u32)>& triangle_factory_fn = [](u32 i) { return Triangle<T>(); }
+    ) {
+        std::vector<Triangle<T>> triangles;
 
-        vao_bind(vao);
+        drawable.vao.bind();
         triangles.reserve(count);
         for (u32 i = 0 ; i < count ; i++) {
             triangles.emplace_back(triangle_factory_fn(i));
         }
-        vbo = vbo_init(triangles, T::format, GL_STATIC_DRAW);
+        drawable.vbo.init(triangles, T::format, GL_STATIC_DRAW);
 
         return triangles;
     }
-
-    constexpr auto triangle_solid_init = &triangle_init<vertex_solid>;
-    constexpr auto triangle_solid_normal_init = &triangle_init<vertex_solid_normal>;
-    constexpr auto triangle_uv_init = &triangle_init<vertex_uv>;
-    constexpr auto triangle_uv_normal_init = &triangle_init<vertex_uv_normal>;
-
-    constexpr auto triangles_solid_init = &triangles_init<vertex_solid>;
-    constexpr auto triangles_solid_normal_init = &triangles_init<vertex_solid_normal>;
-    constexpr auto triangles_uv_init = &triangles_init<vertex_uv>;
-    constexpr auto triangles_uv_normal_init = &triangles_init<vertex_uv_normal>;
 
 }

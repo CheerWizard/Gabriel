@@ -3,164 +3,159 @@
 namespace gl {
 
     // directional shadows
-    static gl::shadow_props direct_shadow_props;
-    static u32 direct_shadow_shader;
-    static frame_buffer direct_shadow_fbo;
-    static gl::uniform_m4f direct_light_space = {"direct_light_space" };
+    static Shader direct_shadow_shader;
+    static FrameBuffer direct_shadow_fbo;
     // point shadows
-    static gl::shadow_props point_shadow_props;
-    static u32 point_shadow_shader;
-    static frame_buffer point_shadow_fbo;
-    static uniform_f point_shadow_far_plane = { "far_plane", 25 };
-    static uniform_v3f point_shadow_light_pos = { "light_pos" };
+    static Shader point_shadow_shader;
+    static FrameBuffer point_shadow_fbo;
 
-    vertex_format shadow_vertex::format = {
+    VertexFormat ShadowVertex::format = {
             { vec3 },
-            sizeof(shadow_vertex)
+            sizeof(ShadowVertex)
     };
 
-    void direct_shadow_init(const shadow_props& props, const glm::vec3& light_dir) {
-        direct_shadow_props = props;
-
-        direct_shadow_shader = shader_init({
+    void DirectShadow::init() {
+        direct_shadow_shader.init(
             "shaders/direct_shadow.vert",
             "shaders/direct_shadow.frag"
-        });
+        );
 
-        direct_shadow_fbo.depth.data = { props.width, props.height };
+        direct_shadow_fbo.depth.data = { width, height };
         direct_shadow_fbo.depth.view.sampler = {"direct_shadow_sampler", 0 };
         direct_shadow_fbo.flags = init_depth;
-        gl::fbo_init(direct_shadow_fbo);
+        direct_shadow_fbo.init();
 
-        shader_use(direct_shadow_shader);
-        direct_shadow_update(light_dir);
+        direct_shadow_shader.use();
+        update();
     }
 
-    void point_shadow_init(const shadow_props& props, const glm::vec3& light_pos) {
-        point_shadow_props = props;
-
-        point_shadow_shader = shader_init({
+    void PointShadow::init() {
+        point_shadow_shader.init(
             "shaders/point_shadow.vert",
             "shaders/point_shadow.frag",
             "shaders/point_shadow.geom"
-        });
+        );
 
-        point_shadow_fbo.depth.data = { props.width, props.height };
+        point_shadow_fbo.depth.data = { width, height };
         point_shadow_fbo.depth.view.type = GL_TEXTURE_CUBE_MAP;
         point_shadow_fbo.depth.params.s = GL_CLAMP_TO_EDGE;
         point_shadow_fbo.depth.params.t = GL_CLAMP_TO_EDGE;
         point_shadow_fbo.depth.params.r = GL_CLAMP_TO_EDGE;
         point_shadow_fbo.depth.view.sampler = { "point_shadow_sampler", 1 };
         point_shadow_fbo.flags = init_depth;
-        gl::fbo_init(point_shadow_fbo);
+        point_shadow_fbo.init();
 
-        shader_use(point_shadow_shader);
-        point_shadow_update(light_pos);
+        point_shadow_shader.use();
+        update();
     }
 
-    void direct_shadow_free() {
-        shader_free(direct_shadow_shader);
-        fbo_free(direct_shadow_fbo);
+    void DirectShadow::free() {
+        direct_shadow_shader.free();
+        direct_shadow_fbo.free();
     }
 
-    void point_shadow_free() {
-        shader_free(point_shadow_shader);
-        fbo_free(point_shadow_fbo);
+    void PointShadow::free() {
+        point_shadow_shader.free();
+        point_shadow_fbo.free();
     }
 
-    void direct_shadow_begin() {
-        glViewport(0, 0, direct_shadow_props.width, direct_shadow_props.height);
-        fbo_bind(direct_shadow_fbo.id);
+    void DirectShadow::begin() const {
+        glViewport(0, 0, width, height);
+        direct_shadow_fbo.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
-        shader_use(direct_shadow_shader);
+        direct_shadow_shader.use();
     }
 
-    void point_shadow_begin() {
-        glViewport(0, 0, point_shadow_props.width, point_shadow_props.height);
-        fbo_bind(point_shadow_fbo.id);
+    void PointShadow::begin() const {
+        glViewport(0, 0, width, height);
+        point_shadow_fbo.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
-        shader_use(point_shadow_shader);
+        point_shadow_shader.use();
     }
 
-    void shadow_end() {
-        shader_use(0);
+    void DirectShadow::end() {
+        glUseProgram(0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         glCullFace(GL_BACK);
     }
 
-    void direct_shadow_update(const glm::vec3& light_dir) {
+    void PointShadow::end() {
+        glUseProgram(0);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+    }
+
+    void DirectShadow::update() {
         float near_plane = 1.0f, far_plane = 7.5f;
         glm::mat4 light_projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
         glm::mat4 light_view = glm::lookAt(
-                light_dir,
+                direction,
                 glm::vec3( 0.0f, 0.0f,  0.0f),
                 glm::vec3( 0.0f, 1.0f,  0.0f)
         );
-        direct_light_space.value = light_projection * light_view;
-        shader_set_uniform(direct_shadow_shader, direct_light_space);
+        light_space = light_projection * light_view;
+        direct_shadow_shader.set_uniform_args("direct_light_space", light_space);
     }
 
-    void point_shadow_update(const glm::vec3& light_pos) {
-        point_shadow_light_pos.value = { light_pos.x, light_pos.y, light_pos.z };
+    void PointShadow::update() {
+        float aspect = (float) width / (float) height;
+        glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 1.0f, far_plane);
 
-        float aspect = (float) point_shadow_props.width / (float) point_shadow_props.height;
-        glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 1.0f, point_shadow_far_plane.value);
-
-        uniform_array_m4f point_light_spaces = {"light_spaces", {
-                projection * glm::lookAt(light_pos, light_pos + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
-                projection * glm::lookAt(light_pos, light_pos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
-                projection * glm::lookAt(light_pos, light_pos + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)),
-                projection * glm::lookAt(light_pos, light_pos + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0)),
-                projection * glm::lookAt(light_pos, light_pos + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)),
-                projection * glm::lookAt(light_pos, light_pos + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0))
+        UniformArrayM4F light_spaces = { "light_spaces", {
+                projection * glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
+                projection * glm::lookAt(position, position + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
+                projection * glm::lookAt(position, position + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)),
+                projection * glm::lookAt(position, position + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0)),
+                projection * glm::lookAt(position, position + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)),
+                projection * glm::lookAt(position, position + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0))
         }};
 
-        shader_set_uniform(point_shadow_shader, point_light_spaces);
-        shader_set_uniform(point_shadow_shader, point_shadow_far_plane);
-        shader_set_uniform(point_shadow_shader, point_shadow_light_pos);
+        point_shadow_shader.set_uniform_array(light_spaces);
+        point_shadow_shader.set_uniform_args<float>("far_plane", far_plane);
+        point_shadow_shader.set_uniform_args<glm::vec3>("light_pos", position);
     }
 
-    void direct_shadow_update(u32 shader) {
-        shader_set_uniform(shader, direct_light_space);
-        texture_update(shader, direct_shadow_fbo.depth.view);
+    void DirectShadow::update(Shader& shader) {
+        shader.set_uniform_args("direct_light_space", light_space);
+        direct_shadow_fbo.depth.view.update(shader);
     }
 
-    void point_shadow_update(u32 shader) {
-        shader_set_uniform(shader, point_shadow_far_plane);
-        texture_update(shader, point_shadow_fbo.depth.view);
+    void PointShadow::update(Shader& shader) {
+        shader.set_uniform_args<float>("far_plane", far_plane);
+        point_shadow_fbo.depth.view.update(shader);
     }
 
-    void direct_shadow_draw(transform& transform, const drawable_elements& drawable) {
-        transform_update(direct_shadow_shader, transform);
-        draw(drawable);
+    void DirectShadow::draw(Transform &transform, const DrawableElements &drawable) {
+        transform.update(direct_shadow_shader);
+        drawable.draw();
     }
 
-    void point_shadow_draw(transform& transform, const drawable_elements& drawable) {
-        transform_update(point_shadow_shader, transform);
-        draw(drawable);
+    void PointShadow::draw(Transform &transform, const DrawableElements &drawable) {
+        transform.update(point_shadow_shader);
+        drawable.draw();
     }
 
-    shadow_drawable_model shadow_model_init(const io::drawable_model& src) {
-        shadow_drawable_model drawable;
-        // invalidate model vertices and indices to group together
-        drawable.model.meshes.resize(src.model.meshes.size());
-        size_t mesh_count = drawable.model.meshes.size();
+    void ShadowDrawableModel::init(const io::DrawableModel& src) {
+        // invalidate Model vertices and indices to group together
+        model.meshes.resize(src.model.meshes.size());
+        size_t mesh_count = model.meshes.size();
         u32 vertex_count = 0;
         u32 index_count = 0;
         for (u32 i = 0 ; i < mesh_count ; i++) {
             auto& src_mesh = src.model.meshes[i];
-            auto& shadow_mesh = drawable.model.meshes[i];
+            auto& shadow_mesh = model.meshes[i];
 
             shadow_mesh.vertex_count = src_mesh.vertex_count;
             shadow_mesh.index_count = src_mesh.index_count;
-            shadow_mesh.vertices.data = new shadow_vertex[src_mesh.vertex_count];
+            shadow_mesh.vertices.data = new ShadowVertex[src_mesh.vertex_count];
             shadow_mesh.indices = new u32[src_mesh.index_count];
 
             for (u32 j = 0 ; j < src_mesh.vertex_count ; j++) {
@@ -175,58 +170,54 @@ namespace gl {
             index_count += src_mesh.index_count;
         }
 
-        drawable.elements.vao = vao_init();
-        vao_bind(drawable.elements.vao);
+        elements.vao.init();
+        elements.vao.bind();
 
-        glGenBuffers(1, &drawable.elements.vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, drawable.elements.vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(shadow_vertex), null, GL_DYNAMIC_DRAW);
-        vbo_set_format(shadow_vertex::format);
+        glGenBuffers(1, &elements.vbo.id);
+        glBindBuffer(GL_ARRAY_BUFFER, elements.vbo.id);
+        glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(ShadowVertex), null, GL_DYNAMIC_DRAW);
+        elements.vbo.set_format(ShadowVertex::format);
 
-        glGenBuffers(1, &drawable.elements.ibo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.elements.ibo);
+        glGenBuffers(1, &elements.ibo.id);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elements.ibo.id);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count * sizeof(u32), null, GL_DYNAMIC_DRAW);
 
         u32 vertex_offset = 0;
         u32 index_offset = 0;
         for (u32 i = 0 ; i < mesh_count ; i++) {
-            auto& mesh = drawable.model.meshes[i];
+            auto& mesh = model.meshes[i];
 
-            glBindBuffer(GL_ARRAY_BUFFER, drawable.elements.vbo);
-            glBufferSubData(GL_ARRAY_BUFFER, vertex_offset, mesh.vertex_count * sizeof(shadow_vertex), mesh.vertices.to_float());
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.elements.ibo);
+            glBindBuffer(GL_ARRAY_BUFFER, elements.vbo.id);
+            glBufferSubData(GL_ARRAY_BUFFER, vertex_offset, mesh.vertex_count * sizeof(ShadowVertex), mesh.vertices.to_float());
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elements.ibo.id);
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, index_offset, mesh.index_count * sizeof(u32), mesh.indices);
 
-            vertex_offset += mesh.vertex_count * sizeof(shadow_vertex);
+            vertex_offset += mesh.vertex_count * sizeof(ShadowVertex);
             index_offset += mesh.index_count * sizeof(u32);
         }
 
-        drawable.elements.index_count = index_count;
-
-        return drawable;
+        elements.index_count = index_count;
     }
 
-    shadow_drawable_models shadow_model_init(const io::drawable_models& src) {
-        shadow_drawable_models drawables;
+    void ShadowDrawableModels::init(const io::DrawableModels& src) {
         // todo implement
-        return drawables;
     }
 
-    void shadow_model_free(shadow_drawable_model& drawable_model) {
-        for (auto& mesh : drawable_model.model.meshes) {
+    void ShadowDrawableModel::free() {
+        for (auto& mesh : model.meshes) {
             delete[] mesh.vertices.data;
             delete[] mesh.indices;
         }
-        drawable_free(drawable_model.elements);
+        elements.free();
     }
 
-    void shadow_models_free(shadow_drawable_models& drawable_models) {
-        for (auto& mesh : drawable_models.model.meshes) {
+    void ShadowDrawableModels::free() {
+        for (auto& mesh : model.meshes) {
             delete[] mesh.vertices.data;
             delete[] mesh.indices;
         }
-        for (auto& element : drawable_models.elements) {
-            drawable_free(element);
+        for (auto& element : elements) {
+            element.free();
         }
     }
 

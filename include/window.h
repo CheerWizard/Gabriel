@@ -1,5 +1,6 @@
 #pragma once
 
+#include <device.h>
 #include <keycodes.h>
 
 #define GLFW_INCLUDE_NONE
@@ -19,7 +20,7 @@ namespace win {
         const char* title;
         u8 flags = win_flags::none;
         int major_version = 4;
-        int minor_version = 2;
+        int minor_version = 6;
         int profile_version = GLFW_OPENGL_CORE_PROFILE;
     };
 
@@ -82,9 +83,5 @@ namespace win {
     };
 
     void event_registry_update();
-
-    struct gpu_props final {
-        static int max_attrs_allowed;
-    };
 
 }

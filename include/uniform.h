@@ -8,73 +8,73 @@
 namespace gl {
 
     template<typename T>
-    struct uniform {
+    struct Uniform {
         const char* name;
         T value;
     };
 
     template<typename V>
-    struct uniform_array {
+    struct UniformArray {
         const char* name;
         std::vector<V> values;
     };
 
-    typedef uniform<float> uniform_f;
-    typedef uniform<int> uniform_i;
-    typedef uniform<bool> uniform_b;
-    typedef uniform<double> uniform_d;
+    typedef Uniform<float> UniformF;
+    typedef Uniform<int> UniformI;
+    typedef Uniform<bool> UniformB;
+    typedef Uniform<double> UniformD;
 
-    typedef uniform_array<float> uniform_array_f;
-    typedef uniform_array<int> uniform_array_i;
-    typedef uniform_array<bool> uniform_array_b;
-    typedef uniform_array<double> uniform_array_d;
+    typedef UniformArray<float> UniformArrayF;
+    typedef UniformArray<int> UniformArrayI;
+    typedef UniformArray<bool> UniformArrayB;
+    typedef UniformArray<double> UniformArrayD;
 
-    typedef uniform<glm::fvec2> uniform_v2f;
-    typedef uniform<glm::fvec3> uniform_v3f;
-    typedef uniform<glm::fvec4> uniform_v4f;
+    typedef Uniform<glm::fvec2> UniformV2F;
+    typedef Uniform<glm::fvec3> UniformV3F;
+    typedef Uniform<glm::fvec4> UniformV4F;
 
-    typedef uniform<glm::bvec2> uniform_v2b;
-    typedef uniform<glm::bvec3> uniform_v3b;
-    typedef uniform<glm::bvec4> uniform_v4b;
+    typedef Uniform<glm::bvec2> UniformV2B;
+    typedef Uniform<glm::bvec3> UniformV3B;
+    typedef Uniform<glm::bvec4> UniformV4B;
 
-    typedef uniform<glm::ivec2> uniform_v2i;
-    typedef uniform<glm::ivec3> uniform_v3i;
-    typedef uniform<glm::ivec4> uniform_v4i;
+    typedef Uniform<glm::ivec2> UniformV2I;
+    typedef Uniform<glm::ivec3> UniformV3I;
+    typedef Uniform<glm::ivec4> UniformV4I;
 
-    typedef uniform<glm::dvec2> uniform_v2d;
-    typedef uniform<glm::dvec3> uniform_v3d;
-    typedef uniform<glm::dvec4> uniform_v4d;
+    typedef Uniform<glm::dvec2> UniformV2D;
+    typedef Uniform<glm::dvec3> UniformV3D;
+    typedef Uniform<glm::dvec4> UniformV4D;
 
-    typedef uniform_array<glm::fvec2> uniform_array_v2f;
-    typedef uniform_array<glm::fvec3> uniform_array_v3f;
-    typedef uniform_array<glm::fvec4> uniform_array_v4f;
+    typedef UniformArray<glm::fvec2> UniformArrayV2F;
+    typedef UniformArray<glm::fvec3> UniformArrayV3F;
+    typedef UniformArray<glm::fvec4> UniformArrayV4F;
 
-    typedef uniform_array<glm::bvec2> uniform_array_v2b;
-    typedef uniform_array<glm::bvec3> uniform_array_v3b;
-    typedef uniform_array<glm::bvec4> uniform_array_v4b;
+    typedef UniformArray<glm::bvec2> UniformArrayV2B;
+    typedef UniformArray<glm::bvec3> UniformArrayV3B;
+    typedef UniformArray<glm::bvec4> UniformArrayV4B;
 
-    typedef uniform_array<glm::ivec2> uniform_array_v2i;
-    typedef uniform_array<glm::ivec3> uniform_array_v3i;
-    typedef uniform_array<glm::ivec4> uniform_array_v4i;
+    typedef UniformArray<glm::ivec2> UniformArrayV2I;
+    typedef UniformArray<glm::ivec3> UniformArrayV3I;
+    typedef UniformArray<glm::ivec4> UniformArrayV4I;
 
-    typedef uniform_array<glm::dvec2> uniform_array_v2d;
-    typedef uniform_array<glm::dvec3> uniform_array_v3d;
-    typedef uniform_array<glm::dvec4> uniform_array_v4d;
+    typedef UniformArray<glm::dvec2> UniformArrayV2D;
+    typedef UniformArray<glm::dvec3> UniformArrayV3D;
+    typedef UniformArray<glm::dvec4> UniformArrayV4D;
 
-    typedef uniform<glm::fmat2> uniform_m2f;
-    typedef uniform<glm::fmat3> uniform_m3f;
-    typedef uniform<glm::fmat4> uniform_m4f;
+    typedef Uniform<glm::fmat2> UniformM2F;
+    typedef Uniform<glm::fmat3> UniformM3F;
+    typedef Uniform<glm::fmat4> UniformM4F;
 
-    typedef uniform<glm::dmat2> uniform_m2d;
-    typedef uniform<glm::dmat3> uniform_m3d;
-    typedef uniform<glm::dmat4> uniform_m4d;
+    typedef Uniform<glm::dmat2> UniformM2D;
+    typedef Uniform<glm::dmat3> UniformM3D;
+    typedef Uniform<glm::dmat4> UniformM4D;
 
-    typedef uniform_array<glm::fmat2> uniform_array_m2f;
-    typedef uniform_array<glm::fmat3> uniform_array_m3f;
-    typedef uniform_array<glm::fmat4> uniform_array_m4f;
+    typedef UniformArray<glm::fmat2> UniformArrayM2F;
+    typedef UniformArray<glm::fmat3> UniformArrayM3F;
+    typedef UniformArray<glm::fmat4> UniformArrayM4F;
 
-    typedef uniform_array<glm::dmat2> uniform_array_m2d;
-    typedef uniform_array<glm::dmat3> uniform_array_m3d;
-    typedef uniform_array<glm::dmat4> uniform_array_m4d;
+    typedef UniformArray<glm::dmat2> UniformArrayM2D;
+    typedef UniformArray<glm::dmat3> UniformArrayM3D;
+    typedef UniformArray<glm::dmat4> UniformArrayM4D;
 
 }

@@ -6,9 +6,6 @@
 
 namespace gl {
 
-    void free(u32 shader_program, u32 vao, u32 vbo);
-    void free(u32 shader_program, u32 vao, u32 vbo, u32 ibo);
-
     template<typename T>
     static void init_tbn(T* v0, T* v1, T* v2, T* v3) {
         glm::vec3& pos0 = v0->pos;
@@ -19,7 +16,7 @@ namespace gl {
         glm::vec2& uv1 = v1->uv;
         glm::vec2& uv2 = v2->uv;
 
-        // Calculate triangle edges
+        // Calculate Triangle edges
         glm::vec3 dpos_1 = pos1 - pos0;
         glm::vec3 dpos_2 = pos2 - pos0;
 

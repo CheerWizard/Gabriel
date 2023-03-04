@@ -8,68 +8,82 @@
 
 namespace gl {
 
-    struct shadow_props final {
-        int width = 1024;
-        int height = 1024;
-    };
-
-    struct shadow_vertex final {
+    struct ShadowVertex final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
     };
 
-    struct shadow_mesh_vertices final {
-        shadow_vertex* data;
+    struct ShadowMeshVertices final {
+        ShadowVertex* data;
 
         inline float* to_float() const { return (float*) &data->pos.x; }
     };
 
-    struct shadow_mesh final {
-        shadow_mesh_vertices vertices;
+    struct ShadowMesh final {
+        ShadowMeshVertices vertices;
         u32 vertex_count;
         u32* indices;
         u32 index_count;
     };
 
-    struct shadow_model final {
-        std::vector<shadow_mesh> meshes;
+    struct ShadowModel final {
+        std::vector<ShadowMesh> meshes;
     };
 
-    struct shadow_drawable_model final {
-        shadow_model model;
-        gl::drawable_elements elements;
+    struct ShadowDrawableModel final {
+        ShadowModel model;
+        DrawableElements elements;
+
+        void init(const io::DrawableModel& src);
+        void free();
     };
 
-    struct shadow_drawable_models final {
-        shadow_model model;
-        std::vector<drawable_elements> elements;
+    struct ShadowDrawableModels final {
+        ShadowModel model;
+        std::vector<DrawableElements> elements;
+
+        void init(const io::DrawableModels& src);
+        void free();
     };
 
     void shadow_end();
 
-    void direct_shadow_init(const shadow_props& props, const glm::vec3& light_dir);
-    void direct_shadow_free();
+    struct DirectShadow final {
+        int width = 1024;
+        int height = 1024;
+        glm::vec3 direction;
+        glm::mat4 light_space;
 
-    void direct_shadow_begin();
+        void init();
 
-    void direct_shadow_update(const glm::vec3& light_dir);
-    void direct_shadow_update(u32 shader);
+        static void free();
 
-    void direct_shadow_draw(transform& transform, const drawable_elements& drawable);
+        void begin() const;
+        static void end();
 
-    void point_shadow_init(const shadow_props& props, const glm::vec3& light_pos);
-    void point_shadow_free();
+        void update();
+        void update(Shader& shader);
 
-    void point_shadow_begin();
+        void draw(Transform& transform, const DrawableElements& drawable);
+    };
 
-    void point_shadow_update(const glm::vec3& light_pos);
-    void point_shadow_update(u32 shader);
-    void point_shadow_draw(transform& transform, const drawable_elements& drawable);
+    struct PointShadow final {
+        int width = 1024;
+        int height = 1024;
+        glm::vec3 position;
+        float far_plane = 25;
 
-    shadow_drawable_model shadow_model_init(const io::drawable_model& src);
-    shadow_drawable_models shadow_model_init(const io::drawable_models& src);
+        void init();
 
-    void shadow_model_free(shadow_drawable_model& drawable_model);
-    void shadow_models_free(shadow_drawable_models& drawable_models);
+        static void free();
+
+        void begin() const;
+        static void end();
+
+        void update();
+        void update(Shader& shader);
+
+        void draw(Transform& transform, const DrawableElements& drawable);
+    };
 
 }

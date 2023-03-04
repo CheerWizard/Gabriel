@@ -9,7 +9,7 @@
 
 namespace gl {
 
-    enum attr_type : int {
+    enum AttrType : int {
         float_t = 1,
         bool_t = 1,
         int_t = 1,
@@ -23,45 +23,45 @@ namespace gl {
         mat4 = 16,
     };
 
-    struct vertex_format final {
-        std::vector<attr_type> attrs;
+    struct VertexFormat final {
+        std::vector<AttrType> attrs;
         size_t stride;
     };
 
-#define decl_vertex static vertex_format format;
+#define decl_vertex static VertexFormat format;
 
-    struct vertex_default final {
+    struct VertexDefault final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
     };
 
-    struct vertex_solid final {
+    struct VertexSolid final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec4 color = { 0.5 , 0.5, 0.5, 0.5 };
     };
 
-    struct vertex_solid_normal final {
+    struct VertexSolidNormal final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec4 color = { 0.5 , 0.5, 0.5, 0.5 };
         glm::fvec3 normal = { 0, 0, 0 };
     };
 
-    struct vertex_uv final {
+    struct VertexUV final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec2 uv = { 0, 0 };
     };
 
-    struct vertex_uv_normal final {
+    struct VertexUVNormal final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec2 uv = { 0, 0 };
         glm::fvec3 normal = { 0, 0, 0 };
     };
 
-    struct vertex_tbn final {
+    struct VertexTBN final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec2 uv = { 0, 0 };
@@ -69,12 +69,12 @@ namespace gl {
         glm::fvec3 tangent = { 0, 0, 0 };
     };
 
-    struct vertex_data_t final {
+    struct VertexData final {
         size_t size;
         float* data;
     };
 
-    struct index_data_t final {
+    struct IndexData final {
         size_t size;
         u32* data;
     };

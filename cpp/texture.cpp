@@ -1,4 +1,5 @@
 #include <texture.h>
+#include <device.h>
 
 namespace gl {
 
@@ -6,17 +7,16 @@ namespace gl {
     static int internal_formats[4] = { GL_RED, GL_RG, GL_RGB, GL_RGBA };
     static int internal_formats_srgb[2] = { GL_SRGB, GL_SRGB_ALPHA };
 
-    void texture_init(
-            texture& texture,
+    void Texture::init(
             const char* filepath,
             bool flip_uv,
-            const texture_params& params
+            const TextureParams& params
     ) {
-        io::image_data image = io::image_read(filepath, flip_uv);
+        io::ImageData image = io::read_image(filepath, flip_uv);
         if (!image.data)
             return;
 
-        gl::texture_data texture_data;
+        gl::TextureData texture_data;
         texture_data.width = image.width;
         texture_data.height = image.height;
         texture_data.data = image.data;
@@ -27,20 +27,19 @@ namespace gl {
             texture_data.internal_format = internal_formats[image.channels - 1];
         }
 
-        texture_init(texture, texture_data, params);
+        init(texture_data, params);
 
-        free(image.data);
+        io::free(image.data);
     }
 
-    void texture_init(
-            texture& texture,
-            const texture_data& texture_data,
-            const texture_params& params
+    void Texture::init(
+            const TextureData& texture_data,
+            const TextureParams& params
     ) {
         u32 texture_type = GL_TEXTURE_2D;
-        texture.type = texture_type;
-        glGenTextures(1, &texture.id);
-        glBindTexture(texture_type, texture.id);
+        type = texture_type;
+        glGenTextures(1, &id);
+        glBindTexture(texture_type, id);
 
         int width = texture_data.width;
         int height = texture_data.height;
@@ -50,64 +49,75 @@ namespace gl {
         void* data = texture_data.data;
 
         glTexImage2D(texture_type, 0, internal_format, width, height, 0, data_format, primitive_type, data);
-        if (params.generate_mipmap) {
-            glGenerateMipmap(texture_type);
-            glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, params.lod_bias);
+
+        if (params.min_filter == GL_NEAREST_MIPMAP_NEAREST
+            || params.min_filter == GL_NEAREST_MIPMAP_LINEAR
+            || params.min_filter == GL_LINEAR_MIPMAP_NEAREST
+            || params.min_filter == GL_LINEAR_MIPMAP_LINEAR
+        ) {
+            generate_mipmaps(params);
         }
 
-        texture_params_update(texture, params);
+        update_params(params);
     }
 
-    void texture_hdr_init(
-            texture& texture,
+    void Texture::init_hdr(
             const char* filepath,
             bool flip_uv
     ) {
-        io::hdr_image_data image = io::hdr_image_read(filepath, flip_uv);
+        io::HDRImageData image = io::read_hdr_image(filepath, flip_uv);
         if (!image.data)
             return;
 
-        gl::texture_data texture_data = { image.width, image.height, GL_RGB16F, GL_RGB, GL_FLOAT, image.data };
+        gl::TextureData texture_data = { image.width, image.height, GL_RGB16F, GL_RGB, GL_FLOAT, image.data };
 
-        texture_params params;
+        TextureParams params;
         params.min_filter = GL_LINEAR;
         params.mag_filter = GL_LINEAR;
         params.s = GL_CLAMP_TO_EDGE;
         params.t = GL_CLAMP_TO_EDGE;
         params.r = GL_CLAMP_TO_EDGE;
-        params.generate_mipmap = false;
 
-        texture_init(texture, texture_data, params);
+        init(texture_data, params);
 
-        free(image.data);
+        io::free(image.data);
     }
 
-    void texture_free(u32 tbo) {
-        glDeleteTextures(1, &tbo);
+    void Texture::free() {
+        glDeleteTextures(1, &id);
     }
 
-    void textures_free(u32* tbo, int size) {
-        glDeleteTextures(size, tbo);
+    void Texture::free(int size) {
+        glDeleteTextures(size, &id);
     }
 
-    void texture_unbind() {
+    void Texture::bind() const {
+        glActiveTexture(GL_TEXTURE0 + sampler.value);
+        glBindTexture(type, id);
+    }
+
+    void Texture::unbind() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    void texture_update(u32 shader, texture& texture) {
-        shader_set_uniform(shader, texture.sampler);
-        glActiveTexture(GL_TEXTURE0 + texture.sampler.value);
-        glBindTexture(texture.type, texture.id);
+    void Texture::update(Shader& shader) {
+        shader.set_uniform(sampler);
+        glActiveTexture(GL_TEXTURE0 + sampler.value);
+        glBindTexture(type, id);
     }
 
-    void texture_generate_mipmaps(const texture& t) {
-        glBindTexture(t.type, t.id);
-        glGenerateMipmap(t.type);
+    void Texture::generate_mipmaps(const TextureParams& params) {
+        u32 texture_type = type;
+        glBindTexture(texture_type, id);
+        glGenerateMipmap(texture_type);
+        glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, params.min_filter);
+        glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, params.lod_bias);
+        glTexParameterf(texture_type, GL_TEXTURE_MAX_ANISOTROPY_EXT, device::max_anisotropy_samples);
     }
 
-    void texture_params_update(const texture& texture, const texture_params& params) {
-        u32 texture_type = texture.type;
+    void Texture::update_params(const TextureParams &params) {
+        u32 texture_type = type;
         glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
         glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, params.s);
         glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, params.t);
@@ -116,22 +126,18 @@ namespace gl {
         glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, params.mag_filter);
     }
 
-    void texture_params_bind(const texture& texture, const texture_params& params) {
-        glBindTexture(texture.type, texture.id);
-        texture_params_update(texture, params);
+    void Texture::bind_params(const TextureParams &params) {
+        glBindTexture(type, id);
+        update_params(params);
     }
 
-    void texture_cube_init(
-            texture& texture,
-            const std::array<texture_face, 6>& faces,
-            const texture_params& params
-    ) {
-        texture.type = GL_TEXTURE_CUBE_MAP;
-        glGenTextures(1, &texture.id);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture.id);
+    void Texture::init_cubemap(const std::array<TextureFace, 6>& faces, const TextureParams &params) {
+        type = GL_TEXTURE_CUBE_MAP;
+        glGenTextures(1, &id);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, id);
 
         for (const auto& face : faces) {
-            io::image_data texture_data = io::image_read(face.filepath, face.flip_uv);
+            io::ImageData texture_data = io::read_image(face.filepath, face.flip_uv);
             if (!texture_data.data)
                 break;
 
@@ -167,20 +173,16 @@ namespace gl {
 
             glTexImage2D(face.face, 0, internal_format, width, height, 0, data_format, GL_UNSIGNED_BYTE, data);
 
-            free(data);
+            io::free(data);
         }
 
-        texture_params_update(texture, params);
+        update_params(params);
     }
 
-    void texture_cube_init(
-            texture& texture,
-            const texture_data& data,
-            const texture_params& params
-    ) {
-        texture.type = GL_TEXTURE_CUBE_MAP;
-        glGenTextures(1, &texture.id);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture.id);
+    void Texture::init_cubemap(const TextureData& data, const TextureParams &params) {
+        type = GL_TEXTURE_CUBE_MAP;
+        glGenTextures(1, &id);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, id);
 
         for (int i = 0 ; i < 6 ; i++) {
             glTexImage2D(
@@ -193,12 +195,15 @@ namespace gl {
             );
         }
 
-        texture_params_update(texture, params);
-
-        if (params.generate_mipmap) {
-            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-            glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, params.lod_bias);
+        if (params.min_filter == GL_NEAREST_MIPMAP_NEAREST
+            || params.min_filter == GL_NEAREST_MIPMAP_LINEAR
+            || params.min_filter == GL_LINEAR_MIPMAP_NEAREST
+            || params.min_filter == GL_LINEAR_MIPMAP_LINEAR
+        ) {
+            generate_mipmaps(params);
         }
+
+        update_params(params);
     }
 
 }

@@ -1,5 +1,11 @@
 #pragma once
 
-namespace app {
-    void run();
+namespace gl {
+
+    struct App final {
+        App();
+        ~App();
+        void run();
+    };
+
 }

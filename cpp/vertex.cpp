@@ -2,34 +2,34 @@
 
 namespace gl {
 
-    vertex_format vertex_default::format = {
+    VertexFormat VertexDefault::format = {
             { vec3 },
-            sizeof(vertex_default)
+            sizeof(VertexDefault)
     };
 
-    vertex_format vertex_solid::format = {
+    VertexFormat VertexSolid::format = {
             { vec3, vec4 },
-            sizeof(vertex_solid)
+            sizeof(VertexSolid)
     };
 
-    vertex_format vertex_solid_normal::format = {
+    VertexFormat VertexSolidNormal::format = {
             { vec3, vec4, vec3 },
-            sizeof(vertex_solid_normal)
+            sizeof(VertexSolidNormal)
     };
 
-    vertex_format vertex_uv::format = {
+    VertexFormat VertexUV::format = {
             { vec3, vec2 },
-            sizeof(vertex_uv)
+            sizeof(VertexUV)
     };
 
-    vertex_format vertex_uv_normal::format = {
+    VertexFormat VertexUVNormal::format = {
             { vec3, vec2, vec3 },
-            sizeof(vertex_uv_normal)
+            sizeof(VertexUVNormal)
     };
 
-    vertex_format vertex_tbn::format = {
+    VertexFormat VertexTBN::format = {
             { vec3, vec2, vec3, vec3 },
-            sizeof(vertex_tbn)
+            sizeof(VertexTBN)
     };
 
 }

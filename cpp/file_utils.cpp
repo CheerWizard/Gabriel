@@ -3,11 +3,11 @@
 
 namespace io {
 
-    std::string file_read(const char* filepath)
+    std::string read_file_string(const char* filepath)
     {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            print_err("file_read() : failed to open file");
+            print_err("read_file_string() : failed to open file");
             print_err(filepath);
             return "";
         }
@@ -26,8 +26,8 @@ namespace io {
         return buffer;
     }
 
-    image_data image_read(const char* filepath, bool flip_uv) {
-        image_data result;
+    ImageData read_image(const char* filepath, bool flip_uv) {
+        ImageData result;
 
         stbi_set_flip_vertically_on_load(flip_uv);
 
@@ -40,8 +40,8 @@ namespace io {
         return result;
     }
 
-    hdr_image_data hdr_image_read(const char* filepath, bool flip_uv) {
-        hdr_image_data result;
+    HDRImageData read_hdr_image(const char* filepath, bool flip_uv) {
+        HDRImageData result;
 
         stbi_set_flip_vertically_on_load(flip_uv);
 

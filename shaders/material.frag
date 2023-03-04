@@ -43,6 +43,13 @@ struct LightSpot {
     float refraction;
 };
 
+struct LightEnvironmental {
+    int prefilter_levels;
+    samplerCube irradiance;
+    samplerCube prefilter;
+    sampler2D brdf_convolution;
+};
+
 struct Material {
 // base color
     vec4 color;
@@ -69,16 +76,6 @@ struct Material {
     float ao_factor;
     sampler2D ao;
     bool enable_ao;
-// env irradiance
-    samplerCube env_irradiance;
-    bool enable_env_irradiance;
-// env roughness prefilter
-    samplerCube env_prefilter;
-    bool enable_env_prefilter;
-    int env_prefilter_mip_levels;
-// env BRDF convolution
-    sampler2D env_brdf_convolution;
-    bool enable_brdf_convolution;
 };
 
 layout (std140, binding = 1) uniform Sunlight {
@@ -94,6 +91,7 @@ layout (std140, binding = 3) uniform FlashLight {
 };
 
 uniform Material material;
+uniform LightEnvironmental envlight;
 
 uniform sampler2D direct_shadow_sampler;
 
@@ -320,7 +318,7 @@ vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness)
 
 vec3 pbr(LightDirectional light_direct, vec3 albedo, float metallic, float roughness)
 {
-    vec3 light_dir = light_direct.direction;
+    vec3 light_dir = -light_direct.direction;
     vec3 light_color = light_direct.color;
     float light_direct_shadow = direct_shadow_function(light_dir);
     float radiance_factor = 1.0;
@@ -403,28 +401,27 @@ void main()
 
     // PRB ambient part
     vec3 ambient = vec3(0.03) * albedo.rgb * ao;
-    // IBL irradiance mapping
-    if (material.enable_env_irradiance) {
-        vec3 F0 = vec3(0.04);
-        F0 = mix(F0, albedo.rgb, metallic);
-        vec3 F = fresnel_shlick_rough(max(dot(N, V), 0.0), F0, roughness);
 
-        // indirect diffuse part
-        vec3 irradiance = texture(material.env_irradiance, N).rgb;
-        vec3 kS = F;
-        vec3 kD = 1.0 - kS;
-        kD *= 1.0 - metallic;
-        vec3 diffuse = irradiance * albedo.rgb;
+    // PBR env light
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo.rgb, metallic);
+    vec3 F = fresnel_shlick_rough(max(dot(N, V), 0.0), F0, roughness);
 
-        // indirect specular part
-        // prefiltering roughness on LOD
-        vec3 prefiltered_color = textureLod(material.env_prefilter, R, roughness * (material.env_prefilter_mip_levels - 1)).rgb;
-        // BRDF convolution
-        vec2 brdf  = texture(material.env_brdf_convolution, vec2(max(dot(N, V), 0.0), roughness)).rg;
-        vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
+    // indirect diffuse part
+    vec3 irradiance = texture(envlight.irradiance, N).rgb;
+    vec3 kS = F;
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
+    vec3 diffuse = irradiance * albedo.rgb;
 
-        ambient = (kD * diffuse + specular) * ao;
-    }
+    // indirect specular part
+    // prefiltering roughness on LOD
+    vec3 prefiltered_color = textureLod(envlight.prefilter, R, roughness * (envlight.prefilter_levels - 1)).rgb;
+    // BRDF convolution
+    vec2 brdf  = texture(envlight.brdf_convolution, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
+
+    ambient = (kD * diffuse + specular) * ao;
 
     vec3 final_color = ambient + Lo;
 

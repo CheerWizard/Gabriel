@@ -9,7 +9,7 @@
 namespace gl {
 
     static u32 shader_init(const char* filepath, u32 shader_type) {
-        std::string src = io::file_read(filepath);
+        std::string src = io::read_file_string(filepath);
         const char* c_src = src.c_str();
         if (src.empty()) {
             print_err("shader_init() : failed to read shader from file");
@@ -34,62 +34,63 @@ namespace gl {
         return shader;
     }
 
-    u32 shader_init(const shader_props &props) {
-        u32 vertex_shader = shader_init(props.vertex_filepath, GL_VERTEX_SHADER);
+    void Shader::init(const char *vertex_filepath, const char *fragment_filepath, const char *geometry_filepath) {
+        u32 vertex_shader = shader_init(vertex_filepath, GL_VERTEX_SHADER);
         if (!vertex_shader)
-            return 0;
+            return;
 
-        u32 fragment_shader = shader_init(props.fragment_filepath, GL_FRAGMENT_SHADER);
+        u32 fragment_shader = shader_init(fragment_filepath, GL_FRAGMENT_SHADER);
         if (!fragment_shader)
-            return 0;
+            return;
 
         std::vector<u32> shaders = { vertex_shader, fragment_shader };
 
-        if (props.geometry_filepath) {
-            u32 geometry_shader = shader_init(props.geometry_filepath, GL_GEOMETRY_SHADER);
+        if (geometry_filepath) {
+            u32 geometry_shader = shader_init(geometry_filepath, GL_GEOMETRY_SHADER);
             if (geometry_shader) {
                 shaders.emplace_back(geometry_shader);
             }
         }
 
-        u32 shader_program = glCreateProgram();
+        id = glCreateProgram();
         for (u32 shader : shaders) {
-            glAttachShader(shader_program, shader);
+            glAttachShader(id, shader);
         }
-        glLinkProgram(shader_program);
+        glLinkProgram(id);
 
         int status;
         char info[512];
-        glGetProgramiv(shader_program, GL_LINK_STATUS, &status);
+        glGetProgramiv(id, GL_LINK_STATUS, &status);
         if (!status) {
-            glGetProgramInfoLog(shader_program, 512, null, info);
+            glGetProgramInfoLog(id, 512, null, info);
             print_err("shader_program_init() : failed shader program linkage");
             print_err(info);
-            return 0;
+            return;
         }
-
 
         for (u32 shader : shaders) {
             glDeleteShader(shader);
         }
-
-        return shader_program;
     }
 
-    void shader_use(u32 shader) {
-        glUseProgram(shader);
+    void Shader::use() {
+        glUseProgram(id);
     }
 
-    void shader_free(u32 shader) {
-        glDeleteProgram(shader);
+    void Shader::stop() {
+        glUseProgram(0);
+    }
+
+    void Shader::free() {
+        glDeleteProgram(id);
     }
 
     static std::unordered_map<const char*, int> s_uniform_locations;
 
-    int get_uniform_location(u32 shader, const char* name) {
+    int Shader::get_uniform_location(const char* name) const {
         // todo found hash key collisions when updating light struct field
 //        if (s_uniform_locations.find(name) == s_uniform_locations.end()) {
-            int location = glGetUniformLocation(shader, name);
+            int location = glGetUniformLocation(id, name);
 //            s_uniform_locations.insert({ name, location });
             return location;
 //        } else {
@@ -97,126 +98,126 @@ namespace gl {
 //        }
     }
 
-    int get_uniform_array_location(u32 shader, u32 index, const char* name) {
+    int Shader::get_uniform_array_location(u32 index, const char* name) {
         std::stringstream ss;
         ss << name << "[" << index << "]";
         std::string s = ss.str();
-        return get_uniform_location(shader, s.c_str());
+        return get_uniform_location(s.c_str());
     }
 
-    int get_uniform_struct_location(u32 shader, const char *structName, const char *fieldName) {
+    int Shader::get_uniform_struct_location(const char *structName, const char *fieldName) {
         std::stringstream ss;
         ss << structName << "." << fieldName;
         std::string s = ss.str();
-        return get_uniform_location(shader, s.c_str());
+        return get_uniform_location(s.c_str());
     }
 
-    int get_uniform_array_struct_location(u32 shader, const char *structName, const char *fieldName, u32 index) {
+    int Shader::get_uniform_array_struct_location(const char *structName, const char *fieldName, u32 index) {
         std::stringstream ss;
         ss << structName << "." << fieldName << "[" << index << "]";
         std::string s = ss.str();
-        return get_uniform_location(shader, s.c_str());
+        return get_uniform_location(s.c_str());
     }
 
-    int get_uniform_struct_array_location(u32 shader, const char* structName, const char* fieldName, u32 index) {
+    int Shader::get_uniform_struct_array_location(const char* structName, const char* fieldName, u32 index) {
         std::stringstream ss;
         ss << structName << "[" << index << "]" << "." << fieldName;
         std::string s = ss.str();
-        return get_uniform_location(shader, s.c_str());
+        return get_uniform_location(s.c_str());
     }
 
-    int get_uniform_array_struct_array_location(u32 shader, const char* structName, const char* fieldName, u32 struct_index, u32 field_index) {
+    int Shader::get_uniform_array_struct_array_location(const char* structName, const char* fieldName, u32 struct_index, u32 field_index) {
         std::stringstream ss;
         ss << structName << "[" << struct_index << "]" << "." << fieldName << "[" << field_index << "]";
         std::string s = ss.str();
-        return get_uniform_location(shader, s.c_str());
+        return get_uniform_location(s.c_str());
     }
 
-    void shader_set_uniform(int location, float value) {
+    void Shader::set_uniform(int location, float value) {
         glUniform1f(location, value);
     }
 
-    void shader_set_uniform(int location, bool value) {
+    void Shader::set_uniform(int location, bool value) {
         glUniform1i(location, value);
     }
 
-    void shader_set_uniform(int location, int value) {
+    void Shader::set_uniform(int location, int value) {
         glUniform1i(location, value);
     }
 
-    void shader_set_uniform(int location, double value) {
+    void Shader::set_uniform(int location, double value) {
         glUniform1d(location, value);
     }
 
-    void shader_set_uniform(int location, glm::fvec2& value) {
+    void Shader::set_uniform(int location, glm::fvec2& value) {
         glUniform2fv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::fvec3& value) {
+    void Shader::set_uniform(int location, glm::fvec3& value) {
         glUniform3fv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::fvec4& value) {
+    void Shader::set_uniform(int location, glm::fvec4& value) {
         glUniform4fv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::ivec2& value) {
+    void Shader::set_uniform(int location, glm::ivec2& value) {
         glUniform2iv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::ivec3& value) {
+    void Shader::set_uniform(int location, glm::ivec3& value) {
         glUniform3iv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::ivec4& value) {
+    void Shader::set_uniform(int location, glm::ivec4& value) {
         glUniform4iv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::bvec2& value) {
+    void Shader::set_uniform(int location, glm::bvec2& value) {
         glUniform2iv(location, 1, (const int*)glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::bvec3& value) {
+    void Shader::set_uniform(int location, glm::bvec3& value) {
         glUniform3iv(location, 1, (const int*)glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::bvec4& value) {
+    void Shader::set_uniform(int location, glm::bvec4& value) {
         glUniform4iv(location, 1, (const int*)glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::dvec2& value) {
+    void Shader::set_uniform(int location, glm::dvec2& value) {
         glUniform2dv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::dvec3& value) {
+    void Shader::set_uniform(int location, glm::dvec3& value) {
         glUniform3dv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::dvec4& value) {
+    void Shader::set_uniform(int location, glm::dvec4& value) {
         glUniform4dv(location, 1, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::fmat2& value) {
+    void Shader::set_uniform(int location, glm::fmat2& value) {
         glUniformMatrix2fv(location, 1, GL_FALSE, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::fmat3& value) {
+    void Shader::set_uniform(int location, glm::fmat3& value) {
         glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::fmat4& value) {
+    void Shader::set_uniform(int location, glm::fmat4& value) {
         glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::dmat2& value) {
+    void Shader::set_uniform(int location, glm::dmat2& value) {
         glUniformMatrix2dv(location, 1, GL_FALSE, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::dmat3& value) {
+    void Shader::set_uniform(int location, glm::dmat3& value) {
         glUniformMatrix3dv(location, 1, GL_FALSE, glm::value_ptr(value));
     }
 
-    void shader_set_uniform(int location, glm::dmat4& value) {
+    void Shader::set_uniform(int location, glm::dmat4& value) {
         glUniformMatrix4dv(location, 1, GL_FALSE, glm::value_ptr(value));
     }
 

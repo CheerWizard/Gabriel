@@ -9,13 +9,13 @@ namespace io {
 
     using namespace gl;
 
-    vertex_format vertex_mesh::format = {
+    VertexFormat VertexMesh::format = {
             { vec3, vec2, vec3, vec3 },
-            sizeof(vertex_mesh)
+            sizeof(VertexMesh)
     };
 
-    static vertex_mesh parse_vertex(aiMesh* mesh, u32 i) {
-        vertex_mesh vertex;
+    static VertexMesh parse_vertex(aiMesh* mesh, u32 i) {
+        VertexMesh vertex;
 
         vertex.pos = {
                 mesh->mVertices[i].x,
@@ -45,15 +45,15 @@ namespace io {
         return vertex;
     }
 
-    static std::unordered_map<std::string, texture> s_material_cache {};
+    static std::unordered_map<std::string, Texture> textures_table {};
 
     static void read_material(
             aiMaterial* material,
             aiTextureType type,
             const std::string& directory,
             u32 flags,
-            texture& texture,
-            const texture_params& params = {}
+            Texture& texture,
+            const TextureParams& params = {}
     ) {
         aiString texture_file;
         material->Get(AI_MATKEY_TEXTURE(type, 0), texture_file);
@@ -61,24 +61,24 @@ namespace io {
         ss << directory << "/" << texture_file.data;
         std::string texture_filepath = ss.str();
 
-        if (s_material_cache.find(texture_filepath) != s_material_cache.end()) {
-            texture = s_material_cache[texture_filepath];
+        if (textures_table.find(texture_filepath) != textures_table.end()) {
+            texture = textures_table[texture_filepath];
             return;
         }
 
-        gl::texture_init(texture, texture_filepath.c_str(), flags & aiProcess_FlipUVs, params);
+        texture.init(texture_filepath.c_str(), flags & aiProcess_FlipUVs, params);
         if (texture.id != invalid_texture) {
-            s_material_cache[texture_filepath] = texture;
+            textures_table[texture_filepath] = texture;
         }
     }
 
-    static mesh parse_mesh(aiMesh *mesh, const aiScene *scene, const std::string& directory, u32 flags)
+    static Mesh parse_mesh(aiMesh *mesh, const aiScene *scene, const std::string& directory, u32 flags)
     {
-        io::mesh result;
+        io::Mesh result;
         std::vector<u32> indices;
 
         result.vertex_count = mesh->mNumVertices;
-        result.vertices.data = new vertex_mesh[mesh->mNumVertices];
+        result.vertices.data = new VertexMesh[mesh->mNumVertices];
 
         for (u32 i = 0 ; i < mesh->mNumVertices ; i++) {
             result.vertices.data[i] = parse_vertex(mesh, i);
@@ -101,23 +101,22 @@ namespace io {
 
     static void parse_node(
             aiNode *node, const aiScene *scene,
-            std::vector<mesh>& meshes,
-            std::unordered_map<u32, material>& materials,
+            std::vector<Mesh>& meshes,
+            std::unordered_map<u32, Material>& materials,
             const std::string& directory, u32 flags
     ) {
         for (u32 i = 0 ; i < node->mNumMeshes ; i++)
         {
             aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
 
-            io::mesh result = parse_mesh(mesh, scene, directory, flags);
+            io::Mesh result = parse_mesh(mesh, scene, directory, flags);
 
             if (mesh->mMaterialIndex >= 0) {
                 aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
                 result.material_index = mesh->mMaterialIndex;
 
-                gl::material result_material;
-                gl::texture_params material_params;
-                material_params.generate_mipmap = true;
+                gl::Material result_material;
+                gl::TextureParams material_params;
                 material_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
                 read_material(material, aiTextureType_BASE_COLOR, directory, flags, result_material.albedo, material_params);
@@ -150,7 +149,7 @@ namespace io {
         }
     }
 
-    static model model_read(
+    static Model model_read(
             const std::string& filepath,
             u32 flags
     ) {
@@ -163,23 +162,22 @@ namespace io {
             return {};
         }
 
-        std::vector<mesh> meshes;
-        std::unordered_map<u32, material> materials;
+        std::vector<Mesh> meshes;
+        std::unordered_map<u32, Material> materials;
         std::string directory = filepath.substr(0, filepath.find_last_of('/'));
         parse_node(scene->mRootNode, scene, meshes, materials, directory, flags);
 
         return { meshes, materials };
     }
 
-    drawable_model model_init(const std::string& filepath, u32 flags) {
-        drawable_model drawable;
-        drawable.model = model_read(filepath, flags);
+    void DrawableModel::init(const std::string &filepath, u32 flags) {
+        model = model_read(filepath, flags);
         // invalidate model vertices and indices to group together
-        size_t mesh_count = drawable.model.meshes.size();
+        size_t mesh_count = model.meshes.size();
         u32 vertex_count = 0;
         u32 index_count = 0;
         for (u32 i = 0 ; i < mesh_count ; i++) {
-            auto& mesh = drawable.model.meshes[i];
+            auto& mesh = model.meshes[i];
             for (u32 j = 0 ; j < mesh.index_count ; j++) {
                 mesh.indices[j] += vertex_count;
             }
@@ -187,90 +185,85 @@ namespace io {
             index_count += mesh.index_count;
         }
 
-        drawable.elements.vao = vao_init();
-        vao_bind(drawable.elements.vao);
+        elements.vao.init();
+        elements.vao.bind();
 
-        glGenBuffers(1, &drawable.elements.vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, drawable.elements.vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(vertex_mesh), null, GL_DYNAMIC_DRAW);
-        vbo_set_format(vertex_mesh::format);
+        glGenBuffers(1, &elements.vbo.id);
+        glBindBuffer(GL_ARRAY_BUFFER, elements.vbo.id);
+        glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(VertexMesh), null, GL_DYNAMIC_DRAW);
+        elements.vbo.set_format(VertexMesh::format);
 
-        glGenBuffers(1, &drawable.elements.ibo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.elements.ibo);
+        glGenBuffers(1, &elements.ibo.id);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elements.ibo.id);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count * sizeof(u32), null, GL_DYNAMIC_DRAW);
 
         u32 vertex_offset = 0;
         u32 index_offset = 0;
         for (u32 i = 0 ; i < mesh_count ; i++) {
-            auto& mesh = drawable.model.meshes[i];
+            auto& mesh = model.meshes[i];
 
-            glBindBuffer(GL_ARRAY_BUFFER, drawable.elements.vbo);
-            glBufferSubData(GL_ARRAY_BUFFER, vertex_offset, mesh.vertex_count * sizeof(vertex_mesh), mesh.vertices.to_float());
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.elements.ibo);
+            glBindBuffer(GL_ARRAY_BUFFER, elements.vbo.id);
+            glBufferSubData(GL_ARRAY_BUFFER, vertex_offset, mesh.vertex_count * sizeof(VertexMesh), mesh.vertices.to_float());
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elements.ibo.id);
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, index_offset, mesh.index_count * sizeof(u32), mesh.indices);
 
-            vertex_offset += mesh.vertex_count * sizeof(vertex_mesh);
+            vertex_offset += mesh.vertex_count * sizeof(VertexMesh);
             index_offset += mesh.index_count * sizeof(u32);
         }
 
-        drawable.elements.index_count = index_count;
-
-        return drawable;
+        elements.index_count = index_count;
     }
 
-    drawable_models models_init(const std::string& filepath, u32 flags) {
-        drawable_models drawables;
-        drawables.model = model_read(filepath, flags);
+    void DrawableModels::init(const std::string &filepath, u32 flags) {
+        model = model_read(filepath, flags);
 
-        size_t mesh_size = drawables.model.meshes.size();
-        drawables.elements.resize(mesh_size);
-        for (int i = 0 ; i < drawables.elements.size() ; i++) {
-            auto& element = drawables.elements[i];
-            auto& mesh = drawables.model.meshes[i];
+        size_t mesh_size = model.meshes.size();
+        elements.resize(mesh_size);
+        for (int i = 0 ; i < elements.size() ; i++) {
+            auto& element = elements[i];
+            auto& mesh = model.meshes[i];
 
-            element.vao = vao_init();
-            vao_bind(element.vao);
+            element.vao.init();
+            element.vao.bind();
 
-            glGenBuffers(1, &element.vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, element.vbo);
-            glBufferData(GL_ARRAY_BUFFER, mesh.vertex_count * sizeof(vertex_mesh), mesh.vertices.to_float(), GL_DYNAMIC_DRAW);
-            vbo_set_format(vertex_mesh::format);
+            glGenBuffers(1, &element.vbo.id);
+            glBindBuffer(GL_ARRAY_BUFFER, element.vbo.id);
+            glBufferData(GL_ARRAY_BUFFER, mesh.vertex_count * sizeof(VertexMesh), mesh.vertices.to_float(), GL_DYNAMIC_DRAW);
+            element.vbo.set_format(VertexMesh::format);
 
-            glGenBuffers(1, &element.ibo);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element.ibo);
+            glGenBuffers(1, &element.ibo.id);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element.ibo.id);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.index_count * sizeof(u32), mesh.indices, GL_DYNAMIC_DRAW);
 
             element.index_count = mesh.index_count;
         }
-
-        return drawables;
     }
 
-    void model_free(drawable_model& drawable) {
-        for (auto& mesh : drawable.model.meshes) {
+    void DrawableModel::free() {
+        for (auto& mesh : model.meshes) {
             delete[] mesh.vertices.data;
             delete[] mesh.indices;
         }
 
-        for (auto& material : drawable.model.materials) {
-            gl::material_free(material.second);
+        for (auto& material : model.materials) {
+            material.second.free();
         }
 
-        gl::drawable_free(drawable.elements);
+        elements.free();
     }
 
-    void models_free(drawable_models& drawables) {
-        for (auto& mesh : drawables.model.meshes) {
+    void DrawableModels::free() {
+        for (auto& mesh : model.meshes) {
             delete[] mesh.vertices.data;
             delete[] mesh.indices;
         }
 
-        for (auto& material : drawables.model.materials) {
-            gl::material_free(material.second);
+        for (auto& material : model.materials) {
+            material.second.free();
         }
 
-        for (auto& element : drawables.elements) {
-            gl::drawable_free(element);
+        for (auto& element : elements) {
+            element.free();
         }
     }
 

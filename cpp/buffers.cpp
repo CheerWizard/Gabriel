@@ -2,34 +2,41 @@
 
 namespace gl {
 
-    u32 vao_init() {
-        u32 id;
+    void VertexArray::init() {
         glGenVertexArrays(1, &id);
-        return id;
     }
 
-    void vao_bind(u32 vao) {
-        glBindVertexArray(vao);
+    void VertexArray::free() {
+        glDeleteVertexArrays(1, &id);
     }
 
-    void vao_free(u32 vao) {
-        glDeleteVertexArrays(1, &vao);
+    void VertexArray::bind() const {
+        glBindVertexArray(id);
     }
 
-    void vbo_bind(u32 vbo) {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    void VertexArray::draw_quad() const {
+        glBindVertexArray(id);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
-    void vbo_free(u32 vbo) {
-        glDeleteBuffers(1, &vbo);
+    void VertexBuffer::init() {
+        glGenBuffers(1, &id);
     }
 
-    void vbo_set_format(const vertex_format& format) {
+    void VertexBuffer::free() {
+        glDeleteBuffers(1, &id);
+    }
+
+    void VertexBuffer::bind() const {
+        glBindBuffer(GL_ARRAY_BUFFER, id);
+    }
+
+    void VertexBuffer::set_format(const VertexFormat &format) {
         u32 attr_count = format.attrs.size();
         size_t attr_offset = 0;
         size_t stride = format.stride;
         for (u32 i = 0; i < attr_count; i++) {
-            attr_type attr = format.attrs[i];
+            AttrType attr = format.attrs[i];
             glVertexAttribPointer(
                     i, attr,
                     GL_FLOAT, GL_FALSE,
@@ -40,216 +47,70 @@ namespace gl {
         }
     }
 
-    void ibo_bind(u32 ibo) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    }
-
-    void ibo_free(u32 ibo) {
-        glDeleteBuffers(1, &ibo);
-    }
-
-    u32 ibo_init(u32* indices, u32 index_count, int alloc_type) {
-        u32 id;
+    void IndexBuffer::init(u32 *indices, u32 index_count, int alloc_type) {
         glGenBuffers(1, &id);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * index_count, indices, alloc_type);
-
-        return id;
     }
 
-    u32 ibo_init(const u32* indices, u32 index_count, int alloc_type) {
-        u32 id;
+    void IndexBuffer::init(const u32 *indices, u32 index_count, int alloc_type) {
         glGenBuffers(1, &id);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * index_count, indices, alloc_type);
-
-        return id;
     }
 
-    void ibo_update(u32 ibo, u32* indices, u32 index_count) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    void IndexBuffer::free() {
+        glDeleteBuffers(1, &id);
+    }
+
+    void IndexBuffer::bind() const {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
+    }
+
+    void IndexBuffer::update(u32* indices, u32 index_count) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(u32) * index_count, indices);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    void ibo_update(u32 ibo, const u32* indices, u32 index_count) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    void IndexBuffer::update(const u32* indices, u32 index_count) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(u32) * index_count, indices);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    static void fbo_attach(render_buffer* rbo) {
-        // render buffer objects
-        if (rbo) {
-            glGenRenderbuffers(1, &rbo->id);
-            glBindRenderbuffer(GL_RENDERBUFFER, rbo->id);
+    void FrameBuffer::init() {
+        glGenFramebuffers(1, &id);
 
-            if (rbo->samples > 1) {
-                glRenderbufferStorageMultisample(GL_RENDERBUFFER, rbo->samples, rbo->format, rbo->width, rbo->height);
-            } else {
-                glRenderbufferStorage(GL_RENDERBUFFER, rbo->format, rbo->width, rbo->height);
-            }
-
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, rbo->type, GL_RENDERBUFFER, rbo->id);
-            glBindRenderbuffer(GL_RENDERBUFFER, 0);
-        }
-    }
-
-    void fbo_init(frame_buffer& fbo) {
-        glGenFramebuffers(1, &fbo.id);
-
-        fbo_bind(fbo.id);
+        bind();
 
         // color attachments
-        if (fbo.flags & init_colors) {
-            size_t colors_size = fbo.colors.size();
-            for (int i = 0 ; i < colors_size ; i++) {
-                auto& color = fbo.colors.operator[](i);
-                auto& texture = color.view;
-                const auto& params = color.params;
-                const auto& data = color.data;
-
-                glGenTextures(1, &texture.id);
-                glBindTexture(texture.type, texture.id);
-
-                if (texture.type == GL_TEXTURE_CUBE_MAP) {
-                    for (int j = 0 ; j < 6 ; j++) {
-                        glTexImage2D(
-                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
-                                0,
-                                GL_COLOR_ATTACHMENT0 + i,
-                                data.width, data.height,
-                                0,
-                                GL_COLOR_ATTACHMENT0 + i,
-                                data.primitive_type,
-                                data.data
-                        );
-                    }
-
-                    texture_params_update(texture, params);
-                    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture.id, 0);
-                }
-                else {
-                    if (texture.type == GL_TEXTURE_2D_MULTISAMPLE) {
-                        glTexImage2DMultisample(
-                                texture.type,
-                                data.samples,
-                                data.internal_format,
-                                data.width, data.height,
-                                GL_TRUE
-                        );
-                    } else {
-                        glTexImage2D(
-                                texture.type, 0,
-                                data.internal_format,
-                                data.width, data.height,
-                                0,
-                                data.data_format,
-                                data.primitive_type,
-                                data.data
-                        );
-                    }
-
-                    texture_params_update(texture, params);
-                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture.type, texture.id, 0);
-                }
-            }
+        if (flags & FrameBufferFlags::init_colors) {
+            attach_colors();
         }
 
         // depth attachment
-        if (fbo.flags & frame_buffer_flags::init_depth) {
-            auto& texture = fbo.depth.view;
-            const auto& params = fbo.depth.params;
-            const auto& data = fbo.depth.data;
-
-            glGenTextures(1, &texture.id);
-            glBindTexture(texture.type, texture.id);
-
-            if (texture.type == GL_TEXTURE_CUBE_MAP) {
-                for (int i = 0 ; i < 6 ; i++) {
-                    glTexImage2D(
-                            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                            0,
-                            GL_DEPTH_COMPONENT,
-                            data.width, data.height,
-                            0,
-                            GL_DEPTH_COMPONENT,
-                            data.primitive_type,
-                            data.data
-                    );
-                }
-
-                texture_params_update(texture, params);
-                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture.id, 0);
-            }
-            else {
-                if (texture.type == GL_TEXTURE_2D_MULTISAMPLE) {
-                    glTexImage2DMultisample(
-                            texture.type,
-                            data.samples,
-                            GL_DEPTH_COMPONENT,
-                            data.width, data.height,
-                            GL_TRUE
-                    );
-                } else {
-                    glTexImage2D(
-                            texture.type,
-                            0,
-                            GL_DEPTH_COMPONENT,
-                            data.width, data.height,
-                            0,
-                            GL_DEPTH_COMPONENT,
-                            data.primitive_type,
-                            data.data
-                    );
-                }
-
-                texture_params_update(texture, params);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture.type, texture.id, 0);
-            }
+        if (flags & FrameBufferFlags::init_depth) {
+            attach_depth();
         }
 
-        // depth-stencil attachments
-        if (fbo.flags & frame_buffer_flags::init_depth_stencil) {
-            glGenTextures(1, &fbo.depth_stencil.id);
-            u32 depth_stencil_id = fbo.depth_stencil.id;
-            u32 depth_stencil_type = fbo.depth_stencil.type;
-            glBindTexture(depth_stencil_type, depth_stencil_id);
-
-            if (depth_stencil_type == GL_TEXTURE_2D_MULTISAMPLE) {
-                glTexImage2DMultisample(
-                        depth_stencil_type,
-                        fbo.depth_stencil.samples,
-                        GL_DEPTH24_STENCIL8,
-                        fbo.depth_stencil.width, fbo.depth_stencil.height,
-                        GL_TRUE
-                );
-            } else {
-                glTexImage2D(
-                        depth_stencil_type, 0,
-                        GL_DEPTH24_STENCIL8,
-                        fbo.depth_stencil.width, fbo.depth_stencil.height,
-                        0,
-                        GL_DEPTH_STENCIL,
-                        fbo.depth_stencil.primitive_type,
-                        fbo.depth_stencil.data
-                );
-            }
-
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, depth_stencil_type, depth_stencil_id, 0);
+        // depth-stencil attachment
+        if (flags & FrameBufferFlags::init_depth_stencil) {
+            attach_depth_stencil();
         }
 
-        if (fbo.flags & frame_buffer_flags::init_render_buffer) {
-            fbo_attach(&fbo.rbo);
+        // render buffer attachment
+        if (flags & FrameBufferFlags::init_render_buffer) {
+            attach_render_buffer();
         }
 
-        if (fbo.colors.empty()) {
+        if (colors.empty()) {
             glDrawBuffer(GL_NONE);
             glReadBuffer(GL_NONE);
         } else {
-            size_t colors_size = fbo.colors.size();
+            size_t colors_size = colors.size();
             u32* color_attachments = (u32*) calloc(colors_size, sizeof(u32));
             for (int i = 0 ; i < colors_size ; i++) {
                 color_attachments[i] = GL_COLOR_ATTACHMENT0 + i;
@@ -263,14 +124,165 @@ namespace gl {
             print_err("Error status=" << status);
         }
 
-        fbo_unbind();
+        unbind();
     }
 
-    void fbo_init_rbo(frame_buffer& fbo) {
-        glGenFramebuffers(1, &fbo.id);
-        fbo_bind(fbo.id);
+    void FrameBuffer::attach_colors() {
+        size_t colors_size = colors.size();
+        for (int i = 0 ; i < colors_size ; i++) {
+            auto& color = colors.operator[](i);
+            auto& texture = color.view;
+            const auto& params = color.params;
+            const auto& data = color.data;
 
-        fbo_attach(&fbo.rbo);
+            glGenTextures(1, &texture.id);
+            glBindTexture(texture.type, texture.id);
+
+            if (texture.type == GL_TEXTURE_CUBE_MAP) {
+                for (int j = 0 ; j < 6 ; j++) {
+                    glTexImage2D(
+                            GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
+                            0,
+                            GL_COLOR_ATTACHMENT0 + i,
+                            data.width, data.height,
+                            0,
+                            GL_COLOR_ATTACHMENT0 + i,
+                            data.primitive_type,
+                            data.data
+                    );
+                }
+
+                texture.update_params(params);
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture.id, 0);
+            }
+            else {
+                if (texture.type == GL_TEXTURE_2D_MULTISAMPLE) {
+                    glTexImage2DMultisample(
+                            texture.type,
+                            data.samples,
+                            data.internal_format,
+                            data.width, data.height,
+                            GL_TRUE
+                    );
+                } else {
+                    glTexImage2D(
+                            texture.type, 0,
+                            data.internal_format,
+                            data.width, data.height,
+                            0,
+                            data.data_format,
+                            data.primitive_type,
+                            data.data
+                    );
+                }
+
+                texture.update_params(params);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture.type, texture.id, 0);
+            }
+        }
+    }
+
+    void FrameBuffer::attach_depth() {
+        auto& texture = depth.view;
+        const auto& params = depth.params;
+        const auto& data = depth.data;
+
+        glGenTextures(1, &texture.id);
+        glBindTexture(texture.type, texture.id);
+
+        if (texture.type == GL_TEXTURE_CUBE_MAP) {
+            for (int i = 0 ; i < 6 ; i++) {
+                glTexImage2D(
+                        GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                        0,
+                        GL_DEPTH_COMPONENT,
+                        data.width, data.height,
+                        0,
+                        GL_DEPTH_COMPONENT,
+                        data.primitive_type,
+                        data.data
+                );
+            }
+
+            texture.update_params(params);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture.id, 0);
+        }
+        else {
+            if (texture.type == GL_TEXTURE_2D_MULTISAMPLE) {
+                glTexImage2DMultisample(
+                        texture.type,
+                        data.samples,
+                        GL_DEPTH_COMPONENT,
+                        data.width, data.height,
+                        GL_TRUE
+                );
+            } else {
+                glTexImage2D(
+                        texture.type,
+                        0,
+                        GL_DEPTH_COMPONENT,
+                        data.width, data.height,
+                        0,
+                        GL_DEPTH_COMPONENT,
+                        data.primitive_type,
+                        data.data
+                );
+            }
+
+            texture.update_params(params);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture.type, texture.id, 0);
+        }
+    }
+
+    void FrameBuffer::attach_depth_stencil() {
+        glGenTextures(1, &depth_stencil.view.id);
+        u32 depth_stencil_id = depth_stencil.view.id;
+        u32 depth_stencil_type = depth_stencil.view.type;
+        glBindTexture(depth_stencil_type, depth_stencil_id);
+
+        if (depth_stencil_type == GL_TEXTURE_2D_MULTISAMPLE) {
+            glTexImage2DMultisample(
+                    depth_stencil_type,
+                    depth_stencil.samples,
+                    GL_DEPTH24_STENCIL8,
+                    depth_stencil.width, depth_stencil.height,
+                    GL_TRUE
+            );
+        } else {
+            glTexImage2D(
+                    depth_stencil_type, 0,
+                    GL_DEPTH24_STENCIL8,
+                    depth_stencil.width, depth_stencil.height,
+                    0,
+                    GL_DEPTH_STENCIL,
+                    depth_stencil.primitive_type,
+                    depth_stencil.data
+            );
+        }
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, depth_stencil_type, depth_stencil_id, 0);
+
+    }
+
+    void FrameBuffer::attach_render_buffer() {
+        glGenRenderbuffers(1, &rbo.id);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo.id);
+
+        if (rbo.samples > 1) {
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, rbo.samples, rbo.format, rbo.width, rbo.height);
+        } else {
+            glRenderbufferStorage(GL_RENDERBUFFER, rbo.format, rbo.width, rbo.height);
+        }
+
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, rbo.type, GL_RENDERBUFFER, rbo.id);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    }
+
+    void FrameBuffer::init_with_render_buffer() {
+        glGenFramebuffers(1, &id);
+        bind();
+
+        attach_render_buffer();
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
@@ -278,60 +290,44 @@ namespace gl {
             print_err("Error status=" << status);
         }
 
-        fbo_unbind();
+        unbind();
     }
 
-    void fbo_bind(u32 fbo) {
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    void FrameBuffer::bind() {
+        glBindFramebuffer(GL_FRAMEBUFFER, id);
     }
 
-    void fbo_unbind() {
+    void FrameBuffer::unbind() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void fbo_free(frame_buffer& fbo) {
-        glDeleteFramebuffers(1, &fbo.id);
+    void FrameBuffer::free() {
+        glDeleteFramebuffers(1, &id);
 
-        if (fbo.flags & frame_buffer_flags::init_colors) {
-            fbo_free_attachment(fbo.colors);
+        if (flags & FrameBufferFlags::init_colors) {
+            free_colors();
         }
 
-        if (fbo.flags & frame_buffer_flags::init_depth) {
-            fbo_free_attachment(fbo.depth);
+        if (flags & FrameBufferFlags::init_depth) {
+            depth.free();
         }
 
-        if (fbo.flags & frame_buffer_flags::init_depth_stencil) {
-            fbo_free_attachment(fbo.depth_stencil);
+        if (flags & FrameBufferFlags::init_depth_stencil) {
+            depth_stencil.free();
         }
 
-        if (fbo.flags & frame_buffer_flags::init_render_buffer) {
-            fbo_free_attachment(fbo.rbo);
+        if (flags & FrameBufferFlags::init_render_buffer) {
+            rbo.free();
         }
     }
 
-    void fbo_free_attachment(color_attachment& color) {
-        texture_free(color.view.id);
-    }
-
-    void fbo_free_attachment(std::vector<color_attachment>& colors) {
+    void FrameBuffer::free_colors() {
         for (auto& color : colors) {
-            texture_free(color.view.id);
+            color.free();
         }
     }
 
-    void fbo_free_attachment(depth_attachment& depth) {
-        texture_free(depth.view.id);
-    }
-
-    void fbo_free_attachment(depth_stencil_attachment& depth_stencil) {
-        texture_free(depth_stencil.id);
-    }
-
-    void fbo_free_attachment(render_buffer& rbo) {
-        glDeleteRenderbuffers(1, &rbo.id);
-    }
-
-    void fbo_blit(
+    void FrameBuffer::blit(
             u32 in_fbo, int in_w, int in_h,
             u32 out_fbo, int out_w, int out_h,
             int buffers_size, int buffer_bit, int filter
@@ -352,59 +348,68 @@ namespace gl {
         }
     }
 
-    void fbo_update(const render_buffer& rbo) {
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo.id);
-        glRenderbufferStorage(GL_RENDERBUFFER, rbo.format, rbo.width, rbo.height);
-    }
-
-    void fbo_resize(frame_buffer& fbo, int w, int h) {
-        for (auto& color : fbo.colors) {
+    void FrameBuffer::resize(int w, int h) {
+        for (auto& color : colors) {
             color.data.width = w;
             color.data.height = h;
         }
 
-        fbo.depth.data.width = w;
-        fbo.depth.data.height = h;
+        depth.data.width = w;
+        depth.data.height = h;
 
-        fbo.depth_stencil.width = w;
-        fbo.depth_stencil.height = h;
+        depth_stencil.width = w;
+        depth_stencil.height = h;
 
-        fbo.rbo.width = w;
-        fbo.rbo.height = h;
+        rbo.width = w;
+        rbo.height = h;
 
-        fbo_free(fbo);
+        free();
         glViewport(0, 0, w, h);
-        fbo_init(fbo);
+        init();
     }
 
-    u32 ubo_init(u32 binding, long long size) {
-        u32 ubo;
-        glGenBuffers(1, &ubo);
+    void ColorAttachment::free() {
+        view.free();
+    }
 
-        glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    void DepthAttachment::free() {
+        view.free();
+    }
+
+    void DepthStencilAttachment::free() {
+        view.free();
+    }
+
+    void RenderBuffer::free() {
+        glDeleteRenderbuffers(1, &id);
+    }
+
+    void RenderBuffer::update() {
+        glBindRenderbuffer(GL_RENDERBUFFER, id);
+        glRenderbufferStorage(GL_RENDERBUFFER, format, width, height);
+    }
+
+    void UniformBuffer::init(u32 binding, long long size) {
+        glGenBuffers(1, &id);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, id);
         glBufferData(GL_UNIFORM_BUFFER, size, null, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        glBindBufferBase(GL_UNIFORM_BUFFER, binding, ubo);
-
-        return ubo;
+        glBindBufferBase(GL_UNIFORM_BUFFER, binding, id);
     }
 
-    void ubo_bind(u32 ubo) {
-        glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    void UniformBuffer::bind() {
+        glBindBuffer(GL_UNIFORM_BUFFER, id);
     }
 
-    void ubo_update(u32 ubo, const ubo_data& ubo_data) {
-        glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-        ubo_update(ubo_data);
-    }
-
-    void ubo_update(const ubo_data& ubo_data) {
+    void UniformBuffer::update(const UniformData& ubo_data) {
+        glBindBuffer(GL_UNIFORM_BUFFER, id);
         glBufferSubData(GL_UNIFORM_BUFFER, ubo_data.offset, ubo_data.size, ubo_data.data);
     }
 
-    void ubo_free(u32 ubo) {
-        glDeleteBuffers(1, &ubo);
+    void UniformBuffer::free() {
+        glDeleteBuffers(1, &id);
     }
 
 }

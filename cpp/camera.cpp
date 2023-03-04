@@ -5,105 +5,84 @@
 
 namespace gl {
 
-    glm::mat4 ortho_mat(const ortho_data& data) {
-        return glm::ortho(data.left, data.right, data.bottom, data.top, data.zNear, data.zFar);
+    static float last_cursor_x = 400;
+    static float last_cursor_y = 300;
+    static bool first_camera_look = true;
+
+    glm::mat4 OrthoMat::init() {
+        return glm::ortho(left, right, bottom, top, zNear, zFar);
     }
 
-    glm::mat4 perspective_mat(const perspective_data& data) {
-        return glm::perspective(glm::radians(data.fov_degree), data.aspect_ratio, data.zNear, data.zFar);
+    glm::mat4 PerspectiveMat::init() {
+        return glm::perspective(glm::radians(fov_degree), aspect_ratio, zNear, zFar);
     }
 
-    glm::mat4 view_mat(const camera& data) {
-        return glm::lookAt(
-                data.position,
-                data.position + data.front,
-                data.up
-        );
+    glm::mat4 Camera::init_view() {
+        return glm::lookAt(position, position + front, up);
     }
 
-    static float s_last_x = 400;
-    static float s_last_y = 300;
-    static bool s_first_mouse = true;
-
-    static u32 camera_ubo;
-
-    camera camera_init(u32 binding) {
-        camera new_camera;
-        new_camera.aspect = win::get_aspect_ratio();
-
-        camera_ubo = ubo_init(binding, 2 * sizeof(glm::mat4));
-
-        camera_update(new_camera);
-
-        return new_camera;
+    void Camera::init(u32 binding, float aspect_ratio) {
+        aspect = win::get_aspect_ratio();
+        ubo.init(binding, 2 * sizeof(glm::mat4));
+        update();
     }
 
-    void camera_free() {
-        ubo_free(camera_ubo);
+    void Camera::free() {
+        ubo.free();
     }
 
-    void camera_look(camera& camera, double x, double y) {
-        if (s_first_mouse) {
-            s_last_x = (float)x;
-            s_last_y = (float)y;
-            s_first_mouse = false;
+    void Camera::look(double x, double y) {
+        if (first_camera_look) {
+            last_cursor_x = (float)x;
+            last_cursor_y = (float)y;
+            first_camera_look = false;
         }
 
-        float xoffset = (float)x - s_last_x;
-        float yoffset = s_last_y - (float)y;
+        float xoffset = (float)x - last_cursor_x;
+        float yoffset = last_cursor_y - (float)y;
 
-        s_last_x = (float)x;
-        s_last_y = (float)y;
+        last_cursor_x = (float)x;
+        last_cursor_y = (float)y;
 
-        xoffset *= camera.sensitivity;
-        yoffset *= camera.sensitivity;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
 
-        camera.yaw += xoffset;
-        camera.pitch += yoffset;
+        yaw += xoffset;
+        pitch += yoffset;
 
-        clamp(camera.pitch, -camera.max_pitch, camera.max_pitch);
+        clamp(pitch, -max_pitch, max_pitch);
 
         glm::vec3 direction;
-        direction.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
-        direction.y = sin(glm::radians(camera.pitch));
-        direction.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
-        camera.front = glm::normalize(direction);
+        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.y = sin(glm::radians(pitch));
+        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front = glm::normalize(direction);
     }
 
-    void camera_zoom(camera& camera, double x, double y) {
-        camera.fov -= (float) y;
-        clamp(camera.fov, 1.0f, camera.max_fov);
-        camera_perspective_update(camera);
+    void Camera::zoom(double x, double y) {
+        fov -= (float) y;
+        clamp(fov, 1.0f, max_fov);
+        update_perspective();
     }
 
-    void camera_resize(camera& camera, int w, int h) {
-        camera.aspect = (float)w / (float)h;
-        camera_perspective_update(camera);
+    void Camera::resize(int w, int h) {
+        aspect = (float)w / (float)h;
+        update_perspective();
     }
 
-    void camera_view_update(camera& camera) {
-        glm::mat4 view = view_mat(camera);
-        ubo_update(camera_ubo, { sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view) });
+    void Camera::update_view() {
+        glm::mat4 view = init_view();
+        ubo.update({ sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view) });
     }
 
-    void camera_perspective_update(camera& camera) {
-        glm::mat4 perspective = perspective_mat({
-            camera.fov,
-            camera.aspect,
-            camera.z_near,
-            camera.z_far
-        });
-        ubo_update(camera_ubo, { 0, sizeof(glm::mat4), glm::value_ptr(perspective) });
+    void Camera::update_perspective() {
+        glm::mat4 perspective = PerspectiveMat({fov, aspect, z_near, z_far}).init();
+        ubo.update({ 0, sizeof(glm::mat4), glm::value_ptr(perspective) });
     }
 
-    void camera_update(camera& camera) {
-        camera_perspective_update(camera);
-        camera_view_update(camera);
-    }
-
-    void camera_view_position_update(u32 shader, glm::vec3& position) {
-        gl::shader_use(shader);
-        shader_set_uniform3v(shader, "view_position", position);
+    void Camera::update() {
+        update_perspective();
+        update_view();
     }
 
 }

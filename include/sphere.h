@@ -13,7 +13,7 @@
 namespace gl {
 
     template<typename T>
-    struct sphere_vertices final {
+    struct SphereVertices final {
         T* vertices;
         int count = 0;
 
@@ -22,49 +22,70 @@ namespace gl {
     };
 
     template<typename T>
-    struct sphere final {
-        sphere_vertices<T> vertices;
+    struct Sphere final {
+        SphereVertices<T> vertices;
         u32* indices;
         int x_segments = 64;
         int y_segments = 64;
+
+        void init(DrawableElements& drawable);
+
+        void generate(
+                DrawableElements& drawable,
+                const std::function<void(T&, const glm::vec3&, const glm::vec2&)>& init_function
+        );
+
+        void init_default(DrawableElements& drawable);
+
+        void init_tbn(DrawableElements& drawable);
+
+        void displace(
+                DrawableElements& drawable,
+                const char* displacement_filepath,
+                bool flip_uv = false,
+                float scale = 1.0f,
+                float shift = 0.0f,
+                const std::function<void(T&)>& update_vertex_function = [](T& t) {}
+        );
+
+        void displace_tbn(
+                DrawableElements& drawable,
+                const char* displacement_path,
+                bool flip_uv = false,
+                float scale = 1.0f,
+                float shift = 0.0f
+        );
     };
 
-    typedef sphere<vertex_default> sphere_default;
-    typedef sphere<vertex_solid> sphere_solid;
-    typedef sphere<vertex_uv> sphere_uv;
-    typedef sphere<vertex_solid_normal> sphere_solid_normal;
-    typedef sphere<vertex_uv_normal> sphere_uv_normal;
-    typedef sphere<vertex_tbn> sphere_tbn;
+    typedef Sphere<VertexDefault> SphereDefault;
+    typedef Sphere<VertexSolid> SphereSolid;
+    typedef Sphere<VertexUV> SphereUV;
+    typedef Sphere<VertexSolidNormal> SphereSolidNormal;
+    typedef Sphere<VertexUVNormal> SphereUVNormal;
+    typedef Sphere<VertexTBN> SphereTBN;
 
     template<typename T>
-    void sphere_init(drawable_elements& drawable, const sphere<T>& sphere)
+    void Sphere<T>::init(DrawableElements& drawable)
     {
         drawable.type = GL_TRIANGLE_STRIP;
-        drawable.vao = vao_init();
-        vao_bind(drawable.vao);
-        drawable.vbo = vbo_init(sphere.vertices, T::format, GL_DYNAMIC_DRAW);
-        drawable.ibo = ibo_init(sphere.indices, drawable.index_count, GL_DYNAMIC_DRAW);
+        drawable.vao.init();
+        drawable.vao.bind();
+        drawable.vbo.init(vertices, T::format, GL_DYNAMIC_DRAW);
+        drawable.ibo.init(indices, drawable.index_count, GL_DYNAMIC_DRAW);
     }
 
     template<typename T>
-    sphere<T> sphere_init(
-            drawable_elements& drawable,
-            const std::function<void(T&, const glm::vec3&, const glm::vec2&)>& init_function,
-            int x_segments = 64,
-            int y_segments = 64
+    void Sphere<T>::generate(
+            DrawableElements& drawable,
+            const std::function<void(T&, const glm::vec3&, const glm::vec2&)>& init_function
     ) {
-        gl::sphere<T> sphere;
-        int vertex_count = (x_segments + 1) * (y_segments + 1);
-        sphere.vertices.vertices = new T[vertex_count];
-        sphere.vertices.count = vertex_count;
-        sphere.x_segments = x_segments;
-        sphere.y_segments = y_segments;
+        vertices.count = (x_segments + 1) * (y_segments + 1);
+        vertices.vertices = new T[vertices.count];
 
         int i = 0;
-        auto& vertices = sphere.vertices.vertices;
         for (u32 x = 0; x <= x_segments; x++) {
             for (u32 y = 0; y <= y_segments; y++) {
-                auto& V = vertices[i];
+                T& V = vertices.vertices[i];
 
                 float xSegment = (float)x / (float)x_segments;
                 float ySegment = (float)y / (float)y_segments;
@@ -97,30 +118,25 @@ namespace gl {
             oddRow = !oddRow;
         }
 
-        sphere.indices = new u32[indices.size()];
-        memcpy(sphere.indices, indices.data(), indices.size() * sizeof(u32));
-
+        this->indices = new u32[indices.size()];
+        memcpy(this->indices, indices.data(), indices.size() * sizeof(u32));
         drawable.index_count = (int) indices.size();
-
-        return sphere;
     }
 
     template<typename T>
-    void sphere_displace(
-            gl::sphere<T>& sphere,
-            drawable_elements& drawable,
+    void Sphere<T>::displace(
+            DrawableElements& drawable,
             const char* displacement_filepath,
-            bool flip_uv = false,
-            float scale = 1.0f,
-            float shift = 0.0f,
-            const std::function<void(T&)>& update_vertex_function = [](T& t) {}
+            bool flip_uv,
+            float scale,
+            float shift,
+            const std::function<void(T&)>& update_vertex_function
     ) {
         // todo consider to move image reading and pass image data instead
-        io::image_data image = io::image_read(displacement_filepath, flip_uv);
-        auto& vertices = sphere.vertices.vertices;
+        io::ImageData image = io::read_image(displacement_filepath, flip_uv);
         int image_width = image.width;
-        int w = sphere.x_segments < image_width ? sphere.x_segments : image_width - 1;
-        int h = sphere.y_segments < image.height ? sphere.y_segments : image.height - 1;
+        int w = x_segments < image_width ? x_segments : image_width - 1;
+        int h = y_segments < image.height ? y_segments : image.height - 1;
         int channels = image.channels;
         u8* data = image.data;
 
@@ -129,7 +145,7 @@ namespace gl {
         {
             for (int j = 0; j <= w; j++)
             {
-                auto& V = vertices[k];
+                auto& V = vertices.vertices[k];
                 // retrieve texel for (i, j) uv
                 u8* texel = data + (j + image_width * i) * channels;
                 // raw height at coordinate
@@ -143,24 +159,58 @@ namespace gl {
             }
         }
 
-        vao_bind(drawable.vao);
-        vbo_update(drawable.vbo, sphere.vertices);
+        drawable.vao.bind();
+        drawable.vbo.update(vertices);
 
         io::free(image.data);
     }
 
-    sphere_default sphere_default_init(drawable_elements& drawable, int x_segments = 64, int y_segments = 64);
-    sphere_tbn sphere_tbn_init(drawable_elements& drawable, int x_segments = 64, int y_segments = 64);
+    template<typename T>
+    void Sphere<T>::displace_tbn(
+            DrawableElements &drawable,
+            const char *displacement_path,
+            bool flip_uv,
+            float scale, float shift
+    ) {
+        displace(drawable, displacement_path, flip_uv, scale, shift, [](T& V) {
+            V.normal = V.pos;
 
-    constexpr auto sphere_default_displace = &sphere_displace<vertex_default>;
+            glm::vec3 right = { 1, 0, 0 };
+            glm::vec3 up = { 0, 1, 0 };
 
-    void sphere_tbn_displace(
-            sphere_tbn& sphere,
-            drawable_elements& drawable,
-            const char* displacement_path,
-            bool flip_uv = false,
-            float scale = 1.0f,
-            float shift = 0.0f
-    );
+            if (glm::dot(up, V.normal) == 1) {
+                V.tangent = right;
+            } else {
+                V.tangent = glm::normalize(glm::cross(up, V.normal));
+            }
+        });
+    }
+
+    template<typename T>
+    void Sphere<T>::init_default(DrawableElements &drawable) {
+        generate(drawable, [](T& V, const glm::vec3& pos, const glm::vec2& uv) {
+            V.pos = pos;
+        });
+        init(drawable);
+    }
+
+    template<typename T>
+    void Sphere<T>::init_tbn(DrawableElements &drawable) {
+        generate(drawable, [](T& V, const glm::vec3& pos, const glm::vec2& uv) {
+            V.pos = pos;
+            V.uv = uv;
+            V.normal = pos;
+
+            glm::vec3 right = { 1, 0, 0 };
+            glm::vec3 up = { 0, 1, 0 };
+
+            if (glm::dot(up, V.normal) == 1) {
+                V.tangent = right;
+            } else {
+                V.tangent = glm::normalize(glm::cross(up, V.normal));
+            }
+        });
+        init(drawable);
+    }
 
 }

@@ -15,7 +15,7 @@ namespace io {
 
     using namespace gl;
 
-    struct vertex_mesh final {
+    struct VertexMesh final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec2 uv = { 0, 0 };
@@ -23,39 +23,47 @@ namespace io {
         glm::fvec3 tangent = { 0, 0, 0 };
     };
 
-    struct mesh_vertices final {
-        vertex_mesh* data;
+    struct MeshVertices final {
+        VertexMesh* data;
 
         inline float* to_float() const { return (float*) &data->pos.x; }
     };
 
-    struct mesh final {
-        mesh_vertices vertices;
+    struct Mesh final {
+        MeshVertices vertices;
         u32 vertex_count;
         u32* indices;
         u32 index_count;
         u32 material_index = 0;
     };
 
-    struct model final {
-        std::vector<mesh> meshes;
-        std::unordered_map<u32, material> materials;
+    struct Model final {
+        std::vector<Mesh> meshes;
+        std::unordered_map<u32, Material> materials;
     };
 
-    struct drawable_model final {
-        io::model model;
-        gl::drawable_elements elements;
+    struct DrawableModel final {
+        io::Model model;
+        DrawableElements elements;
+
+        void init(
+                const std::string& filepath,
+                u32 flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
+        );
+
+        void free();
     };
 
-    struct drawable_models final {
-        io::model model;
-        std::vector<gl::drawable_elements> elements;
+    struct DrawableModels final {
+        io::Model model;
+        std::vector<DrawableElements> elements;
+
+        void init(
+                const std::string& filepath,
+                u32 flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
+        );
+
+        void free();
     };
-
-    drawable_model model_init(const std::string& filepath, u32 flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
-    drawable_models models_init(const std::string& filepath, u32 flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
-
-    void model_free(drawable_model& drawable_model);
-    void models_free(drawable_models& drawable_models);
 
 }

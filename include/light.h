@@ -6,33 +6,33 @@
 
 namespace gl {
 
-    struct light_present final {
+    struct LightPresent final {
         glm::vec4 color = { 1, 1, 1, 1 };
-        gl::transform transform = {
+        Transform transform = {
                 { 0, 0, -2 },
                 { 0, 0, 0 },
                 { 0.1, 0.1, 0.1 },
         };
-        gl::cube_solid presentation;
+        CubeSolid presentation;
+
+        void init();
+
+        void free();
+
+        void update();
     };
 
-    struct light_phong final {
-
-        glm::vec3 position = { 0, 0, 0 };
-        float std140_padding_0 = 0;
-
-        glm::vec3 color = { 1, 1, 1 };
-        float refraction = 1.0f;
-
-        inline float* to_float() const { return (float*) &position.x; }
+    struct PhongLight final {
+        glm::vec4 position = { 0, 0, 0, 1 };
+        glm::vec4 color = { 1, 1, 1, 1 };
     };
 
-    struct light_dir final {
+    struct DirectLight final {
         glm::vec4 direction = { -2.0f, 4.0f, -1.0f, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
     };
 
-    struct light_point final {
+    struct PointLight final {
         glm::vec4 position = { 0, 0, 0, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
         float constant = 1.0f;
@@ -41,7 +41,7 @@ namespace gl {
         float refraction = 1.0f;
     };
 
-    struct light_spot final {
+    struct SpotLight final {
         glm::vec4 position = { 0, 0, 0, 0 };
         glm::vec4 direction = { -0.2f, -1.0f, -0.3f, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
@@ -51,8 +51,24 @@ namespace gl {
         float pad = 0;
     };
 
-    void light_present_init(light_present* present);
-    void light_present_free();
-    void light_present_update();
+    struct EnvLight final {
+        int resolution = 2048;
+        int prefilter_resolution = 1024;
+        int prefilter_levels = 10;
+        Texture env = { 0, GL_TEXTURE_CUBE_MAP, { "sampler", 0 } };
+        Texture irradiance = { 0, GL_TEXTURE_CUBE_MAP, { "irradiance", 8 } };
+        Texture prefilter = { 0, GL_TEXTURE_CUBE_MAP, { "prefilter", 9 } };
+        Texture brdf_convolution = { 0, GL_TEXTURE_2D, { "brdf_convolution", 10 } };
+
+        void init();
+
+        void generate(const Texture& hdr_texture);
+
+        void free();
+
+        void update(Shader& shader);
+
+        void render();
+    };
 
 }

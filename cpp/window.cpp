@@ -1,8 +1,6 @@
 #include <window.h>
 #include <ui.h>
 
-#include <glad/glad.h>
-
 #include <unordered_map>
 
 namespace win {
@@ -16,8 +14,6 @@ namespace win {
     static int window_mode_height;
     static int window_mode_x;
     static int window_mode_y;
-
-    int gpu_props::max_attrs_allowed;
 
     void init(const window_props& props) {
         win_props = props;
@@ -67,12 +63,7 @@ namespace win {
 
         glfwMakeContextCurrent(window);
 
-        int glStatus = gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
-        if (glStatus == GLFW_FALSE) {
-            free();
-            print_err("Failed to initialize GLAD");
-            assert(false);
-        }
+        gl::init(props.width, props.height);
 
         if (props.flags & win_flags::fullscreen)
             set_full_screen();
@@ -80,12 +71,6 @@ namespace win {
             set_windowed();
 
         glfwSwapInterval(props.flags & win_flags::sync);
-
-        glViewport(0, 0, props.width, props.height);
-
-        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &gpu_props::max_attrs_allowed);
-
-        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 #ifdef UI
         ui::init(window);
@@ -213,7 +198,6 @@ namespace win {
         });
 
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int w, int h) {
-            glViewport(0, 0, w, h);
             event_handler(framebuffer_resized, w, h)
         });
 
