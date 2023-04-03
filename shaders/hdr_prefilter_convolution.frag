@@ -1,8 +1,8 @@
 #version 460 core
 
-out vec4 frag_color;
+out vec4 out_color;
 
-in vec3 f_pos;
+in vec3 l_pos;
 
 uniform samplerCube sampler;
 uniform float roughness;
@@ -66,7 +66,7 @@ float distribution_ggx(vec3 H, float roughness)
 
 void main()
 {
-    N = normalize(f_pos);
+    N = normalize(l_pos);
     R = N;
     V = R;
 
@@ -100,5 +100,5 @@ void main()
 
     color = color / total_weigth;
 
-    frag_color = vec4(color, 1.0);
+    out_color = vec4(color, 1.0);
 }

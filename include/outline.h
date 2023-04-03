@@ -4,21 +4,34 @@
 #include <transform.h>
 #include <draw.h>
 
+#include <unordered_map>
+
 namespace gl {
 
     struct Outline final {
+        Transform transform;
+        DrawableElements drawable;
         float thickness = 0.02f;
         glm::vec4 color = { 1, 1, 0, 1 };
 
+        Outline() = default;
+
+        Outline(const Transform& transform, const DrawableElements& drawable)
+        : transform(transform), drawable(drawable) {}
+    };
+
+    struct OutlineRenderer final {
+
         void init();
+        void free();
 
-        static void free();
+        void begin();
+        void end();
 
-        static void begin();
+        void render(Outline& outline);
 
-        static void end();
-
-        void draw(Transform& transform, const DrawableElements& drawable);
+    private:
+        Shader shader;
     };
 
 }

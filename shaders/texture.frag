@@ -1,12 +1,11 @@
 #version 460 core
 
-in vec2 f_uv;
+in vec2 l_uv;
 
-out vec4 fragment;
+out vec4 out_color;
 
 uniform sampler2D sampler;
 
 void main() {
-    vec4 color = texture(sampler, f_uv);
-    fragment = color;
+    out_color = texture(sampler, l_uv);
 }

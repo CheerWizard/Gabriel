@@ -1,8 +1,8 @@
 #version 460 core
 
-in vec3 f_pos;
+out vec4 out_color;
 
-out vec4 frag_color;
+in vec3 l_pos;
 
 uniform sampler2D sampler;
 
@@ -16,6 +16,6 @@ vec2 sample_sphere(vec3 v) {
 }
 
 void main() {
-    vec2 uv = sample_sphere(normalize(f_pos));
-    frag_color = vec4(texture(sampler, uv).rgb, 1.0);
+    vec2 uv = sample_sphere(normalize(l_pos));
+    out_color = vec4(texture(sampler, uv).rgb, 1.0);
 }

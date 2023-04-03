@@ -34,9 +34,14 @@ namespace gl {
 
     void Texture::init(
             const TextureData& texture_data,
-            const TextureParams& params
+            const TextureParams& params,
+            u32 texture_type
     ) {
-        u32 texture_type = GL_TEXTURE_2D;
+        if (texture_type == GL_TEXTURE_CUBE_MAP) {
+            init_cubemap(texture_data, params);
+            return;
+        }
+
         type = texture_type;
         glGenTextures(1, &id);
         glBindTexture(texture_type, id);
@@ -48,7 +53,23 @@ namespace gl {
         u32 primitive_type = texture_data.primitive_type;
         void* data = texture_data.data;
 
-        glTexImage2D(texture_type, 0, internal_format, width, height, 0, data_format, primitive_type, data);
+        if (texture_type == GL_TEXTURE_2D_MULTISAMPLE) {
+            glTexImage2DMultisample(
+                    texture_type,
+                    texture_data.samples,
+                    internal_format,
+                    width, height,
+                    GL_TRUE
+            );
+        } else {
+            glTexImage2D(
+                    texture_type, 0,
+                    internal_format,
+                    width, height, 0,
+                    data_format,
+                    primitive_type, data
+            );
+        }
 
         if (params.min_filter == GL_NEAREST_MIPMAP_NEAREST
             || params.min_filter == GL_NEAREST_MIPMAP_LINEAR
@@ -92,19 +113,25 @@ namespace gl {
     }
 
     void Texture::bind() const {
-        glActiveTexture(GL_TEXTURE0 + sampler.value);
         glBindTexture(type, id);
+    }
+
+    void Texture::bind(u32 type, u32 id) {
+        glBindTexture(type, id);
+    }
+
+    void Texture::activate(int slot) {
+        glActiveTexture(GL_TEXTURE0 + slot);
+    }
+
+    void Texture::bind_activate(u32 type, u32 id, int slot) {
+        activate(slot);
+        bind(type, id);
     }
 
     void Texture::unbind() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    void Texture::update(Shader& shader) {
-        shader.set_uniform(sampler);
-        glActiveTexture(GL_TEXTURE0 + sampler.value);
-        glBindTexture(type, id);
     }
 
     void Texture::generate_mipmaps(const TextureParams& params) {

@@ -1,15 +1,8 @@
 #pragma once
 
-#include <primitives.h>
+#include <material_loader.h>
 #include <vertex.h>
-#include <material.h>
 #include <draw.h>
-
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
-#include <unordered_map>
 
 namespace io {
 
@@ -48,7 +41,10 @@ namespace io {
 
         void init(
                 const std::string& filepath,
-                u32 flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
+                u32 flags = aiProcess_Triangulate
+                        | aiProcess_FlipUVs
+                        | aiProcess_CalcTangentSpace
+                        | aiProcess_OptimizeMeshes
         );
 
         void free();
@@ -60,7 +56,10 @@ namespace io {
 
         void init(
                 const std::string& filepath,
-                u32 flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
+                u32 flags = aiProcess_Triangulate
+                        | aiProcess_FlipUVs
+                        | aiProcess_CalcTangentSpace
+                        | aiProcess_OptimizeMeshes
         );
 
         void free();

@@ -38,15 +38,14 @@ namespace gl {
         float max_pitch = 89;
         float yaw = 0;
         float roll = 0;
-        float speed = 0.5f;
-        float sensitivity = 0.05f;
+        float move_speed = 1.0f;
+        float horizontal_sensitivity = 0.15f;
+        float vertical_sensitivity = 0.30f;
         float fov = 45;
         float max_fov = 45;
         float aspect = 1.3;
         float z_near = 0.1f;
         float z_far = 100.0f;
-
-        UniformBuffer ubo;
 
         void init(u32 binding, float aspect_ratio);
         glm::mat4 init_view();
@@ -64,6 +63,11 @@ namespace gl {
         void update_perspective();
 
         void update();
+
+        glm::mat4 perspective();
+
+    private:
+        UniformBuffer ubo;
     };
 
 }

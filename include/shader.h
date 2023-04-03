@@ -1,7 +1,7 @@
 #pragma once
 
-#include <primitives.h>
 #include <uniform.h>
+#include <texture.h>
 
 namespace gl {
 
@@ -19,6 +19,12 @@ namespace gl {
 
         void free();
 
+        void bind_sampler(const char* name, int slot, const Texture& texture);
+        void bind_sampler(const TextureSampler& sampler, const Texture& texture);
+
+        void bind_sampler_struct(const char* struct_name, const char* name, int slot, const Texture& texture);
+        void bind_sampler_struct(const char* struct_name, const TextureSampler& sampler, const Texture& texture);
+
         int get_uniform_location(const char* name) const;
         int get_uniform_array_location(u32 index, const char* name);
         int get_uniform_struct_location(const char *structName, const char *fieldName);
@@ -30,6 +36,7 @@ namespace gl {
         void set_uniform(int location, bool value);
         void set_uniform(int location, int value);
         void set_uniform(int location, double value);
+        void set_uniform(int location, u32 value);
 
         void set_uniform(int location, glm::fvec2& value);
         void set_uniform(int location, glm::fvec3& value);
@@ -145,31 +152,5 @@ namespace gl {
     void Shader::set_uniform_struct(const char *struct_name, const char *field_name, T &field_value, u32 i) {
         set_uniform(get_uniform_struct_array_location(struct_name, field_name, i), field_value);
     }
-
-//    constexpr auto set_uniformf = &Shader::set_uniform_args<float>;
-//    constexpr auto set_uniformi = &Shader::set_uniform_args<int>;
-//    constexpr auto set_uniformd = &Shader::set_uniform_args<double>;
-//    constexpr auto set_uniformb = &Shader::set_uniform_args<bool>;
-//
-//    constexpr auto set_uniform2v = &Shader::set_uniform_args<glm::vec2>;
-//    constexpr auto set_uniform3v = &Shader::set_uniform_args<glm::vec3>;
-//    constexpr auto set_uniform4v = &Shader::set_uniform_args<glm::vec4>;
-//
-//    constexpr auto set_uniform2m = &Shader::set_uniform_args<glm::mat2>;
-//    constexpr auto set_uniform3m = &Shader::set_uniform_args<glm::mat3>;
-//    constexpr auto set_uniform4m = &Shader::set_uniform_args<glm::mat4>;
-//
-//    constexpr auto set_uniform_structf = &Shader::set_uniform_struct_args<float>;
-//    constexpr auto set_uniform_structi = &Shader::set_uniform_struct_args<int>;
-//    constexpr auto set_uniform_structd = &Shader::set_uniform_struct_args<double>;
-//    constexpr auto set_uniform_structb = &Shader::set_uniform_struct_args<bool>;
-//
-//    constexpr auto set_uniform_struct2v = &Shader::set_uniform_struct_args<glm::vec2>;
-//    constexpr auto set_uniform_struct3v = &Shader::set_uniform_struct_args<glm::vec3>;
-//    constexpr auto set_uniform_struct4v = &Shader::set_uniform_struct_args<glm::vec4>;
-//
-//    constexpr auto set_uniform_struct2m = &Shader::set_uniform_struct_args<glm::mat2>;
-//    constexpr auto set_uniform_struct3m = &Shader::set_uniform_struct_args<glm::mat3>;
-//    constexpr auto set_uniform_struct4m = &Shader::set_uniform_struct_args<glm::mat4>;
 
 }

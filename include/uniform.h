@@ -1,5 +1,7 @@
 #pragma once
 
+#include <primitives.h>
+
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 
@@ -76,5 +78,20 @@ namespace gl {
     typedef UniformArray<glm::dmat2> UniformArrayM2D;
     typedef UniformArray<glm::dmat3> UniformArrayM3D;
     typedef UniformArray<glm::dmat4> UniformArrayM4D;
+
+    struct UniformData final {
+        long long offset;
+        long long size;
+        void* data;
+    };
+
+    struct UniformBuffer final {
+        u32 id;
+
+        void init(u32 binding, long long size);
+        void bind();
+        void update(const UniformData& ubo_data);
+        void free();
+    };
 
 }

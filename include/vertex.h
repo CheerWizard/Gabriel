@@ -9,7 +9,7 @@
 
 namespace gl {
 
-    enum AttrType : int {
+    enum PrimitiveType : int {
         float_t = 1,
         bool_t = 1,
         int_t = 1,
@@ -23,8 +23,23 @@ namespace gl {
         mat4 = 16,
     };
 
+    struct Attr {
+        u32 location;
+        PrimitiveType primitive_type;
+    };
+
+    namespace attr {
+        static constexpr Attr pos = { 0, vec3 };
+        static constexpr Attr uv = { 1, vec2 };
+        static constexpr Attr normal = { 2, vec3 };
+        static constexpr Attr tangent = { 3, vec3 };
+        static constexpr Attr bitangent = { 4, vec3 };
+        static constexpr Attr bone_id = { 5, vec4 };
+        static constexpr Attr weight = { 6, vec4 };
+    }
+
     struct VertexFormat final {
-        std::vector<AttrType> attrs;
+        std::vector<Attr> attrs;
         size_t stride;
     };
 
@@ -35,30 +50,10 @@ namespace gl {
         glm::fvec3 pos = { 0, 0, 0 };
     };
 
-    struct VertexSolid final {
-        decl_vertex
-        glm::fvec3 pos = { 0, 0, 0 };
-        glm::fvec4 color = { 0.5 , 0.5, 0.5, 0.5 };
-    };
-
-    struct VertexSolidNormal final {
-        decl_vertex
-        glm::fvec3 pos = { 0, 0, 0 };
-        glm::fvec4 color = { 0.5 , 0.5, 0.5, 0.5 };
-        glm::fvec3 normal = { 0, 0, 0 };
-    };
-
     struct VertexUV final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
         glm::fvec2 uv = { 0, 0 };
-    };
-
-    struct VertexUVNormal final {
-        decl_vertex
-        glm::fvec3 pos = { 0, 0, 0 };
-        glm::fvec2 uv = { 0, 0 };
-        glm::fvec3 normal = { 0, 0, 0 };
     };
 
     struct VertexTBN final {

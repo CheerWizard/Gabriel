@@ -1,11 +1,11 @@
 #version 460 core
 
-out vec4 frag_color;
+out vec3 out_color;
 
-in vec2 f_uv;
+in vec2 l_uv;
 
 uniform float offset;
-uniform sampler2D sampler;
+uniform sampler2D screen;
 
 void main() {
 
@@ -29,13 +29,13 @@ void main() {
 
     vec3 samples[9];
     for (int i = 0; i < 9; i++) {
-        samples[i] = vec3(texture(sampler, f_uv + offsets[i]));
+        samples[i] = vec3(texture(screen, l_uv + offsets[i]));
     }
 
     vec3 blur = vec3(0);
     for (int i = 0; i < 9; i++)
         blur += samples[i] * kernel[i];
 
-    frag_color = vec4(blur, 1.0);
+    out_color = blur;
 
 }

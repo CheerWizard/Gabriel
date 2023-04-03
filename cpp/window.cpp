@@ -176,7 +176,7 @@ namespace win {
         event_registry::event(__VA_ARGS__);     \
     }
 
-    void event_registry_update() {
+    void event_registry::set_callbacks() {
         glfwSetErrorCallback([](int error, const char* msg) {
             event_handler(window_error, error, msg)
         });
@@ -192,12 +192,21 @@ namespace win {
         });
 
         glfwSetWindowPosCallback(window, [](GLFWwindow* win, int x, int y) {
+            if (x < 0 && y < 0) {
+                print_err("Window: invalid position x < 0 or y < 0");
+                return;
+            }
             win_props.x = x;
             win_props.y = y;
             event_handler(window_positioned, x, y)
         });
 
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int w, int h) {
+            if (w <= 0 && h <= 0) {
+                print_err("Window: invalid framebuffer size w <= 0 or h <= 0");
+                return;
+            }
+            gl::resize(w, h);
             event_handler(framebuffer_resized, w, h)
         });
 

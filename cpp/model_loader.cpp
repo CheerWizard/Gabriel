@@ -1,6 +1,6 @@
 #include <model_loader.h>
+
 #include <geometry.h>
-#include <texture.h>
 
 #include <sstream>
 #include <unordered_map>
@@ -10,7 +10,7 @@ namespace io {
     using namespace gl;
 
     VertexFormat VertexMesh::format = {
-            { vec3, vec2, vec3, vec3 },
+            { attr::pos, attr::uv, attr::normal, attr::tangent },
             sizeof(VertexMesh)
     };
 
@@ -45,34 +45,7 @@ namespace io {
         return vertex;
     }
 
-    static std::unordered_map<std::string, Texture> textures_table {};
-
-    static void read_material(
-            aiMaterial* material,
-            aiTextureType type,
-            const std::string& directory,
-            u32 flags,
-            Texture& texture,
-            const TextureParams& params = {}
-    ) {
-        aiString texture_file;
-        material->Get(AI_MATKEY_TEXTURE(type, 0), texture_file);
-        std::stringstream ss;
-        ss << directory << "/" << texture_file.data;
-        std::string texture_filepath = ss.str();
-
-        if (textures_table.find(texture_filepath) != textures_table.end()) {
-            texture = textures_table[texture_filepath];
-            return;
-        }
-
-        texture.init(texture_filepath.c_str(), flags & aiProcess_FlipUVs, params);
-        if (texture.id != invalid_texture) {
-            textures_table[texture_filepath] = texture;
-        }
-    }
-
-    static Mesh parse_mesh(aiMesh *mesh, const aiScene *scene, const std::string& directory, u32 flags)
+    static Mesh parse_mesh(aiMesh *mesh)
     {
         io::Mesh result;
         std::vector<u32> indices;
@@ -99,53 +72,25 @@ namespace io {
         return result;
     }
 
-    static void parse_node(
-            aiNode *node, const aiScene *scene,
-            std::vector<Mesh>& meshes,
-            std::unordered_map<u32, Material>& materials,
+    static void parse_meshes(
+            aiNode* node, const aiScene* scene,
+            Model& model,
             const std::string& directory, u32 flags
     ) {
+        auto& meshes = model.meshes;
+        auto& materials = model.materials;
+
         for (u32 i = 0 ; i < node->mNumMeshes ; i++)
         {
-            aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-
-            io::Mesh result = parse_mesh(mesh, scene, directory, flags);
-
-            if (mesh->mMaterialIndex >= 0) {
-                aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-                result.material_index = mesh->mMaterialIndex;
-
-                gl::Material result_material;
-                gl::TextureParams material_params;
-                material_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-
-                read_material(material, aiTextureType_BASE_COLOR, directory, flags, result_material.albedo, material_params);
-                result_material.enable_albedo = result_material.albedo.id != invalid_texture;
-
-                read_material(material, aiTextureType_NORMALS, directory, flags, result_material.normal, material_params);
-                result_material.enable_normal = result_material.normal.id != invalid_texture;
-
-                read_material(material, aiTextureType_DISPLACEMENT, directory, flags, result_material.parallax, material_params);
-                result_material.enable_parallax = result_material.parallax.id != invalid_texture;
-
-                read_material(material, aiTextureType_METALNESS, directory, flags, result_material.metallic, material_params);
-                result_material.enable_metallic = result_material.metallic.id != invalid_texture;
-
-                read_material(material, aiTextureType_DIFFUSE_ROUGHNESS, directory, flags, result_material.roughness, material_params);
-                result_material.enable_roughness = result_material.roughness.id != invalid_texture;
-
-                read_material(material, aiTextureType_AMBIENT_OCCLUSION, directory, flags, result_material.ao, material_params);
-                result_material.enable_ao = result_material.ao.id != invalid_texture;
-
-                materials[result.material_index] = result_material;
-            }
-
+            aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+            io::Mesh result = parse_mesh(mesh);
+            result.material_index = parse_material(materials, scene, mesh, directory, flags);
             meshes.push_back(result);
         }
 
         for (u32 i = 0 ; i < node->mNumChildren ; i++)
         {
-            parse_node(node->mChildren[i], scene, meshes, materials, directory, flags);
+            parse_meshes(node->mChildren[i], scene, model, directory, flags);
         }
     }
 
@@ -153,21 +98,14 @@ namespace io {
             const std::string& filepath,
             u32 flags
     ) {
-        Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(filepath, flags);
+        Model model;
 
-        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-        {
-            print_err("model_read(): failed to read model " << filepath);
-            return {};
-        }
+        AssimpCore::read_file([&model, &filepath, &flags](const aiScene* scene) {
+            std::string directory = filepath.substr(0, filepath.find_last_of('/'));
+            parse_meshes(scene->mRootNode, scene, model, directory, flags);
+        }, filepath, flags);
 
-        std::vector<Mesh> meshes;
-        std::unordered_map<u32, Material> materials;
-        std::string directory = filepath.substr(0, filepath.find_last_of('/'));
-        parse_node(scene->mRootNode, scene, meshes, materials, directory, flags);
-
-        return { meshes, materials };
+        return model;
     }
 
     void DrawableModel::init(const std::string &filepath, u32 flags) {
@@ -266,5 +204,4 @@ namespace io {
             element.free();
         }
     }
-
 }

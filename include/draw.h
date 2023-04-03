@@ -6,7 +6,7 @@
 
 namespace gl {
 
-    struct DrawableVertices final {
+    struct DrawableVertices {
         int vertex_count = 0;
         VertexArray vao;
         VertexBuffer vbo;
@@ -18,7 +18,7 @@ namespace gl {
         void draw(int instances);
     };
 
-    struct DrawableElements final {
+    struct DrawableElements {
         int index_count;
         VertexArray vao;
         VertexBuffer vbo;

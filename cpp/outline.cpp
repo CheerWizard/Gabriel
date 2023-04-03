@@ -2,40 +2,35 @@
 
 namespace gl {
 
-    static Shader outline_shader;
-
-    void Outline::init() {
-        outline_shader.init(
+    void OutlineRenderer::init() {
+        shader.init(
             "shaders/outline.vert",
             "shaders/outline.frag"
         );
-        outline_shader.use();
-        outline_shader.set_uniform_args<float>("outline_thickness", thickness);
-        outline_shader.set_uniform_args<glm::vec4>("outline_color", color);
     }
 
-    void Outline::free() {
-        outline_shader.free();
+    void OutlineRenderer::free() {
+        shader.free();
     }
 
-    void Outline::begin() {
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
+    void OutlineRenderer::begin() {
+        glStencilMask(GL_FALSE);
+        glStencilFunc(GL_NOTEQUAL, 1, GL_TRUE);
         glDisable(GL_DEPTH_TEST);
     }
 
-    void Outline::end() {
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    void OutlineRenderer::end() {
+        glStencilMask(GL_TRUE);
+        glStencilFunc(GL_ALWAYS, 1, GL_TRUE);
         glEnable(GL_DEPTH_TEST);
     }
 
-    void Outline::draw(Transform& transform, const DrawableElements& drawable) {
-        outline_shader.use();
-        transform.update(outline_shader);
-        outline_shader.set_uniform_args<float>("outline_thickness", thickness);
-        outline_shader.set_uniform_args<glm::vec4>("outline_color", color);
-        drawable.draw();
+    void OutlineRenderer::render(Outline& outline) {
+        shader.use();
+        shader.set_uniform_args<float>("outline_thickness", outline.thickness);
+        shader.set_uniform_args<glm::vec4>("outline_color", outline.color);
+        outline.transform.update(shader);
+        outline.drawable.draw();
     }
 
 }

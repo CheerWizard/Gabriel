@@ -58,10 +58,7 @@ namespace gl {
     };
 
     typedef Sphere<VertexDefault> SphereDefault;
-    typedef Sphere<VertexSolid> SphereSolid;
     typedef Sphere<VertexUV> SphereUV;
-    typedef Sphere<VertexSolidNormal> SphereSolidNormal;
-    typedef Sphere<VertexUVNormal> SphereUVNormal;
     typedef Sphere<VertexTBN> SphereTBN;
 
     template<typename T>

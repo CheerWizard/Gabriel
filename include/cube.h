@@ -181,10 +181,7 @@ namespace gl {
     };
 
     typedef Cube<VertexDefault> CubeDefault;
-    typedef Cube<VertexSolid> CubeSolid;
     typedef Cube<VertexUV> CubeUV;
-    typedef Cube<VertexSolidNormal> CubeSolidNormal;
-    typedef Cube<VertexUVNormal> CubeUVNormal;
     typedef Cube<VertexTBN> CubeTBN;
 
     template<typename T>

@@ -1,20 +1,16 @@
 #version 460 core
 
-out vec4 frag_color;
+out vec4 out_color;
 
-in vec2 f_uv;
+in vec2 l_uv;
 
-uniform sampler2D sampler;
+uniform sampler2D screen;
 
-uniform float exposure;
 uniform float gamma;
 
 void main()
 {
-    vec3 color = texture(sampler, f_uv).rgb;
-    // HDR tone mapping
-    color = vec3(1.0) - exp(-color * exposure);
-    // gamma correction
-    color = pow(color, vec3(1.0 / gamma));
-    frag_color = vec4(color, 1.0);
+    vec3 screen_color = texture(screen, l_uv).rgb;
+    screen_color = pow(screen_color, vec3(1.0 / gamma));
+    out_color = vec4(screen_color, 1.0);
 }

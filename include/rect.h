@@ -62,10 +62,7 @@ namespace gl {
         void init_tbn(DrawableElements& drawable);
     };
 
-    typedef Rect<VertexSolid> RectSolid;
     typedef Rect<VertexUV> RectUV;
-    typedef Rect<VertexSolidNormal> RectSolidNormal;
-    typedef Rect<VertexUVNormal> RectUVNormal;
     typedef Rect<VertexTBN> RectTBN;
 
     template<typename T>

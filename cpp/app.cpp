@@ -6,10 +6,16 @@
 #include <camera.h>
 #include <light.h>
 #include <model_loader.h>
-#include <outline.h>
 #include <shadow.h>
 #include <math_functions.h>
 #include <sphere.h>
+#include <ssao.h>
+#include <pbr.h>
+#include <screen.h>
+#include <hdr.h>
+#include <blur.h>
+#include <bloom.h>
+#include <skeletal_animation.h>
 
 #include <map>
 #include <random>
@@ -22,7 +28,6 @@ namespace gl {
 
     static bool enable_fullscreen = false;
 
-    static Shader material_shader;
     static UniformBuffer sunlight_ubo;
     static UniformBuffer lights_ubo;
     static UniformBuffer flashlight_ubo;
@@ -37,80 +42,84 @@ namespace gl {
 
     static SpotLight flashlight;
 
-    static DrawableElements plane;
-    static Transform plane_transform = {
-            { 0, -2, 4 },
-            { 0, 0, 0 },
-            { 40, 0.25, 40 }
-    };
-    static Material plane_material;
-
-    static DrawableElements sphere;
-    static DrawableElements sphere_rock;
-    static SphereTBN sphere_rock_geometry;
-    static std::vector<Transform> sphere_transforms = {
-            {
-                    { 0, 0, 0 },
-                    { 0, 0, 0 },
-                    { 1, 1, 1 }
-            },
+    static PBR_Entity plane = {
+            1,
             {
                     { 0, 0, 4 },
                     { 0, 0, 0 },
-                    { 1, 1, 1 }
-            },
+                    { 40, 1, 40 }
+            }
+    };
+
+    static SphereTBN rock_sphere_geometry;
+    static PBR_Entity rock_sphere = {
+            2,
             {
-                    { 0, 0, 8 },
+                    { 0, 1.3, 0 },
                     { 0, 0, 0 },
                     { 1, 1, 1 }
             }
     };
-    static std::vector<Material> sphere_materials;
-    static DrawableElements sphere_shadow;
-    static DrawableElements sphere_rock_shadow;
-    static SphereDefault sphere_rock_shadow_geometry;
 
-    static io::DrawableModel model;
-    static Transform model_transform = {
-            { -3, -0.1, 5 },
-            { 0, 0, 0 },
-            { 1, 1, 1 }
+    static io::DrawableModel backpack_model;
+    static PBR_Entity backpack = {
+            3,
+            {
+                    { -3, 1.5, 5 },
+                    { -90, 0, 0 },
+                    { 1, 1, 1 }
+            }
     };
-    static Material model_material;
-    static io::ShadowDrawableModel model_shadow;
 
-    static std::map<float, Transform> transparent_objects;
-
-    static Shader screen_shader;
-    static VertexArray screen_vao;
-    static float screen_gamma = 2.2f;
-    static float screen_exposure = 1.0f;
-    static ColorAttachment final_render_target;
-
-    static FrameBuffer scene_fbo;
-
-    static FrameBuffer msaa_fbo;
-    static int msaa = 8;
-
-    static FrameBuffer blur_fbo;
-    static Shader blur_shader;
-    static float blur_offset = 1.0 / 300.0;
+    static int enable_hdr = true;
     static int enable_blur = false;
-
-    static FrameBuffer ssao_fbo;
-    static Shader ssao_shader;
-    static std::vector<glm::vec3> ssao_kernel;
-    static std::vector<glm::vec3> ssao_noise;
-    static Texture ssao_noise_texture;
-    static int enable_ssao = false;
-
-    static EnvLight env_light;
-    static Texture env_hdr_texture;
+    static int enable_bloom = true;
 
     static DirectShadow direct_shadow;
     static PointShadow point_shadow;
 
+    static SSAO_Pass ssao_pass;
+    static int enable_ssao = true;
+
     static int print_limiter = 100;
+
+    static PBR_Pipeline pbr_pipeline;
+
+    static HDR_Renderer hdr_renderer;
+
+    static Bloom bloom;
+
+    static io::DrawableSkeletalModel human_model;
+    static PBR_Entity human = {
+            4,
+            {
+                    { 0, 0, 0 },
+                    { 0, 0, 0 },
+                    { 1, 1, 1 }
+            }
+    };
+    static Animator human_animator;
+
+    static PBR_EntityGroup spheres = {
+            {
+                5,
+                {
+                    { 0, 1.5, 4 },
+                    { 0, 0, 0 },
+                    { 1, 1, 1 }
+                }
+            },
+            {
+                6,
+                {
+                    { 0, 1.5, 8 },
+                    { 0, 0, 0 },
+                    { 1, 1, 1 }
+                }
+            }
+    };
+
+    static Scene scene;
 
     static void print_dt() {
         print_limiter++;
@@ -137,11 +146,15 @@ namespace gl {
     }
 
     static void framebuffer_resized(int w, int h) {
+        print("framebuffer_resized(): width=" << w << ", height=" << h);
+
         camera.resize(w, h);
-        scene_fbo.resize(w, h);
-        msaa_fbo.resize(w, h);
-        blur_fbo.resize(w, h);
-        ssao_fbo.resize(w, h);
+        hdr_renderer.resize(w, h);
+        pbr_pipeline.resize(w, h);
+        bloom.resize(w, h);
+        Blur::resize(w, h);
+        SSAO::resize(w, h);
+        ssao_pass.resolution = { w, h };
     }
 
     static int enable_normal_mapping = true;
@@ -153,16 +166,17 @@ namespace gl {
         if (key == KEY::Esc)
             win::close();
 
-        if (key == KEY::N) {
+        if (key == KEY::N)
             enable_normal_mapping = !enable_normal_mapping;
-        }
 
-        if (key == KEY::P) {
+        if (key == KEY::P)
             enable_parallax_mapping = !enable_parallax_mapping;
-        }
 
         if (key == KEY::B)
             enable_blur = !enable_blur;
+
+        if (key == KEY::H)
+            enable_hdr = !enable_hdr;
 
         if (key == KEY::O)
             enable_ssao = !enable_ssao;
@@ -176,6 +190,20 @@ namespace gl {
                 win::set_full_screen();
             else
                 win::set_windowed();
+        }
+
+        if (key == KEY::E) {
+            Outline outline;
+            outline.transform = rock_sphere.transform;
+            outline.drawable = rock_sphere.drawable;
+            outline.thickness = 0.2f;
+            scene.outlines.emplace_back(outline);
+//            scene.outline_entities.emplace_back(&rock_sphere);
+        }
+
+        if (key == KEY::R) {
+            scene.outlines.erase(scene.outlines.begin());
+//            scene.outline_entities.erase(scene.outline_entities.begin() + 1);
         }
     }
 
@@ -195,6 +223,12 @@ namespace gl {
         if (enable_camera) {
             camera.look(x, y);
         }
+
+        if (win::is_key_press(KEY::LeftControl)) {
+            PBR_Pixel pixel = pbr_pipeline.read_pixel((int) x, (int) y);
+            print("PBR: read pixel from [x,y]=[" << x << "," << y << "]");
+            print("PBR: object id=" << pixel.object_id);
+        }
     }
 
     static void mouse_scroll(double x, double y) {
@@ -204,7 +238,7 @@ namespace gl {
     }
 
     static void init() {
-        win::init({ 0, 0, 800, 600, "CGP", win::win_flags::sync });
+        win::init({ 0, 0, 1920, 1080, "Educational Project", win::win_flags::sync });
 
         win::event_registry::window_error = window_error;
         win::event_registry::window_close = window_close;
@@ -218,106 +252,49 @@ namespace gl {
         win::event_registry::mouse_cursor = mouse_cursor;
         win::event_registry::mouse_scroll = mouse_scroll;
 
-        win::event_registry_update();
+        win::event_registry::set_callbacks();
 
-        // setup shaders
-        material_shader.init(
-            "shaders/material.vert",
-            "shaders/material.frag"
-        );
-        screen_shader.init(
-            "shaders/screen.vert",
-            "shaders/screen.frag"
-        );
-        blur_shader.init(
-            "shaders/screen.vert",
-            "shaders/blur.frag"
-        );
+        // setup screen
+        Screen::init();
+
+        // setup scene
+        scene.env.resolution = { 2048, 2048 };
+        scene.env.prefilter_resolution = { 2048, 2048 };
+        scene.env.hdr.init_hdr("images/hdr/Arches_E_PineTree_3k.hdr", true);
+        scene.env.init();
+        scene.deferred_entities.emplace_back(&plane);
+        scene.deferred_entities.emplace_back(&backpack);
+        scene.deferred_entities.emplace_back(&rock_sphere);
+        scene.deferred_groups.emplace_back(&spheres);
+
+        // setup HDR
+        hdr_renderer.init(win::props().width, win::props().height);
+        hdr_renderer.set_exposure(1);
+        hdr_renderer.shiny.init("images/lens_dirt/lens_dirt.png");
+
+        // setup PBR
+        pbr_pipeline.init(win::props().width, win::props().height);
+        pbr_pipeline.scene = &scene;
+        pbr_pipeline.generate_env();
+
+        // setup Blur
+        Blur::init(win::props().width, win::props().height);
+
+        // setup Bloom
+        bloom.resolution = { win::props().width, win::props().height };
+        bloom.bloom_strength = 0.04;
+        bloom.init();
+
+        // setup SSAO
+        SSAO::init(win::props().width, win::props().height);
+        ssao_pass.resolution = { win::props().width, win::props().height };
+        ssao_pass.init();
+        pbr_pipeline.set_ssao_pass(&ssao_pass);
 
         // setup main camera
         camera.init(0, win::get_aspect_ratio());
         camera.max_pitch = 180;
-
-        // setup screen
-        screen_vao.init();
-
-        // setup scene frame
-        ColorAttachment scene_color = { win::props().width, win::props().height };
-        scene_color.data.internal_format = GL_RGBA16F;
-        scene_color.data.data_format = GL_RGBA;
-        scene_color.data.primitive_type = GL_FLOAT;
-        ColorAttachment scene_bright_color = scene_color;
-        scene_fbo.colors.emplace_back(scene_color); // main
-        scene_fbo.colors.emplace_back(scene_bright_color); // brightness
-        scene_fbo.rbo = { win::props().width, win::props().height };
-        scene_fbo.flags |= gl::init_render_buffer;
-        scene_fbo.init();
-
-        // setup MSAA frame
-        ColorAttachment msaa_color = { win::props().width, win::props().height, msaa };
-        msaa_color.data.internal_format = GL_RGBA16F;
-        msaa_color.data.data_format = GL_RGBA;
-        msaa_color.data.primitive_type = GL_FLOAT;
-        msaa_color.view.type = GL_TEXTURE_2D_MULTISAMPLE;
-        ColorAttachment msaa_bright_color = msaa_color;
-        msaa_fbo.colors.emplace_back(msaa_color); // main
-        msaa_fbo.colors.emplace_back(msaa_bright_color); // brightness
-        msaa_fbo.rbo = { win::props().width, win::props().height, msaa };
-        msaa_fbo.flags |= gl::init_render_buffer;
-        msaa_fbo.init();
-
-        // setup Blur frame
-        ColorAttachment blur_color = { win::props().width, win::props().height };
-        blur_color.data.internal_format = GL_RGBA16F;
-        blur_color.data.data_format = GL_RGBA;
-        blur_color.data.primitive_type = GL_FLOAT;
-        blur_fbo.colors.emplace_back(blur_color);
-        blur_fbo.init();
-
-        // setup SSAO
-        // SSAO kernels
-        std::uniform_real_distribution<float> random_floats(0.0, 1.0);
-        std::default_random_engine generator;
-        for (u32 i = 0; i < 64; i++) {
-            glm::vec3 sample(
-                    random_floats(generator) * 2.0 - 1.0,
-                    random_floats(generator) * 2.0 - 1.0,
-                    random_floats(generator)
-            );
-            sample = glm::normalize(sample);
-            sample *= random_floats(generator);
-            float scale = (float) i / 64.0;
-            scale = gl::lerp(0.1f, 1.0f, scale * scale);
-            sample *= scale;
-            ssao_kernel.emplace_back(sample);
-            ssao_kernel.emplace_back(sample);
-        }
-        // SSAO noise
-        for (u32 i = 0; i < 16; i++) {
-            glm::vec3 noise(
-                    random_floats(generator) * 2.0 - 1.0,
-                    random_floats(generator) * 2.0 - 1.0,
-                    0.0f
-            );
-            ssao_noise.emplace_back(noise);
-        }
-        // SSAO noise texture
-        TextureParams ssao_noise_params;
-        ssao_noise_params.min_filter = GL_NEAREST;
-        ssao_noise_params.mag_filter = GL_NEAREST;
-        ssao_noise_texture.init(
-                { 4, 4, GL_RGB16F, GL_RGB, GL_FLOAT, &ssao_noise[0] },
-                ssao_noise_params
-        );
-        // SSAO frame
-        ColorAttachment ssao_color = { win::props().width, win::props().height };
-        ssao_color.data.internal_format = GL_RED;
-        ssao_color.data.data_format = GL_RED;
-        ssao_color.data.primitive_type = GL_FLOAT;
-        ssao_color.params.min_filter = GL_NEAREST;
-        ssao_color.params.mag_filter = GL_NEAREST;
-        ssao_fbo.colors.emplace_back(ssao_color);
-        ssao_fbo.init();
+        camera.position = { -5, 2, 10 };
 
         // setup uniform buffers
         sunlight_ubo.init(1, sizeof(sunlight));
@@ -325,33 +302,21 @@ namespace gl {
         flashlight_ubo.init(3, sizeof(flashlight));
 
         // setup sunlight
-        static const float sunlight_intensity = 0.03;
+        static const float sunlight_intensity = 0.05;
         static const glm::vec3 sunlight_rgb = glm::vec3(237, 213, 158) * sunlight_intensity;
         sunlight.color = { sunlight_rgb, 1 };
-        sunlight.direction = { -1, -1, -1, 0 };
+        sunlight.direction = { 1, 1, 1, 0 };
         sunlight_ubo.update({ 0, sizeof(sunlight), &sunlight });
 
         // setup lights
-        point_lights[0].position = { -4, -1, 0, 1 };
-        point_lights[0].color = { 1, 0, 0, 1 };
-        point_lights[0].constant = 0;
-        point_lights[0].linear = 0;
-        point_lights[0].quadratic = 1;
-        point_lights[1].position = { 4, -1, 0, 1 };
-        point_lights[1].color = { 0, 1, 0, 1 };
-        point_lights[1].constant = 0;
-        point_lights[1].linear = 0;
-        point_lights[1].quadratic = 1;
-        point_lights[2].position = { -4, -1, 8, 1 };
-        point_lights[2].color = { 0, 0, 1, 1 };
-        point_lights[2].constant = 0;
-        point_lights[2].linear = 0;
-        point_lights[2].quadratic = 1;
-        point_lights[3].position = { 4, -1, 8, 1 };
-        point_lights[3].color = { 1, 0, 1, 1 };
-        point_lights[3].constant = 0;
-        point_lights[3].linear = 0;
-        point_lights[3].quadratic = 1;
+        point_lights[0].position = { -4, 2, 0, 1 };
+        point_lights[0].color = { 0, 0, 0, 1 };
+        point_lights[1].position = { 4, 3, 0, 1 };
+        point_lights[1].color = { 0, 0, 0, 1 };
+        point_lights[2].position = { -4, 4, 8, 1 };
+        point_lights[2].color = { 0, 0, 0, 1 };
+        point_lights[3].position = { 4, 5, 8, 1 };
+        point_lights[3].color = { 0, 0, 0, 1 };
         lights_ubo.update({ 0, sizeof(point_lights), point_lights.data() });
 
         // setup flashlight
@@ -360,31 +325,14 @@ namespace gl {
         flashlight.color = { 0, 0, 0, 1 };
         flashlight_ubo.update({ 0, sizeof(flashlight), &flashlight });
 
-        // setup env light
-        env_light.init();
-        env_hdr_texture.init_hdr("images/hdr/Arches_E_PineTree_3k.hdr", true);
-        env_light.generate(env_hdr_texture);
-        env_light.update(material_shader);
-
         // setup light presentation
-        point_light_present.color = { 0, 0, 1, 0.5 };
         point_light_present.init();
 
-        // setup shadow
-        direct_shadow.width = 1024;
-        direct_shadow.height = 1024;
-        direct_shadow.direction = sunlight.direction;
-        direct_shadow.init();
-
-        point_shadow.width = 1024;
-        point_shadow.height = 1024;
-        point_shadow.position = { 0, 0, 0 };
-        point_shadow.init();
-
         // setup 3D model
-        model.init("models/backpack/backpack.obj");
-        model_shadow.init(model);
-        model_material.init(
+        backpack_model.init("models/backpack/backpack.obj");
+        backpack.drawable = backpack_model.elements;
+//        model_shadow.init(model);
+        backpack.material.init(
                 true,
                 "models/backpack/diffuse.jpg",
                 "models/backpack/normal.png",
@@ -393,26 +341,42 @@ namespace gl {
                 "models/backpack/roughness.jpg",
                 "models/backpack/ao.jpg"
         );
-        model_material.metallic_factor = 1;
-        model_material.roughness_factor = 1;
-        model_material.ao_factor = 1;
+        backpack.material.metallic_factor = 1;
+        backpack.material.roughness_factor = 1;
+        backpack.material.ao_factor = 1;
+
+        // setup human model
+        human_model.init("models/dancing-stormtrooper/source/silly_dancing.fbx");
+        human.drawable = human_model.elements;
+        human.material.init(
+                false,
+                "models/dancing-stormtrooper/textures/Stormtrooper_D.png",
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        human.material.metallic_factor = 0.5;
+        human.material.roughness_factor = 0.5;
+        human.material.ao_factor = 1.0;
+        human_animator = Animator(&human_model.model.animation);
 
         // setup sphere
         SphereTBN sphere_geometry;
-        sphere_geometry.init_tbn(sphere);
-        SphereTBN sphere_shadow_geometry;
-        sphere_shadow_geometry.init_default(sphere_shadow);
+        sphere_geometry.init_tbn(spheres.drawable);
+//        SphereTBN sphere_shadow_geometry;
+//        sphere_shadow_geometry.init_default();
         // setup rock sphere
-        sphere_rock_geometry.x_segments = 2047;
-        sphere_rock_geometry.y_segments = 2047;
-        sphere_rock_geometry.init_tbn(sphere_rock);
-        sphere_rock_shadow_geometry.x_segments = 2047;
-        sphere_rock_shadow_geometry.y_segments = 2047;
-        sphere_rock_shadow_geometry.init_default(sphere_rock_shadow);
+        rock_sphere_geometry.x_segments = 2047;
+        rock_sphere_geometry.y_segments = 2047;
+        rock_sphere_geometry.init_tbn(rock_sphere.drawable);
+//        sphere_rock_shadow_geometry.x_segments = 2047;
+//        sphere_rock_shadow_geometry.y_segments = 2047;
+//        sphere_rock_shadow_geometry.init_default(sphere_rock_shadow);
 
-        sphere_materials.resize(sphere_transforms.size());
         {
-            sphere_materials[0].init(
+            rock_sphere.material.init(
                     false,
                     "images/bumpy-rockface1-bl/albedo.png",
                     "images/bumpy-rockface1-bl/normal.png",
@@ -421,14 +385,15 @@ namespace gl {
                     "images/bumpy-rockface1-bl/roughness.png",
                     "images/bumpy-rockface1-bl/ao.png"
             );
-            sphere_materials[0].metallic_factor = 1;
-            sphere_materials[0].roughness_factor = 1;
-            sphere_materials[0].ao_factor = 1;
+            rock_sphere.material.metallic_factor = 1;
+            rock_sphere.material.roughness_factor = 1;
+            rock_sphere.material.ao_factor = 1;
+            rock_sphere.material.color = { 1, 1, 1, 1 };
 
-            sphere_rock_geometry.displace(sphere_rock, "images/bumpy-rockface1-bl/height.png", false, 3.0f);
-            sphere_rock_shadow_geometry.displace(sphere_rock_shadow, "images/bumpy-rockface1-bl/height.png", false, 3.0f, 0, [](gl::VertexDefault& V) {});
+            rock_sphere_geometry.displace(rock_sphere.drawable, "images/bumpy-rockface1-bl/height.png", false, 3.0f);
+//            sphere_rock_shadow_geometry.displace(sphere_rock_shadow, "images/bumpy-rockface1-bl/height.png", false, 3.0f, 0, [](gl::VertexDefault& V) {});
 
-            sphere_materials[1].init(
+            spheres.entities[0].material.init(
                     false,
                     "images/cheap-plywood1-bl/albedo.png",
                     "images/cheap-plywood1-bl/normal.png",
@@ -437,11 +402,11 @@ namespace gl {
                     "images/cheap-plywood1-bl/roughness.png",
                     "images/cheap-plywood1-bl/ao.png"
             );
-            sphere_materials[1].metallic_factor = 1;
-            sphere_materials[1].roughness_factor = 1;
-            sphere_materials[1].ao_factor = 1;
+            spheres.entities[0].material.metallic_factor = 1;
+            spheres.entities[0].material.roughness_factor = 1;
+            spheres.entities[0].material.ao_factor = 1;
 
-            sphere_materials[2].init(
+            spheres.entities[1].material.init(
                     false,
                     "images/light-gold-bl/albedo.png",
                     "images/light-gold-bl/normal.png",
@@ -450,70 +415,89 @@ namespace gl {
                     "images/light-gold-bl/roughness.png",
                     null
             );
-            sphere_materials[2].metallic_factor = 1;
-            sphere_materials[2].roughness_factor = 1;
-            sphere_materials[2].ao_factor = 1;
+            spheres.entities[1].material.metallic_factor = 1;
+            spheres.entities[1].material.roughness_factor = 1;
+            spheres.entities[1].material.ao_factor = 1;
         }
 
         // setup horizontal plane
         CubeTBN plane_geometry;
-        plane_geometry.init_tbn(plane);
-        plane_material.init(
-            false,
-            null,
-            null
-        );
-        plane_material.color = { 1, 1, 1, 0.5 };
-        plane_material.metallic_factor = 0;
-        plane_material.roughness_factor = 0.05;
-        plane_material.ao_factor = 1;
+        plane_geometry.init_tbn(plane.drawable);
+        plane.material.color = {1, 1, 1, 1 };
+        plane.material.metallic_factor = 0;
+        plane.material.roughness_factor = 0;
+        plane.material.ao_factor = 1;
 
-        blur_shader.use();
-        blur_shader.set_uniform_args("offset", blur_offset);
+        // render_deferred Shadow pass
+//        {
+//            // render_deferred direct shadow
+//            direct_shadow.begin();
+//            {
+//                direct_shadow.direction = sunlight.direction;
+//                direct_shadow.update();
+//            }
+//            direct_shadow.end();
+//            // render_deferred point shadow
+//            point_shadow.begin();
+//            {
+//                for (auto& point_light : point_lights) {
+//                    point_shadow.position = point_light.position;
+//                    for (auto& sphere_transform : sphere_transforms) {
+//                        point_shadow.draw(sphere_transform, sphere_shadow);
+//                    }
+//                }
+//            }
+//            point_shadow.end();
+//        }
+
+        // upload shadow maps
+//        {
+//            pbr_shader.use();
+//            direct_shadow.update_light_space(pbr_shader);
+//            direct_shadow.update_depth_map(pbr_shader);
+//            point_shadow.update(pbr_shader);
+//
+//            pbr_material_shader.use();
+//            direct_shadow.update_light_space(pbr_material_shader);
+//
+//            pbr_light_shader.use();
+//            direct_shadow.update_depth_map(pbr_light_shader);
+//        }
 
         Texture::unbind();
         Shader::stop();
+        Screen::src = pbr_pipeline.render_target();
     }
 
     static void free() {
-        sphere.free();
-        sphere_shadow.free();
-        Material::free(sphere_materials);
-        sphere_rock.free();
-        sphere_rock_shadow.free();
+        scene.env.free();
 
-        screen_shader.free();
-        screen_vao.free();
+        pbr_pipeline.free();
+        Screen::free();
+        hdr_renderer.free();
+        spheres.free();
+        rock_sphere.free();
 
-        blur_shader.free();
-        blur_fbo.free();
+        Blur::free();
 
-        ssao_shader.free();
-        ssao_fbo.free();
-        ssao_noise_texture.free();
+        bloom.free();
 
-        direct_shadow.free();
-        point_shadow.free();
-
-        msaa_fbo.free();
-
-        scene_fbo.free();
+        SSAO::free();
+        ssao_pass.free();
 
         plane.free();
-        plane_material.free();
-
-        material_shader.free();
 
         sunlight_ubo.free();
         lights_ubo.free();
         flashlight_ubo.free();
-        env_light.free();
-        env_hdr_texture.free();
 
         point_light_present.free();
 
-        model.free();
-        model_shadow.free();
+        backpack.free();
+        backpack_model.free();
+
+        human.free();
+        human_model.free();
 
         camera.free();
 
@@ -524,7 +508,7 @@ namespace gl {
         if (!enable_camera)
             return;
 
-        float camera_speed = camera.speed / dt;
+        float camera_speed = camera.move_speed / dt;
         glm::vec3& camera_pos = camera.position;
 
         if (win::is_key_press(KEY::W)) {
@@ -541,36 +525,58 @@ namespace gl {
         }
 
         camera.update_view();
-        material_shader.use();
-        material_shader.set_uniform_args("view_position", camera.position);
+
+        pbr_pipeline.set_camera_pos(camera.position);
     }
 
     static void simulate() {
         float t = begin_time;
+
         camera_control_update();
+
         // bind flashlight to camera
         flashlight.position = { camera.position, 0 };
         flashlight.direction = { camera.front, 0 };
+
         // rotate object each frame
         float f = 0.05f;
-        sphere_transforms[0].rotation.y += f;
-        sphere_transforms[1].rotation.y += f * 2;
-        sphere_transforms[2].rotation.y += f * 4;
+        rock_sphere.transform.rotation.y += f;
+        spheres.entities[0].transform.rotation.y += f * 2;
+        spheres.entities[1].transform.rotation.y += f * 4;
+        human.transform.rotation.y += f * 4;
+
         // translate point lights up/down
-        for (auto& point_light : point_lights) {
-            point_light.position.y = 5 * sin(t/5) + 2;
+//        for (auto& point_light : point_lights) {
+//            point_light.position.y = 5 * sin(t/5) + 2;
+//        }
+
+        // updating lights
+        {
+            // sunlight
+            sunlight_ubo.update({ 0, sizeof(sunlight), &sunlight });
+            // point lights
+            lights_ubo.update({ 0, sizeof(point_lights), point_lights.data() });
+            // flashlight
+            flashlight_ubo.update({ 0, sizeof(flashlight), &flashlight });
         }
-        // sorting transparent drawables
-        transparent_objects.clear();
+
+        // skeletal animations
+        {
+            // animate human
+//            human_animator.update(dt / 1000.0f);
+//            pbr.update_bones(human_animator.bone_transforms);
+        }
     }
 
     static void render_screen_ui() {
         ui::theme_selector("Theme");
-        ui::slider("Gamma", &screen_gamma, 1.2, 3.2, 0.1);
-        ui::slider("Exposure", &screen_exposure, 0, 5.0, 0.01);
+        ui::checkbox("HDR", &enable_hdr);
+        ui::slider("Gamma", &Screen::gamma, 1.2, 3.2, 0.1);
+        ui::slider("Exposure", &hdr_renderer.exposure, 0, 5.0, 0.01);
         ui::checkbox("Normal Mapping", &enable_normal_mapping);
         ui::checkbox("Parallax Mapping", &enable_parallax_mapping);
         ui::checkbox("Blur", &enable_blur);
+        ui::checkbox("Bloom", &enable_bloom);
         ui::checkbox("SSAO", &enable_ssao);
 
         ui::slider("Sunlight X", &sunlight.direction.x, -100, 100, 1);
@@ -605,160 +611,62 @@ namespace gl {
         ui::end();
     }
 
-    static void render_scene() {
-//        // render Shadow pass
-//        {
-//            // render direct shadow
-//            gl::direct_shadow_begin();
-//            {
-//                gl::direct_shadow_update(sunlight.direction);
-//                gl::direct_shadow_draw(model_transform, model_shadow.elements);
-//                for (auto& sphere_transform : sphere_transforms) {
-//                    gl::direct_shadow_draw(sphere_transform, sphere_shadow);
-//                }
-//            }
-//            // render point shadow
-//            gl::point_shadow_begin();
-//            {
-//                for (auto& point_light : point_lights) {
-//                    gl::point_shadow_update(point_light.position);
-//                    gl::point_shadow_draw(model_transform, model_shadow.elements);
-//                    for (auto& sphere_transform : sphere_transforms) {
-//                        gl::point_shadow_draw(sphere_transform, sphere_shadow);
-//                    }
-//                }
-//            }
-//        }
-//        gl::shadow_end();
-
-        // render MSAA or Scene pass
-        if (msaa > 1) {
-            msaa_fbo.bind();
-        } else {
-            scene_fbo.bind();
+    static void postfx_rendering() {
+        // Bloom effect
+        if (enable_bloom) {
+            bloom.src = Screen::src;
+            bloom.render();
+            Screen::src = bloom.render_target;
         }
-        glViewport(0, 0, win::props().width, win::props().height);
-        gl::clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_STENCIL_TEST);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        glStencilMask(0x00);
-
-        // render HDR env
-        env_light.render();
-
-        // upload shadow maps
-        {
-//            gl::shader_use(material_shader);
-//            gl::direct_shadow_update(material_shader);
-//            gl::point_shadow_update(material_shader);
+        // HDR effect
+        if (enable_hdr) {
+            hdr_renderer.src = Screen::src;
+            hdr_renderer.render();
+            Screen::src = hdr_renderer.render_target;
         }
-
-        // render and upload lights
-
-        // sunlight
-        {
-            sunlight_ubo.update({ 0, sizeof(sunlight), &sunlight });
+        // Blur effect
+        if (enable_blur) {
+            Blur::src = Screen::src;
+            Blur::render();
+            Screen::src = Blur::render_target;
         }
-        // point lights
-        {
-            lights_ubo.update({ 0, sizeof(point_lights), point_lights.data() });
-            // update light presentation
-            for (auto& point_light : point_lights) {
-                point_light_present.transform.translation = point_light.position;
-                point_light_present.update();
-            }
-        }
-        // flashlight
-        {
-            flashlight_ubo.update({ 0, sizeof(flashlight), &flashlight });
-        }
+    }
 
-        // render material objects
-        {
-            material_shader.use();
+    static void debug_screen_update() {
+        if (win::is_key_press(KEY::D1))
+            Screen::src = pbr_pipeline.render_target();
 
-            plane_material.update(material_shader);
-            plane_transform.update(material_shader);
-            plane.draw();
+        else if (win::is_key_press(KEY::D2))
+            Screen::src = pbr_pipeline.gbuffer().position;
 
-            sphere_materials[0].update(material_shader);
-            sphere_transforms[0].update(material_shader);
-            sphere_rock.draw();
+        else if (win::is_key_press(KEY::D3))
+            Screen::src = pbr_pipeline.gbuffer().normal;
 
-            for (int i = 1 ; i < sphere_transforms.size() ; i++) {
-                sphere_materials[i].update(material_shader);
-                sphere_transforms[i].update(material_shader);
-                sphere.draw();
-            }
+        else if (win::is_key_press(KEY::D4))
+            Screen::src = pbr_pipeline.gbuffer().albedo;
 
-            model_material.update(material_shader);
-            model_transform.update(material_shader);
-            model.elements.draw();
-        }
+        else if (win::is_key_press(KEY::D5))
+            Screen::src = pbr_pipeline.gbuffer().pbr_params;
 
-        // render outlined objects
-        {
-            // render default state
-//            gl::outline_end();
-//            gl::shader_use(material_shader);
-//            gl::transform_update(material_shader, model_transform);
-//            gl::material_update(material_shader, model_material);
-//            gl::draw(model.elements);
-            // render outline state
-//            gl::outline_begin();
-//            gl::outline_draw(model_transform, model.elements, model_outline);
-//            gl::outline_end();
-        }
+        else if (win::is_key_press(KEY::D6))
+            Screen::src = pbr_pipeline.gbuffer().shadow_proj_coords;
 
-        // render transparent objects
-        {
-            material_shader.use();
-            for (auto it = transparent_objects.rbegin() ; it != transparent_objects.rend() ; it++) {
-                it->second.update(material_shader);
-            }
-        }
+        else if (win::is_key_press(KEY::D7))
+            Screen::src = SSAO::render_target;
 
-        // MSAA -> scene pass
-        if (msaa > 1) {
-            int w = win::props().width;
-            int h = win::props().height;
-            FrameBuffer::blit(msaa_fbo.id, w, h, scene_fbo.id, w, h, msaa_fbo.colors.size());
-        }
+        else if (win::is_key_press(KEY::D8))
+            Screen::src = scene.env.hdr;
 
-        // scene -> post effects
-        final_render_target = scene_fbo.colors[0];
+        else if (win::is_key_press(KEY::D9))
+            Screen::src = pbr_pipeline.transparent_buffer().revealage;
+    }
 
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_STENCIL_TEST);
-        glDisable(GL_BLEND);
-
-        // post effects
-        {
-            // blur effect
-            if (enable_blur) {
-                blur_fbo.bind();
-                clear_display(1, 1, 1, 1, GL_COLOR_BUFFER_BIT);
-                blur_shader.use();
-                final_render_target.view.update(blur_shader);
-                screen_vao.draw_quad();
-                final_render_target = blur_fbo.colors[0];
-            }
-        }
-
-        // render into screen
-        {
-            FrameBuffer::unbind();
-            clear_display(1, 1, 1, 1, GL_COLOR_BUFFER_BIT);
-            screen_shader.use();
-            final_render_target.view.update(screen_shader);
-            screen_shader.set_uniform_args("gamma", screen_gamma);
-            screen_shader.set_uniform_args("exposure", screen_exposure);
-            screen_vao.draw_quad();
-        }
+    static void render() {
+        pbr_pipeline.render();
+        Screen::src = pbr_pipeline.render_target();
+        postfx_rendering();
+        debug_screen_update();
+        Screen::render();
     }
 
     App::App() {
@@ -778,7 +686,7 @@ namespace gl {
 
             simulate();
 
-            render_scene();
+            render();
 
 #ifdef UI
             render_ui();

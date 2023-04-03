@@ -3,20 +3,22 @@
 #include <geometry.h>
 #include <transform.h>
 #include <camera.h>
+#include <frame.h>
+#include <draw.h>
 
 namespace gl {
 
     struct LightPresent final {
+        u32 id = 0;
         glm::vec4 color = { 1, 1, 1, 1 };
         Transform transform = {
                 { 0, 0, -2 },
                 { 0, 0, 0 },
                 { 0.1, 0.1, 0.1 },
         };
-        CubeSolid presentation;
+        CubeDefault presentation;
 
         void init();
-
         void free();
 
         void update();
@@ -35,10 +37,10 @@ namespace gl {
     struct PointLight final {
         glm::vec4 position = { 0, 0, 0, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
-        float constant = 1.0f;
-        float linear = 0.09f;
-        float quadratic = 0.032f;
-        float refraction = 1.0f;
+        float constant = 0;
+        float linear = 0;
+        float quadratic = 1;
+        float refraction = 1;
     };
 
     struct SpotLight final {
@@ -47,28 +49,54 @@ namespace gl {
         glm::vec4 color = { 1, 1, 1, 1 };
         float cutoff = glm::cos(glm::radians(6.5f));
         float outer = glm::cos(glm::radians(11.5f));
-        float refraction = 1.0f;
+        float refraction = 1;
         float pad = 0;
     };
 
-    struct EnvLight final {
-        int resolution = 2048;
-        int prefilter_resolution = 1024;
-        int prefilter_levels = 10;
-        Texture env = { 0, GL_TEXTURE_CUBE_MAP, { "sampler", 0 } };
-        Texture irradiance = { 0, GL_TEXTURE_CUBE_MAP, { "irradiance", 8 } };
-        Texture prefilter = { 0, GL_TEXTURE_CUBE_MAP, { "prefilter", 9 } };
-        Texture brdf_convolution = { 0, GL_TEXTURE_2D, { "brdf_convolution", 10 } };
+    struct Environment final {
+        glm::ivec2 resolution;
+        glm::ivec2 prefilter_resolution;
+        glm::ivec2 irradiance_resolution = { 32, 32 };
+        int prefilter_levels = 5;
+        Texture hdr = { 0, GL_TEXTURE_CUBE_MAP };
+        Texture skybox = {0, GL_TEXTURE_CUBE_MAP };
+        Texture irradiance = { 0, GL_TEXTURE_CUBE_MAP };
+        Texture prefilter = { 0, GL_TEXTURE_CUBE_MAP };
+        Texture brdf_convolution = { 0, GL_TEXTURE_2D };
+        TextureParams params = {
+                GL_CLAMP_TO_EDGE,
+                GL_CLAMP_TO_EDGE,
+                GL_CLAMP_TO_EDGE,
+                { 1, 1, 1, 1 },
+                GL_LINEAR,
+                GL_LINEAR,
+                false,
+                -0.4f
+        };
 
         void init();
+        void free();
+    };
 
-        void generate(const Texture& hdr_texture);
+    struct EnvRenderer final {
+        Environment* env;
 
+        void init(int w, int h);
         void free();
 
-        void update(Shader& shader);
+        void generate_env();
 
         void render();
+
+    private:
+        FrameBuffer fbo;
+        Shader hdr_to_cubemap_shader;
+        Shader hdr_irradiance_shader;
+        Shader hdr_prefilter_convolution_shader;
+        Shader brdf_convolution_shader;
+        Shader env_shader;
+        DrawableElements env_cube;
+        VertexArray brdf_vao;
     };
 
 }

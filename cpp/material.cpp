@@ -1,5 +1,4 @@
 #include <material.h>
-#include <texture.h>
 
 namespace gl {
 
@@ -46,40 +45,45 @@ namespace gl {
         }
     }
 
-    void Material::update_textures(Shader &shader) {
-        if (enable_albedo) {
-            shader.set_uniform_struct("material", albedo.sampler);
-            albedo.bind();
-        }
+    void Material::free() {
+        albedo.free();
+        normal.free();
+        parallax.free();
+        metallic.free();
+        roughness.free();
+        ao.free();
+    }
 
-        if (enable_normal) {
-            shader.set_uniform_struct("material", normal.sampler);
-            normal.bind();
-        }
-
-        if (enable_parallax) {
-            shader.set_uniform_struct("material", parallax.sampler);
-            parallax.bind();
-        }
-
-        if (enable_metallic) {
-            shader.set_uniform_struct("material", metallic.sampler);
-            metallic.bind();
-        }
-
-        if (enable_roughness) {
-            shader.set_uniform_struct("material", roughness.sampler);
-            roughness.bind();
-        }
-
-        if (enable_ao) {
-            shader.set_uniform_struct("material", ao.sampler);
-            ao.bind();
+    void Material::free(std::vector<Material>& materials) {
+        for (auto& m : materials) {
+            m.free();
         }
     }
 
-    void Material::update(Shader& shader) {
-        update_textures(shader);
+    void Material::update(Shader& shader, int slot) {
+        if (enable_albedo) {
+            shader.bind_sampler_struct("material", "albedo", slot++, albedo);
+        }
+
+        if (enable_normal) {
+            shader.bind_sampler_struct("material", "normal", slot++, normal);
+        }
+
+        if (enable_parallax) {
+            shader.bind_sampler_struct("material", "parallax", slot++, parallax);
+        }
+
+        if (enable_metallic) {
+            shader.bind_sampler_struct("material", "metallic", slot++, metallic);
+        }
+
+        if (enable_roughness) {
+            shader.bind_sampler_struct("material", "roughness", slot++, roughness);
+        }
+
+        if (enable_ao) {
+            shader.bind_sampler_struct("material", "ao", slot++, ao);
+        }
 
         shader.set_uniform_struct_args("material", "color", color);
         shader.set_uniform_struct_args("material", "enable_albedo", enable_albedo);
@@ -99,21 +103,6 @@ namespace gl {
 
         shader.set_uniform_struct_args("material", "enable_ao", enable_ao);
         shader.set_uniform_struct_args("material", "ao_factor", ao_factor);
-    }
-
-    void Material::free() {
-        albedo.free();
-        normal.free();
-        parallax.free();
-        metallic.free();
-        roughness.free();
-        ao.free();
-    }
-
-    void Material::free(std::vector<Material>& materials) {
-        for (auto& m : materials) {
-            m.free();
-        }
     }
 
 }

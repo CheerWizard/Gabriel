@@ -1,6 +1,6 @@
 #pragma once
 
-#include <texture.h>
+#include <shader.h>
 
 namespace gl {
 
@@ -13,30 +13,31 @@ namespace gl {
     };
 
     struct Material final {
+        static const int slots = 6;
         // base color
         glm::vec4 color = { 1, 1, 1, 1 };
-        Texture albedo = { 0, GL_TEXTURE_2D, { "albedo", 2 } };
+        Texture albedo;
         bool enable_albedo = false;
         // bumping
-        Texture normal = { 0, GL_TEXTURE_2D, { "normal", 3 } };
+        Texture normal;
         bool enable_normal = false;
         // parallax
-        Texture parallax = { 0, GL_TEXTURE_2D, { "parallax", 4 } };
+        Texture parallax;
         bool enable_parallax = false;
         float height_scale = 0.1;
         float parallax_min_layers = 8;
         float parallax_max_layers = 32;
         // metallic
         float metallic_factor = 0.5f;
-        Texture metallic = { 0, GL_TEXTURE_2D, { "metallic", 5 } };
+        Texture metallic;
         bool enable_metallic = false;
         // roughness
         float roughness_factor = 0.5f;
-        Texture roughness = { 0, GL_TEXTURE_2D, { "roughness", 6 } };
+        Texture roughness;
         bool enable_roughness = false;
         // AO
         float ao_factor = 0.5f;
-        Texture ao = { 0, GL_TEXTURE_2D, { "ao", 7 } };
+        Texture ao;
         bool enable_ao = false;
 
         void init(
@@ -52,8 +53,7 @@ namespace gl {
         void free();
         static void free(std::vector<Material>& materials);
 
-        void update_textures(Shader& shader);
-        void update(Shader& shader);
+        void update(Shader& shader, int slot);
     };
 
 }

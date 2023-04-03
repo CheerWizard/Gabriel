@@ -1,8 +1,8 @@
 #version 460 core
 
-out vec4 frag_color;
+out vec4 out_color;
 
-in vec3 f_pos;
+in vec3 l_pos;
 
 uniform samplerCube sampler;
 
@@ -11,7 +11,7 @@ const float PI = 3.14159265359;
 void main()
 {
     // the sample direction equals the hemisphere's orientation
-    vec3 normal = normalize(f_pos);
+    vec3 normal = normalize(l_pos);
 
     // irradiance convolution
     vec3 irradiance = vec3(0.0);
@@ -33,5 +33,5 @@ void main()
     }
     irradiance = PI * irradiance * (1.0 / float(nr_samples));
 
-    frag_color= vec4(irradiance, 1.0);
+    out_color= vec4(irradiance, 1.0);
 }

@@ -1,8 +1,8 @@
 #version 460 core
 
-out vec2 frag_color;
+out vec2 out_color;
 
-in vec2 f_uv;
+in vec2 l_uv;
 
 vec3 N;
 
@@ -37,7 +37,7 @@ vec2 hammersley(uint i, uint n)
     return vec2(float(i) / float(n), van_der_corput(i));
 }
 
-vec3 importance_sampling_ggx(vec2 Xi, vec3 N, float roughness)
+vec3 importance_sampling_ggx(vec2 Xi, float roughness)
 {
     float a = roughness * roughness;
 
@@ -74,7 +74,7 @@ vec2 brdf_integration(float NdotV, float roughness)
     for (uint i = 0u; i < SAMPLES; ++i)
     {
         vec2 Xi = hammersley(i, SAMPLES);
-        vec3 H  = importance_sampling_ggx(Xi, N, roughness);
+        vec3 H  = importance_sampling_ggx(Xi, roughness);
         vec3 L  = normalize(2.0 * dot(V, H) * H - V);
 
         float NdotL = max(L.z, 0.0);
@@ -100,5 +100,5 @@ vec2 brdf_integration(float NdotV, float roughness)
 
 void main()
 {
-    frag_color = brdf_integration(f_uv.x, f_uv.y);
+    out_color = brdf_integration(l_uv.x, l_uv.y);
 }

@@ -14,6 +14,6 @@ typedef uint64_t u64;
 #define print(msg) std::cout << msg << std::endl
 #define print_err(msg) std::cerr << msg << std::endl
 
-#define COLOR_CLEAR .25f, .25f, .25f, 1.0f
+#define COLOR_CLEAR 0, 0, 0, 0
 
 #define PI 3.1415926535897932384626433832795f

@@ -1,12 +1,14 @@
 #pragma once
 
 #include <primitives.h>
-#include <shader.h>
 #include <file_utils.h>
 
 #include <array>
 
 #include <glad/glad.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace gl {
 
@@ -37,10 +39,14 @@ namespace gl {
         bool srgb = false;
     };
 
+    struct TextureSampler final {
+        const char* name;
+        int slot;
+    };
+
     struct Texture final {
         u32 id = invalid_texture;
         u32 type = GL_TEXTURE_2D;
-        UniformI sampler = { "sampler", 0 };
 
         void init(
                 const char* filepath,
@@ -50,7 +56,8 @@ namespace gl {
 
         void init(
                 const gl::TextureData& texture_data,
-                const TextureParams& params = {}
+                const TextureParams& params = {},
+                u32 texture_type = GL_TEXTURE_2D
         );
 
         void init_hdr(
@@ -72,9 +79,11 @@ namespace gl {
         void free(int size);
 
         void bind() const;
+        static void bind(u32 type, u32 id);
+        static void activate(int slot);
+        static void bind_activate(u32 type, u32 id, int slot);
         static void unbind();
 
-        void update(Shader& shader);
         void bind_params(const TextureParams& params);
         void update_params(const TextureParams& params);
 

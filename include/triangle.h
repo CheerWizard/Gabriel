@@ -23,10 +23,7 @@ namespace gl {
         void init(DrawableVertices& drawable);
     };
 
-    typedef Triangle<VertexSolid> TriangleSolid;
     typedef Triangle<VertexUV> TriangleUV;
-    typedef Triangle<VertexSolidNormal> TriangleSolidNormal;
-    typedef Triangle<VertexUVNormal> TriangleUVNormal;
 
     template<typename T>
     void Triangle<T>::init(DrawableVertices &drawable)

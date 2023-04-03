@@ -44,8 +44,8 @@ namespace gl {
         last_cursor_x = (float)x;
         last_cursor_y = (float)y;
 
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
+        xoffset *= horizontal_sensitivity;
+        yoffset *= vertical_sensitivity;
 
         yaw += xoffset;
         pitch += yoffset;
@@ -83,6 +83,10 @@ namespace gl {
     void Camera::update() {
         update_perspective();
         update_view();
+    }
+
+    glm::mat4 Camera::perspective() {
+        return PerspectiveMat({ fov, aspect, z_near, z_far }).init();
     }
 
 }

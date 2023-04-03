@@ -16,7 +16,7 @@ namespace gl {
 
     void Transform::update(Shader &shader) const {
         glm::mat4 model = init();
-        shader.set_uniform_args<glm::mat4>("model", model);
+        shader.set_uniform_args("model", model);
     }
 
     void Transform::update_array_element(Shader &shader, int i, const Transform& transform) {

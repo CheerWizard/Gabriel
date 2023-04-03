@@ -80,8 +80,8 @@ namespace win {
         static event_mouse_release mouse_release;
         static event_mouse_cursor mouse_cursor;
         static event_mouse_scroll mouse_scroll;
-    };
 
-    void event_registry_update();
+        static void set_callbacks();
+    };
 
 }
