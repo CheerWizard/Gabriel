@@ -37,7 +37,7 @@ namespace io {
 
     struct DrawableModel final {
         io::Model model;
-        DrawableElements elements;
+        DrawableElements drawable;
 
         void init(
                 const std::string& filepath,

@@ -25,12 +25,12 @@ namespace gl {
         glEnable(GL_DEPTH_TEST);
     }
 
-    void OutlineRenderer::render(Outline& outline) {
+    void OutlineRenderer::render(Outline* outline) {
         shader.use();
-        shader.set_uniform_args<float>("outline_thickness", outline.thickness);
-        shader.set_uniform_args<glm::vec4>("outline_color", outline.color);
-        outline.transform.update(shader);
-        outline.drawable.draw();
+        shader.set_uniform_args<float>("outline_thickness", outline->thickness);
+        shader.set_uniform_args<glm::vec4>("outline_color", outline->color);
+        outline->transform->update(shader);
+        outline->drawable->draw();
     }
 
 }

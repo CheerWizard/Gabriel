@@ -32,6 +32,8 @@ namespace gl {
     }
 
     void Camera::look(double x, double y) {
+        if (!enable_look) return;
+
         if (first_camera_look) {
             last_cursor_x = (float)x;
             last_cursor_y = (float)y;
@@ -60,6 +62,8 @@ namespace gl {
     }
 
     void Camera::zoom(double x, double y) {
+        if (!enable_zoom) return;
+
         fov -= (float) y;
         clamp(fov, 1.0f, max_fov);
         update_perspective();
@@ -87,6 +91,30 @@ namespace gl {
 
     glm::mat4 Camera::perspective() {
         return PerspectiveMat({ fov, aspect, z_near, z_far }).init();
+    }
+
+    void Camera::move(float dt) {
+        if (!enable_move) return;
+
+        float camera_speed = move_speed / dt;
+
+        if (win::is_key_press(key_move_forward)) {
+            position += camera_speed * front;
+        }
+
+        else if (win::is_key_press(key_move_left)) {
+            position -= glm::normalize(glm::cross(front, up)) * camera_speed;
+        }
+
+        else if (win::is_key_press(key_move_backward)) {
+            position -= camera_speed * front;
+        }
+
+        else if (win::is_key_press(key_move_right)) {
+            position += glm::normalize(glm::cross(front, up)) * camera_speed;
+        }
+
+        update_view();
     }
 
 }

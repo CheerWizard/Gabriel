@@ -206,16 +206,16 @@ namespace io {
             index_count += mesh.index_count;
         }
 
-        elements.vao.init();
-        elements.vao.bind();
+        drawable.vao.init();
+        drawable.vao.bind();
 
-        glGenBuffers(1, &elements.vbo.id);
-        glBindBuffer(GL_ARRAY_BUFFER, elements.vbo.id);
+        glGenBuffers(1, &drawable.vbo.id);
+        glBindBuffer(GL_ARRAY_BUFFER, drawable.vbo.id);
         glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(SkeletalVertex), null, GL_DYNAMIC_DRAW);
-        elements.vbo.set_format(SkeletalVertex::format);
+        drawable.vbo.set_format(SkeletalVertex::format);
 
-        glGenBuffers(1, &elements.ibo.id);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elements.ibo.id);
+        glGenBuffers(1, &drawable.ibo.id);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.ibo.id);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count * sizeof(u32), null, GL_DYNAMIC_DRAW);
 
         u32 vertex_offset = 0;
@@ -223,16 +223,16 @@ namespace io {
         for (u32 i = 0 ; i < mesh_count ; i++) {
             auto& mesh = model.meshes[i];
 
-            glBindBuffer(GL_ARRAY_BUFFER, elements.vbo.id);
+            glBindBuffer(GL_ARRAY_BUFFER, drawable.vbo.id);
             glBufferSubData(GL_ARRAY_BUFFER, vertex_offset, mesh.vertex_count * sizeof(SkeletalVertex), mesh.vertices.to_float());
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elements.ibo.id);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.ibo.id);
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, index_offset, mesh.index_count * sizeof(u32), mesh.indices);
 
             vertex_offset += mesh.vertex_count * sizeof(SkeletalVertex);
             index_offset += mesh.index_count * sizeof(u32);
         }
 
-        elements.index_count = index_count;
+        drawable.index_count = index_count;
     }
 
     void DrawableSkeletalModels::init(const std::string &filepath, u32 flags) {
@@ -271,7 +271,7 @@ namespace io {
             material.second.free();
         }
 
-        elements.free();
+        drawable.free();
     }
 
     void DrawableSkeletalModels::free() {

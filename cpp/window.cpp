@@ -15,6 +15,8 @@ namespace win {
     static int window_mode_x;
     static int window_mode_y;
 
+    static bool enable_fullscreen = false;
+
     void init(const window_props& props) {
         win_props = props;
         window_mode_x = props.x;
@@ -103,6 +105,14 @@ namespace win {
         win_props.height = window_mode_height;
         auto& refresh_rate = video_modes[primary_monitor]->refreshRate;
         glfwSetWindowMonitor(window, null, win_props.x, win_props.y, win_props.width, win_props.height, refresh_rate);
+    }
+
+    void toggle_window_mode() {
+        enable_fullscreen = !enable_fullscreen;
+        if (enable_fullscreen)
+            win::set_full_screen();
+        else
+            win::set_windowed();
     }
 
     void enable_sync() {

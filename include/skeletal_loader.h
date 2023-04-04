@@ -91,7 +91,7 @@ namespace io {
 
     struct DrawableSkeletalModel final {
         io::SkeletalModel model;
-        DrawableElements elements;
+        DrawableElements drawable;
 
         void init(
                 const std::string& filepath,

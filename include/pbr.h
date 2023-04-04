@@ -1,121 +1,86 @@
 #pragma once
 
+#include <entity.h>
 #include <transform.h>
 #include <material.h>
 #include <buffers.h>
-#include <frame.h>
-#include <draw.h>
 #include <light.h>
 #include <shadow.h>
 #include <outline.h>
 #include <ssao.h>
+#include <skeletal_renderer.h>
+#include <environment.h>
+#include <transparency.h>
 
 namespace gl {
-
-    struct Entity {
-        u32 id;
-        Transform transform;
-
-        Entity() = default;
-
-        Entity(u32 id, const Transform& transform) : id(id), transform(transform) {}
-    };
-
-    struct Material_Entity : Entity {
-        Material material;
-
-        Material_Entity() = default;
-
-        Material_Entity(u32 id, const Transform& transform)
-        : Entity(id, transform) {}
-
-        Material_Entity(u32 id, const Transform& transform, const Material& material)
-        : Entity(id, transform), material(material) {}
-
-        void update(Shader& shader);
-    };
-
-    struct PBR_Entity : Material_Entity {
-        DrawableElements drawable;
-
-        PBR_Entity() = default;
-
-        PBR_Entity(u32 id, const Transform& transform)
-        : Material_Entity(id, transform) {}
-
-        PBR_Entity(u32 id, const Transform& transform, const Material& material)
-        : Material_Entity(id, transform, material) {}
-
-        void free();
-    };
-
-    struct PBR_EntityGroup final {
-        std::vector<Material_Entity> entities;
-        DrawableElements drawable;
-
-        PBR_EntityGroup() = default;
-
-        PBR_EntityGroup(const std::initializer_list<Material_Entity>& entities) : entities(entities) {}
-
-        void free();
-    };
 
     struct PBR_Pixel final {
         u32 object_id = 0;
     };
 
-    struct TransparentBuffer final {
-        Texture accumulation;
-        Texture revealage;
+    using namespace ecs;
+
+    struct PBR_Component : Component {
+        u32 object_id;
+        Transform transform;
+        Material* material;
+        DrawableElements* drawable;
+
+        PBR_Component() = default;
+
+        explicit PBR_Component(u32 object_id) : object_id(object_id) {}
+
+        PBR_Component(u32 object_id, const Transform &transform)
+        : object_id(object_id), transform(transform) {}
+
+        PBR_Component(u32 object_id, const Transform &transform, Material *material)
+        : object_id(object_id), transform(transform), material(material) {}
+
+        PBR_Component(u32 object_id, const Transform &transform, Material *material, DrawableElements *drawable)
+        : object_id(object_id), transform(transform), material(material), drawable(drawable) {}
     };
 
-    struct TransparentRenderer final {
-        Texture render_target;
-        TransparentBuffer transparent_buffer;
+#define decl_pbr_component(type) \
+struct type : PBR_Component { \
+    explicit type(u32 object_id) : PBR_Component(object_id) {} \
+    type(u32 object_id, const Transform& transform) : PBR_Component(object_id, transform) {} \
+    type(u32 object_id, const Transform& transform, Material* material) : PBR_Component(object_id, transform, material) {} \
+    type(u32 object_id, const Transform& transform, Material* material, DrawableElements* drawable) : PBR_Component(object_id, transform, material, drawable) {} \
+};
 
-        void init(Shader& shader, int w, int h);
-        void free();
+    decl_pbr_component(PBR_Component_Forward)
+    decl_pbr_component(PBR_Component_Deferred)
+    decl_pbr_component(PBR_Component_ForwardCull)
+    decl_pbr_component(PBR_Component_DeferredCull)
 
-        void begin();
-        void end();
+    decl_pbr_component(PBR_SkeletalComponent_Forward)
+    decl_pbr_component(PBR_SkeletalComponent_Deferred)
+    decl_pbr_component(PBR_SkeletalComponent_ForwardCull)
+    decl_pbr_component(PBR_SkeletalComponent_DeferredCull)
 
-        void resize(int w, int h);
+    decl_pbr_component(PBR_Component_Transparent)
 
-        void render(PBR_Entity& entity);
-        void render(PBR_EntityGroup& group);
+    template<typename T>
+    struct PBR_Entity : Entity {
 
-    private:
-        VertexArray vao;
-        Shader shader;
-        FrameBuffer fbo;
-        Shader composite_shader;
-        FrameBuffer composite_fbo;
-    };
+        PBR_Entity() : Entity() {}
 
-    struct SkeletalRenderer {
+        PBR_Entity(Scene* scene, const Transform& transform) : Entity(scene) {
+            add_component<T>(id, transform);
+        }
 
-        void free();
+        PBR_Entity(Scene* scene, const Transform& transform, Material* material) : Entity(scene) {
+            add_component<T>(id, transform, material);
+        }
 
-        void begin();
+        PBR_Entity(Scene* scene, const Transform& transform, Material* material, DrawableElements* drawable) : Entity(scene) {
+            add_component<T>(id, transform, material, drawable);
+        }
 
-        void set_camera_pos(glm::vec3& camera_pos);
-        void update_bones(std::vector<glm::mat4>& bones);
+        T* component() {
+            return scene->get_component<T>(id);
+        }
 
-        void render(PBR_Entity& entity);
-        void render(PBR_EntityGroup& group);
-
-    protected:
-        Shader shader;
-    };
-
-    struct PBR_Skeletal_ForwardRenderer : SkeletalRenderer {
-        void init();
-        void update(Environment* env);
-    };
-
-    struct PBR_Skeletal_DeferredRenderer : SkeletalRenderer {
-        void init();
-        void update(Environment* env);
     };
 
     struct PBR_ForwardRenderer final {
@@ -144,11 +109,8 @@ namespace gl {
 
         void begin();
 
-        void render(PBR_Entity& entity);
-        void render(PBR_EntityGroup& group);
-
-        void render(PBR_Entity& entity, glm::mat4& light_space);
-        void render(PBR_EntityGroup& group, glm::mat4& light_space);
+        void render(PBR_Component* pbr_component);
+        void render(PBR_Component* pbr_component, glm::mat4& light_space);
 
         void update(Environment* env);
 
@@ -198,11 +160,8 @@ namespace gl {
 
         void begin();
 
-        void render(PBR_Entity& entity);
-        void render(PBR_EntityGroup& group);
-
-        void render(PBR_Entity& entity, glm::mat4& light_space);
-        void render(PBR_EntityGroup& group, glm::mat4& light_space);
+        void render(PBR_Component* pbr_component);
+        void render(PBR_Component* pbr_component, glm::mat4& light_space);
 
         void update(Environment* env);
 
@@ -218,46 +177,22 @@ namespace gl {
         FrameBuffer light_fbo;
     };
 
-    struct Scene final {
-        Environment env;
+    struct PBR_Skeletal_ForwardRenderer : SkeletalRenderer {
+        void init();
+        void update(Environment* env);
+    };
 
-        std::vector<PBR_Entity*> forward_entities;
-        std::vector<PBR_EntityGroup*> forward_groups;
-
-        std::vector<PBR_Entity*> culled_forward_entities;
-        std::vector<PBR_EntityGroup*> culled_forward_groups;
-
-        std::vector<PBR_Entity*> deferred_entities;
-        std::vector<PBR_EntityGroup*> deferred_groups;
-
-        std::vector<PBR_Entity*> culled_deferred_entities;
-        std::vector<PBR_EntityGroup*> culled_deferred_groups;
-
-        std::vector<PBR_Entity*> skeletal_forward_entities;
-        std::vector<PBR_EntityGroup*> skeletal_forward_groups;
-
-        std::vector<PBR_Entity*> skeletal_deferred_entities;
-        std::vector<PBR_EntityGroup*> skeletal_deferred_groups;
-
-        std::vector<PBR_Entity*> culled_skeletal_forward_entities;
-        std::vector<PBR_EntityGroup*> culled_skeletal_forward_groups;
-
-        std::vector<PBR_Entity*> culled_skeletal_deferred_entities;
-        std::vector<PBR_EntityGroup*> culled_skeletal_deferred_groups;
-
-        std::vector<PBR_Entity*> transparent_entities;
-        std::vector<PBR_EntityGroup*> transparent_groups;
-
-        std::vector<DirectShadow*> direct_shadows;
-        std::vector<PointShadow*> point_shadows;
-
-        std::vector<Outline> outlines;
-        std::vector<PBR_Entity*> outline_entities;
-        std::vector<PBR_EntityGroup*> outline_groups;
+    struct PBR_Skeletal_DeferredRenderer : SkeletalRenderer {
+        void init();
+        void update(Environment* env);
     };
 
     struct PBR_Pipeline final {
         Scene* scene;
+        Environment env;
+        DirectLight sunlight;
+        std::array<PointLight, 4> point_lights;
+        SpotLight flashlight;
 
         inline Texture& render_target() {
             return pbr_forward_renderer.render_target;
@@ -288,6 +223,10 @@ namespace gl {
 
         void render();
 
+        void update_flashlight();
+        void update_sunlight();
+        void update_pointlights();
+
     private:
         void forward_rendering();
         void deferred_rendering();
@@ -309,6 +248,10 @@ namespace gl {
         OutlineRenderer outline_renderer;
 
         EnvRenderer env_renderer;
+
+        UniformBuffer sunlight_ubo;
+        UniformBuffer lights_ubo;
+        UniformBuffer flashlight_ubo;
     };
 
 }

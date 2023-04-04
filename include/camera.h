@@ -5,6 +5,9 @@
 #include <shader.h>
 #include <buffers.h>
 
+#include <window.h>
+#include <keycodes.h>
+
 #include <glm/glm.hpp>
 #include <gtc/matrix_transform.hpp>
 
@@ -47,6 +50,15 @@ namespace gl {
         float z_near = 0.1f;
         float z_far = 100.0f;
 
+        bool enable_look = true;
+        bool enable_zoom = true;
+        bool enable_move = true;
+
+        KEY key_move_forward = KEY::W;
+        KEY key_move_left = KEY::A;
+        KEY key_move_backward = KEY::S;
+        KEY key_move_right = KEY::D;
+
         void init(u32 binding, float aspect_ratio);
         glm::mat4 init_view();
 
@@ -55,6 +67,8 @@ namespace gl {
         void look(double x, double y);
 
         void zoom(double x, double y);
+
+        void move(float dt);
 
         void resize(int w, int h);
 

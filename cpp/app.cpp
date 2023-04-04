@@ -17,59 +17,25 @@
 #include <bloom.h>
 #include <skeletal_animation.h>
 
-#include <map>
-#include <random>
-
 namespace gl {
 
     static bool running = true;
     static float dt = 6;
     static float begin_time = 0;
 
-    static bool enable_fullscreen = false;
-
-    static UniformBuffer sunlight_ubo;
-    static UniformBuffer lights_ubo;
-    static UniformBuffer flashlight_ubo;
+    static Scene scene;
 
     static Camera camera;
-    static bool enable_camera = true;
-
-    static DirectLight sunlight;
 
     static LightPresent point_light_present;
-    static std::array<PointLight, 4> point_lights;
 
-    static SpotLight flashlight;
+    static Material plane_material;
+    static DrawableElements plane_drawable;
+    static PBR_Entity<PBR_Component_Deferred> plane;
 
-    static PBR_Entity plane = {
-            1,
-            {
-                    { 0, 0, 4 },
-                    { 0, 0, 0 },
-                    { 40, 1, 40 }
-            }
-    };
-
-    static SphereTBN rock_sphere_geometry;
-    static PBR_Entity rock_sphere = {
-            2,
-            {
-                    { 0, 1.3, 0 },
-                    { 0, 0, 0 },
-                    { 1, 1, 1 }
-            }
-    };
-
+    static Material backpack_material;
     static io::DrawableModel backpack_model;
-    static PBR_Entity backpack = {
-            3,
-            {
-                    { -3, 1.5, 5 },
-                    { -90, 0, 0 },
-                    { 1, 1, 1 }
-            }
-    };
+    static PBR_Entity<PBR_Component_Deferred> backpack;
 
     static int enable_hdr = true;
     static int enable_blur = false;
@@ -81,45 +47,31 @@ namespace gl {
     static SSAO_Pass ssao_pass;
     static int enable_ssao = true;
 
-    static int print_limiter = 100;
-
     static PBR_Pipeline pbr_pipeline;
 
     static HDR_Renderer hdr_renderer;
 
     static Bloom bloom;
 
+    static Material human_material;
     static io::DrawableSkeletalModel human_model;
-    static PBR_Entity human = {
-            4,
-            {
-                    { 0, 0, 0 },
-                    { 0, 0, 0 },
-                    { 1, 1, 1 }
-            }
-    };
+    static PBR_Entity<PBR_SkeletalComponent_Deferred> human;
     static Animator human_animator;
 
-    static PBR_EntityGroup spheres = {
-            {
-                5,
-                {
-                    { 0, 1.5, 4 },
-                    { 0, 0, 0 },
-                    { 1, 1, 1 }
-                }
-            },
-            {
-                6,
-                {
-                    { 0, 1.5, 8 },
-                    { 0, 0, 0 },
-                    { 1, 1, 1 }
-                }
-            }
-    };
+    static DrawableElements sphere_drawable;
 
-    static Scene scene;
+    static Material rock_material;
+    static DrawableElements rock_drawable;
+    static SphereTBN rock_sphere_geometry;
+    static PBR_Entity<PBR_Component_Deferred> rock_sphere;
+
+    static Material wood_material;
+    static PBR_Entity<PBR_Component_Deferred> wood_sphere;
+
+    static Material metal_material;
+    static PBR_Entity<PBR_Component_Deferred> metal_sphere;
+
+    static int print_limiter = 100;
 
     static void print_dt() {
         print_limiter++;
@@ -181,29 +133,18 @@ namespace gl {
         if (key == KEY::O)
             enable_ssao = !enable_ssao;
 
-        if (key == KEY::C)
-            enable_camera = !enable_camera;
-
         if (key == KEY::F) {
-            enable_fullscreen = !enable_fullscreen;
-            if (enable_fullscreen)
-                win::set_full_screen();
-            else
-                win::set_windowed();
+            win::toggle_window_mode();
         }
 
         if (key == KEY::E) {
             Outline outline;
-            outline.transform = rock_sphere.transform;
-            outline.drawable = rock_sphere.drawable;
-            outline.thickness = 0.2f;
-            scene.outlines.emplace_back(outline);
-//            scene.outline_entities.emplace_back(&rock_sphere);
+            auto* component = rock_sphere.get_component<PBR_Component_Deferred>();
+            rock_sphere.add_component<Outline>(&component->transform, component->drawable);
         }
 
         if (key == KEY::R) {
-            scene.outlines.erase(scene.outlines.begin());
-//            scene.outline_entities.erase(scene.outline_entities.begin() + 1);
+            rock_sphere.remove_component<Outline>();
         }
     }
 
@@ -220,9 +161,7 @@ namespace gl {
     }
 
     static void mouse_cursor(double x, double y) {
-        if (enable_camera) {
-            camera.look(x, y);
-        }
+        camera.look(x, y);
 
         if (win::is_key_press(KEY::LeftControl)) {
             PBR_Pixel pixel = pbr_pipeline.read_pixel((int) x, (int) y);
@@ -232,9 +171,87 @@ namespace gl {
     }
 
     static void mouse_scroll(double x, double y) {
-        if (enable_camera) {
-            camera.zoom(x, y);
-        }
+        camera.zoom(x, y);
+    }
+
+    static void init_scene() {
+        plane = {
+                &scene,
+                {
+                        {0, 0, 4 },
+                        {0, 0, 0},
+                        {40, 1, 40}
+                },
+                &plane_material,
+                &plane_drawable
+        };
+        plane.component()->material = &plane_material;
+        plane.component()->drawable = &plane_drawable;
+
+        backpack = {
+                &scene,
+                {
+                        { -3, 1.5, 5 },
+                        { -90, 0, 0 },
+                        { 1, 1, 1 }
+                },
+                &backpack_material,
+                &backpack_model.drawable
+        };
+        backpack.component()->material = &backpack_material;
+        backpack.component()->drawable = &backpack_model.drawable;
+
+        human = {
+                &scene,
+                {
+                        { 0, 0, 0 },
+                        { 0, 0, 0 },
+                        { 1, 1, 1 }
+                },
+                &human_material,
+                &human_model.drawable
+        };
+        human.component()->material = &human_material;
+        human.component()->drawable = &human_model.drawable;
+
+        rock_sphere = {
+                &scene,
+                {
+                        { 0, 1.3, 0 },
+                        { 0, 0, 0 },
+                        { 1, 1, 1 }
+                },
+                &rock_material,
+                &rock_drawable
+        };
+        rock_sphere.component()->material = &rock_material;
+        rock_sphere.component()->drawable = &rock_drawable;
+
+        wood_sphere = {
+                &scene,
+                {
+                        { 0, 1.5, 4 },
+                        { 0, 0, 0 },
+                        { 1, 1, 1 }
+                },
+                &wood_material,
+                &sphere_drawable
+        };
+        wood_sphere.component()->material = &wood_material;
+        wood_sphere.component()->drawable = &sphere_drawable;
+
+        metal_sphere = {
+                &scene,
+                {
+                        { 0, 1.5, 8 },
+                        { 0, 0, 0 },
+                        { 1, 1, 1 }
+                },
+                &metal_material,
+                &sphere_drawable
+        };
+        metal_sphere.component()->material = &metal_material;
+        metal_sphere.component()->drawable = &sphere_drawable;
     }
 
     static void init() {
@@ -257,15 +274,33 @@ namespace gl {
         // setup screen
         Screen::init();
 
+        init_scene();
+
         // setup scene
-        scene.env.resolution = { 2048, 2048 };
-        scene.env.prefilter_resolution = { 2048, 2048 };
-        scene.env.hdr.init_hdr("images/hdr/Arches_E_PineTree_3k.hdr", true);
-        scene.env.init();
-        scene.deferred_entities.emplace_back(&plane);
-        scene.deferred_entities.emplace_back(&backpack);
-        scene.deferred_entities.emplace_back(&rock_sphere);
-        scene.deferred_groups.emplace_back(&spheres);
+        pbr_pipeline.scene = &scene;
+        // setup environment
+        pbr_pipeline.env.resolution = { 2048, 2048 };
+        pbr_pipeline.env.prefilter_resolution = { 2048, 2048 };
+        pbr_pipeline.env.hdr.init_hdr("images/hdr/Arches_E_PineTree_3k.hdr", true);
+        pbr_pipeline.env.init();
+        // setup sunlight
+        static const float sunlight_intensity = 0.05;
+        static const glm::vec3 sunlight_rgb = glm::vec3(237, 213, 158) * sunlight_intensity;
+        pbr_pipeline.sunlight.color = { sunlight_rgb, 1 };
+        pbr_pipeline.sunlight.direction = { 1, 1, 1, 0 };
+        // setup lights
+        pbr_pipeline.point_lights[0].position = { -4, 2, 0, 1 };
+        pbr_pipeline.point_lights[0].color = { 0, 0, 0, 1 };
+        pbr_pipeline.point_lights[1].position = { 4, 3, 0, 1 };
+        pbr_pipeline.point_lights[1].color = { 0, 0, 0, 1 };
+        pbr_pipeline.point_lights[2].position = { -4, 4, 8, 1 };
+        pbr_pipeline.point_lights[2].color = { 0, 0, 0, 1 };
+        pbr_pipeline.point_lights[3].position = { 4, 5, 8, 1 };
+        pbr_pipeline.point_lights[3].color = { 0, 0, 0, 1 };
+        // setup flashlight
+        pbr_pipeline.flashlight.position = { camera.position, 0 };
+        pbr_pipeline.flashlight.direction = { camera.front, 0 };
+        pbr_pipeline.flashlight.color = { 0, 0, 0, 1 };
 
         // setup HDR
         hdr_renderer.init(win::props().width, win::props().height);
@@ -274,7 +309,6 @@ namespace gl {
 
         // setup PBR
         pbr_pipeline.init(win::props().width, win::props().height);
-        pbr_pipeline.scene = &scene;
         pbr_pipeline.generate_env();
 
         // setup Blur
@@ -296,43 +330,15 @@ namespace gl {
         camera.max_pitch = 180;
         camera.position = { -5, 2, 10 };
 
-        // setup uniform buffers
-        sunlight_ubo.init(1, sizeof(sunlight));
-        lights_ubo.init(2, sizeof(point_lights));
-        flashlight_ubo.init(3, sizeof(flashlight));
-
-        // setup sunlight
-        static const float sunlight_intensity = 0.05;
-        static const glm::vec3 sunlight_rgb = glm::vec3(237, 213, 158) * sunlight_intensity;
-        sunlight.color = { sunlight_rgb, 1 };
-        sunlight.direction = { 1, 1, 1, 0 };
-        sunlight_ubo.update({ 0, sizeof(sunlight), &sunlight });
-
-        // setup lights
-        point_lights[0].position = { -4, 2, 0, 1 };
-        point_lights[0].color = { 0, 0, 0, 1 };
-        point_lights[1].position = { 4, 3, 0, 1 };
-        point_lights[1].color = { 0, 0, 0, 1 };
-        point_lights[2].position = { -4, 4, 8, 1 };
-        point_lights[2].color = { 0, 0, 0, 1 };
-        point_lights[3].position = { 4, 5, 8, 1 };
-        point_lights[3].color = { 0, 0, 0, 1 };
-        lights_ubo.update({ 0, sizeof(point_lights), point_lights.data() });
-
-        // setup flashlight
-        flashlight.position = { camera.position, 0 };
-        flashlight.direction = { camera.front, 0 };
-        flashlight.color = { 0, 0, 0, 1 };
-        flashlight_ubo.update({ 0, sizeof(flashlight), &flashlight });
-
         // setup light presentation
         point_light_present.init();
 
         // setup 3D model
         backpack_model.init("models/backpack/backpack.obj");
-        backpack.drawable = backpack_model.elements;
 //        model_shadow.init(model);
-        backpack.material.init(
+        auto* plane_component = plane.component();
+        auto* backpack_component = backpack.component();
+        backpack.component()->material->init(
                 true,
                 "models/backpack/diffuse.jpg",
                 "models/backpack/normal.png",
@@ -341,14 +347,13 @@ namespace gl {
                 "models/backpack/roughness.jpg",
                 "models/backpack/ao.jpg"
         );
-        backpack.material.metallic_factor = 1;
-        backpack.material.roughness_factor = 1;
-        backpack.material.ao_factor = 1;
+        backpack.component()->material->metallic_factor = 1;
+        backpack.component()->material->roughness_factor = 1;
+        backpack.component()->material->ao_factor = 1;
 
         // setup human model
         human_model.init("models/dancing-stormtrooper/source/silly_dancing.fbx");
-        human.drawable = human_model.elements;
-        human.material.init(
+        human.component()->material->init(
                 false,
                 "models/dancing-stormtrooper/textures/Stormtrooper_D.png",
                 null,
@@ -357,26 +362,26 @@ namespace gl {
                 null,
                 null
         );
-        human.material.metallic_factor = 0.5;
-        human.material.roughness_factor = 0.5;
-        human.material.ao_factor = 1.0;
+        human.component()->material->metallic_factor = 0.5;
+        human.component()->material->roughness_factor = 0.5;
+        human.component()->material->ao_factor = 1.0;
         human_animator = Animator(&human_model.model.animation);
 
         // setup sphere
         SphereTBN sphere_geometry;
-        sphere_geometry.init_tbn(spheres.drawable);
+        sphere_geometry.init_tbn(sphere_drawable);
 //        SphereTBN sphere_shadow_geometry;
 //        sphere_shadow_geometry.init_default();
         // setup rock sphere
         rock_sphere_geometry.x_segments = 2047;
         rock_sphere_geometry.y_segments = 2047;
-        rock_sphere_geometry.init_tbn(rock_sphere.drawable);
+        rock_sphere_geometry.init_tbn(rock_drawable);
 //        sphere_rock_shadow_geometry.x_segments = 2047;
 //        sphere_rock_shadow_geometry.y_segments = 2047;
 //        sphere_rock_shadow_geometry.init_default(sphere_rock_shadow);
 
         {
-            rock_sphere.material.init(
+            rock_sphere.component()->material->init(
                     false,
                     "images/bumpy-rockface1-bl/albedo.png",
                     "images/bumpy-rockface1-bl/normal.png",
@@ -385,15 +390,15 @@ namespace gl {
                     "images/bumpy-rockface1-bl/roughness.png",
                     "images/bumpy-rockface1-bl/ao.png"
             );
-            rock_sphere.material.metallic_factor = 1;
-            rock_sphere.material.roughness_factor = 1;
-            rock_sphere.material.ao_factor = 1;
-            rock_sphere.material.color = { 1, 1, 1, 1 };
+            rock_sphere.component()->material->metallic_factor = 1;
+            rock_sphere.component()->material->roughness_factor = 1;
+            rock_sphere.component()->material->ao_factor = 1;
+            rock_sphere.component()->material->color = { 1, 1, 1, 1 };
 
-            rock_sphere_geometry.displace(rock_sphere.drawable, "images/bumpy-rockface1-bl/height.png", false, 3.0f);
+            rock_sphere_geometry.displace(*rock_sphere.component()->drawable, "images/bumpy-rockface1-bl/height.png", false, 3.0f);
 //            sphere_rock_shadow_geometry.displace(sphere_rock_shadow, "images/bumpy-rockface1-bl/height.png", false, 3.0f, 0, [](gl::VertexDefault& V) {});
 
-            spheres.entities[0].material.init(
+            wood_sphere.component()->material->init(
                     false,
                     "images/cheap-plywood1-bl/albedo.png",
                     "images/cheap-plywood1-bl/normal.png",
@@ -402,11 +407,11 @@ namespace gl {
                     "images/cheap-plywood1-bl/roughness.png",
                     "images/cheap-plywood1-bl/ao.png"
             );
-            spheres.entities[0].material.metallic_factor = 1;
-            spheres.entities[0].material.roughness_factor = 1;
-            spheres.entities[0].material.ao_factor = 1;
+            wood_sphere.component()->material->metallic_factor = 1;
+            wood_sphere.component()->material->roughness_factor = 1;
+            wood_sphere.component()->material->ao_factor = 1;
 
-            spheres.entities[1].material.init(
+            metal_sphere.component()->material->init(
                     false,
                     "images/light-gold-bl/albedo.png",
                     "images/light-gold-bl/normal.png",
@@ -415,18 +420,18 @@ namespace gl {
                     "images/light-gold-bl/roughness.png",
                     null
             );
-            spheres.entities[1].material.metallic_factor = 1;
-            spheres.entities[1].material.roughness_factor = 1;
-            spheres.entities[1].material.ao_factor = 1;
+            metal_sphere.component()->material->metallic_factor = 1;
+            metal_sphere.component()->material->roughness_factor = 1;
+            metal_sphere.component()->material->ao_factor = 1;
         }
 
         // setup horizontal plane
         CubeTBN plane_geometry;
-        plane_geometry.init_tbn(plane.drawable);
-        plane.material.color = {1, 1, 1, 1 };
-        plane.material.metallic_factor = 0;
-        plane.material.roughness_factor = 0;
-        plane.material.ao_factor = 1;
+        plane_geometry.init_tbn(*plane.component()->drawable);
+        plane.component()->material->color = {1, 1, 1, 1 };
+        plane.component()->material->metallic_factor = 0;
+        plane.component()->material->roughness_factor = 0;
+        plane.component()->material->ao_factor = 1;
 
         // render_deferred Shadow pass
 //        {
@@ -467,16 +472,27 @@ namespace gl {
         Texture::unbind();
         Shader::stop();
         Screen::src = pbr_pipeline.render_target();
+
+        pbr_pipeline.update_sunlight();
+        pbr_pipeline.update_pointlights();
+        pbr_pipeline.update_flashlight();
     }
 
     static void free() {
-        scene.env.free();
+        pbr_pipeline.env.free();
 
         pbr_pipeline.free();
         Screen::free();
         hdr_renderer.free();
-        spheres.free();
-        rock_sphere.free();
+
+        wood_sphere.component()->material->free();
+        wood_sphere.component()->drawable->free();
+
+        metal_sphere.component()->material->free();
+        metal_sphere.component()->drawable->free();
+
+        rock_sphere.component()->material->free();
+        rock_sphere.component()->drawable->free();
 
         Blur::free();
 
@@ -485,18 +501,17 @@ namespace gl {
         SSAO::free();
         ssao_pass.free();
 
-        plane.free();
-
-        sunlight_ubo.free();
-        lights_ubo.free();
-        flashlight_ubo.free();
+        plane.component()->material->free();
+        plane.component()->drawable->free();
 
         point_light_present.free();
 
-        backpack.free();
+        backpack.component()->material->free();
+        backpack.component()->drawable->free();
         backpack_model.free();
 
-        human.free();
+        human.component()->material->free();
+        human.component()->drawable->free();
         human_model.free();
 
         camera.free();
@@ -504,61 +519,27 @@ namespace gl {
         win::free();
     }
 
-    static void camera_control_update() {
-        if (!enable_camera)
-            return;
-
-        float camera_speed = camera.move_speed / dt;
-        glm::vec3& camera_pos = camera.position;
-
-        if (win::is_key_press(KEY::W)) {
-            camera_pos += camera_speed * camera.front;
-        }
-        else if (win::is_key_press(KEY::A)) {
-            camera_pos -= glm::normalize(glm::cross(camera.front, camera.up)) * camera_speed;
-        }
-        else if (win::is_key_press(KEY::S)) {
-            camera_pos -= camera_speed * camera.front;
-        }
-        else if (win::is_key_press(KEY::D)) {
-            camera_pos += glm::normalize(glm::cross(camera.front, camera.up)) * camera_speed;
-        }
-
-        camera.update_view();
-
-        pbr_pipeline.set_camera_pos(camera.position);
-    }
-
     static void simulate() {
         float t = begin_time;
 
-        camera_control_update();
+        camera.move(dt);
+        pbr_pipeline.set_camera_pos(camera.position);
 
         // bind flashlight to camera
-        flashlight.position = { camera.position, 0 };
-        flashlight.direction = { camera.front, 0 };
+        pbr_pipeline.flashlight.position = { camera.position, 0 };
+        pbr_pipeline.flashlight.direction = { camera.front, 0 };
 
         // rotate object each frame
         float f = 0.05f;
-        rock_sphere.transform.rotation.y += f;
-        spheres.entities[0].transform.rotation.y += f * 2;
-        spheres.entities[1].transform.rotation.y += f * 4;
-        human.transform.rotation.y += f * 4;
+        rock_sphere.component()->transform.rotation.y += f;
+        wood_sphere.component()->transform.rotation.y += f * 2;
+        metal_sphere.component()->transform.rotation.y += f * 4;
+        human.component()->transform.rotation.y += f * 4;
 
         // translate point lights up/down
 //        for (auto& point_light : point_lights) {
 //            point_light.position.y = 5 * sin(t/5) + 2;
 //        }
-
-        // updating lights
-        {
-            // sunlight
-            sunlight_ubo.update({ 0, sizeof(sunlight), &sunlight });
-            // point lights
-            lights_ubo.update({ 0, sizeof(point_lights), point_lights.data() });
-            // flashlight
-            flashlight_ubo.update({ 0, sizeof(flashlight), &flashlight });
-        }
 
         // skeletal animations
         {
@@ -579,30 +560,30 @@ namespace gl {
         ui::checkbox("Bloom", &enable_bloom);
         ui::checkbox("SSAO", &enable_ssao);
 
-        ui::slider("Sunlight X", &sunlight.direction.x, -100, 100, 1);
-        ui::slider("Sunlight Y", &sunlight.direction.y, -100, 100, 1);
-        ui::slider("Sunlight Z", &sunlight.direction.z, -100, 100, 1);
-        ui::color_picker("Sunlight Color", sunlight.color);
+        ui::slider("Sunlight X", &pbr_pipeline.sunlight.direction.x, -100, 100, 1);
+        ui::slider("Sunlight Y", &pbr_pipeline.sunlight.direction.y, -100, 100, 1);
+        ui::slider("Sunlight Z", &pbr_pipeline.sunlight.direction.z, -100, 100, 1);
+        ui::color_picker("Sunlight Color", pbr_pipeline.sunlight.color);
 
-        ui::slider("PointLight_1 X", &point_lights[0].position.x, -25, 25, 1);
-        ui::slider("PointLight_1 Y", &point_lights[0].position.y, -25, 25, 1);
-        ui::slider("PointLight_1 Z", &point_lights[0].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_1 Color", point_lights[0].color);
+        ui::slider("PointLight_1 X", &pbr_pipeline.point_lights[0].position.x, -25, 25, 1);
+        ui::slider("PointLight_1 Y", &pbr_pipeline.point_lights[0].position.y, -25, 25, 1);
+        ui::slider("PointLight_1 Z", &pbr_pipeline.point_lights[0].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_1 Color", pbr_pipeline.point_lights[0].color);
 
-        ui::slider("PointLight_2 X", &point_lights[1].position.x, -25, 25, 1);
-        ui::slider("PointLight_2 Y", &point_lights[1].position.y, -25, 25, 1);
-        ui::slider("PointLight_2 Z", &point_lights[1].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_2 Color", point_lights[1].color);
+        ui::slider("PointLight_2 X", &pbr_pipeline.point_lights[1].position.x, -25, 25, 1);
+        ui::slider("PointLight_2 Y", &pbr_pipeline.point_lights[1].position.y, -25, 25, 1);
+        ui::slider("PointLight_2 Z", &pbr_pipeline.point_lights[1].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_2 Color", pbr_pipeline.point_lights[1].color);
 
-        ui::slider("PointLight_3 X", &point_lights[2].position.x, -25, 25, 1);
-        ui::slider("PointLight_3 Y", &point_lights[2].position.y, -25, 25, 1);
-        ui::slider("PointLight_3 Z", &point_lights[2].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_3 Color", point_lights[2].color);
+        ui::slider("PointLight_3 X", &pbr_pipeline.point_lights[2].position.x, -25, 25, 1);
+        ui::slider("PointLight_3 Y", &pbr_pipeline.point_lights[2].position.y, -25, 25, 1);
+        ui::slider("PointLight_3 Z", &pbr_pipeline.point_lights[2].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_3 Color", pbr_pipeline.point_lights[2].color);
 
-        ui::slider("PointLight_4 X", &point_lights[3].position.x, -25, 25, 1);
-        ui::slider("PointLight_4 Y", &point_lights[3].position.y, -25, 25, 1);
-        ui::slider("PointLight_4 Z", &point_lights[3].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_4 Color", point_lights[3].color);
+        ui::slider("PointLight_4 X", &pbr_pipeline.point_lights[3].position.x, -25, 25, 1);
+        ui::slider("PointLight_4 Y", &pbr_pipeline.point_lights[3].position.y, -25, 25, 1);
+        ui::slider("PointLight_4 Z", &pbr_pipeline.point_lights[3].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_4 Color", pbr_pipeline.point_lights[3].color);
     }
 
     static void render_ui() {
@@ -655,7 +636,7 @@ namespace gl {
             Screen::src = SSAO::render_target;
 
         else if (win::is_key_press(KEY::D8))
-            Screen::src = scene.env.hdr;
+            Screen::src = pbr_pipeline.env.hdr;
 
         else if (win::is_key_press(KEY::D9))
             Screen::src = pbr_pipeline.transparent_buffer().revealage;

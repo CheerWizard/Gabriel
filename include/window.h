@@ -29,6 +29,7 @@ namespace win {
 
     void set_full_screen();
     void set_windowed();
+    void toggle_window_mode();
 
     void enable_sync();
     void disable_sync();

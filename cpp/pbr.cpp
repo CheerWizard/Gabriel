@@ -12,139 +12,6 @@ namespace gl {
             TextureSampler { "ssao", 7 }
     };
 
-    void TransparentRenderer::init(Shader& shader, int w, int h) {
-        this->shader = shader;
-        composite_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/oit_composite.frag"
-        );
-
-        // setup accumulation
-        ColorAttachment scene_accum = { 0, w, h };
-        scene_accum.data.internal_format = GL_RGBA16F;
-        scene_accum.data.data_format = GL_RGBA;
-        scene_accum.data.primitive_type = GL_FLOAT;
-        scene_accum.params.min_filter = GL_LINEAR;
-        scene_accum.params.mag_filter= GL_LINEAR;
-        // setup alpha revealage
-        ColorAttachment scene_reveal = { 1, w, h };
-        scene_reveal.data.internal_format = GL_R8;
-        scene_reveal.data.data_format = GL_RED;
-        scene_reveal.data.primitive_type = GL_FLOAT;
-        scene_reveal.params.min_filter = GL_LINEAR;
-        scene_reveal.params.mag_filter= GL_LINEAR;
-        fbo.colors = { scene_accum, scene_reveal };
-        fbo.init_colors();
-        fbo.rbo = { w, h };
-        fbo.rbo.init();
-        fbo.init();
-        fbo.attach_colors();
-        fbo.attach_render_buffer();
-        fbo.complete();
-
-        // setup composite color
-        ColorAttachment composite_color = scene_accum;
-        composite_fbo.colors = { composite_color };
-        composite_fbo.init_colors();
-        composite_fbo.rbo = { w, h };
-        composite_fbo.rbo.init();
-        composite_fbo.init();
-        composite_fbo.attach_colors();
-        composite_fbo.attach_render_buffer();
-        composite_fbo.complete();
-
-        vao.init();
-
-        render_target = composite_fbo.colors[0].view;
-        transparent_buffer = {
-                fbo.colors[0].view,
-                fbo.colors[1].view,
-        };
-    }
-
-    void TransparentRenderer::free() {
-        composite_shader.free();
-        fbo.free();
-        composite_fbo.free();
-        vao.free();
-    }
-
-    void TransparentRenderer::resize(int w, int h) {
-        fbo.resize(w, h);
-        composite_fbo.resize(w, h);
-    }
-
-    void TransparentRenderer::begin() {
-        fbo.bind();
-        glDepthMask(GL_FALSE);
-        glBlendFunci(0, GL_ONE, GL_ONE);
-        glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
-        glBlendEquation(GL_FUNC_ADD);
-        static glm::vec4 COLOR_ZERO = glm::vec4(0);
-        static glm::vec4 COLOR_ONE = glm::vec4(1);
-        glClearBufferfv(GL_COLOR, 0, &COLOR_ZERO[0]);
-        glClearBufferfv(GL_COLOR, 1, &COLOR_ONE[0]);
-
-        shader.use();
-    }
-
-    void TransparentRenderer::end() {
-        composite_fbo.bind();
-        glDepthFunc(GL_ALWAYS);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        composite_shader.use();
-        composite_shader.bind_sampler("accum", 0, fbo.colors[0].view);
-        composite_shader.bind_sampler("reveal", 1, fbo.colors[1].view);
-        vao.draw_quad();
-
-        glDepthMask(GL_TRUE);
-        glDepthFunc(GL_LESS);
-    }
-
-    void TransparentRenderer::render(PBR_Entity& entity) {
-        entity.update(shader);
-        entity.drawable.draw();
-    }
-
-    void TransparentRenderer::render(PBR_EntityGroup &group) {
-        for (auto& entity : group.entities) {
-            entity.update(shader);
-            group.drawable.draw();
-        }
-    }
-
-    void SkeletalRenderer::begin() {
-        shader.use();
-    }
-
-    void SkeletalRenderer::update_bones(std::vector<glm::mat4>& bone_transforms) {
-        UniformArrayM4F uniform_bone_transforms = { "bone_transforms", bone_transforms };
-        shader.use();
-        shader.set_uniform_array(uniform_bone_transforms);
-    }
-
-    void SkeletalRenderer::render(PBR_Entity& entity) {
-        entity.update(shader);
-        entity.drawable.draw();
-    }
-
-    void SkeletalRenderer::render(PBR_EntityGroup &group) {
-        for (auto& entity : group.entities) {
-            entity.update(shader);
-            group.drawable.draw();
-        }
-    }
-
-    void SkeletalRenderer::free() {
-        shader.free();
-    }
-
-    void SkeletalRenderer::set_camera_pos(glm::vec3& camera_pos) {
-        shader.use();
-        shader.set_uniform_args("camera_pos", camera_pos);
-    }
-
     void PBR_Skeletal_ForwardRenderer::init() {
         shader.init(
                 "shaders/skeletal.vert",
@@ -173,24 +40,6 @@ namespace gl {
         shader.bind_sampler_struct("envlight", "irradiance", 8, env->irradiance);
         shader.bind_sampler_struct("envlight", "prefilter", 9, env->prefilter);
         shader.bind_sampler_struct("envlight", "brdf_convolution", 10, env->brdf_convolution);
-    }
-
-    void Material_Entity::update(Shader& shader) {
-        shader.set_uniform_args("object_id", id);
-        transform.update(shader);
-        material.update(shader, 0);
-    }
-
-    void PBR_Entity::free() {
-        material.free();
-        drawable.free();
-    }
-
-    void PBR_EntityGroup::free() {
-        for (auto& entity : entities) {
-            entity.material.free();
-        }
-        drawable.free();
     }
 
     void PBR_ForwardRenderer::init(int w, int h) {
@@ -290,22 +139,14 @@ namespace gl {
         shader.use();
     }
 
-    void PBR_ForwardRenderer::render(PBR_Entity& entity) {
+    void PBR_ForwardRenderer::render(PBR_Component* pbr_component) {
         shader.bind_sampler("direct_shadow_sampler", 0, direct_shadow_map);
         shader.bind_sampler("point_shadow_sampler", 1, point_shadow_map);
         shader.set_uniform_args("far_plane", far_plane);
-        entity.update(shader);
-        entity.drawable.draw();
-    }
-
-    void PBR_ForwardRenderer::render(PBR_EntityGroup& group) {
-        shader.bind_sampler("direct_shadow_sampler", 0, direct_shadow_map);
-        shader.bind_sampler("point_shadow_sampler", 1, point_shadow_map);
-        shader.set_uniform_args("far_plane", far_plane);
-        for (auto& entity : group.entities) {
-            entity.update(shader);
-            group.drawable.draw();
-        }
+        shader.set_uniform_args("object_id", pbr_component->object_id);
+        pbr_component->transform.update(shader);
+        pbr_component->material->update(shader, 0);
+        pbr_component->drawable->draw();
     }
 
     Shader& PBR_ForwardRenderer::get_shader() {
@@ -316,14 +157,9 @@ namespace gl {
         return current_fbo;
     }
 
-    void PBR_ForwardRenderer::render(PBR_Entity& entity, glm::mat4& light_space) {
+    void PBR_ForwardRenderer::render(PBR_Component* pbr_component, glm::mat4& light_space) {
         shader.set_uniform_args("direct_light_space", light_space);
-        render(entity);
-    }
-
-    void PBR_ForwardRenderer::render(PBR_EntityGroup& group, glm::mat4& light_space) {
-        shader.set_uniform_args("direct_light_space", light_space);
-        render(group);
+        render(pbr_component);
     }
 
     void PBR_ForwardRenderer::update(Environment* env) {
@@ -560,26 +396,16 @@ namespace gl {
         geometry_shader.use();
     }
 
-    void PBR_DeferredRenderer::render(PBR_Entity &entity) {
-        entity.update(geometry_shader);
-        entity.drawable.draw();
+    void PBR_DeferredRenderer::render(PBR_Component* pbr_component) {
+        geometry_shader.set_uniform_args("object_id", pbr_component->object_id);
+        pbr_component->transform.update(geometry_shader);
+        pbr_component->material->update(geometry_shader, 0);
+        pbr_component->drawable->draw();
     }
 
-    void PBR_DeferredRenderer::render(PBR_EntityGroup &group) {
-        for (auto& entity : group.entities) {
-            entity.update(geometry_shader);
-            group.drawable.draw();
-        }
-    }
-
-    void PBR_DeferredRenderer::render(PBR_Entity& entity, glm::mat4& light_space) {
+    void PBR_DeferredRenderer::render(PBR_Component* pbr_component, glm::mat4& light_space) {
         geometry_shader.set_uniform_args("direct_light_space", light_space);
-        render(entity);
-    }
-
-    void PBR_DeferredRenderer::render(PBR_EntityGroup& group, glm::mat4& light_space) {
-        geometry_shader.set_uniform_args("direct_light_space", light_space);
-        render(group);
+        render(pbr_component);
     }
 
     void PBR_DeferredRenderer::update(Environment* env) {
@@ -613,6 +439,10 @@ namespace gl {
         point_shadow_renderer.init(w, h);
 
         outline_renderer.init();
+
+        sunlight_ubo.init(1, sizeof(sunlight));
+        lights_ubo.init(2, sizeof(point_lights));
+        flashlight_ubo.init(3, sizeof(flashlight));
     }
 
     void PBR_Pipeline::free() {
@@ -630,6 +460,10 @@ namespace gl {
         point_shadow_renderer.free();
 
         outline_renderer.free();
+
+        sunlight_ubo.free();
+        lights_ubo.free();
+        flashlight_ubo.free();
     }
 
     void PBR_Pipeline::set_samples(int samples) {
@@ -642,11 +476,11 @@ namespace gl {
     }
 
     void PBR_Pipeline::init_hdr_env(const char* filepath, bool flip_uv) {
-        scene->env.hdr.init(filepath, flip_uv);
+        env.hdr.init(filepath, flip_uv);
     }
 
     void PBR_Pipeline::generate_env() {
-        env_renderer.env = &scene->env;
+        env_renderer.env = &env;
         env_renderer.generate_env();
         pbr_forward_renderer.update(env_renderer.env);
         pbr_deferred_renderer.update(env_renderer.env);
@@ -687,47 +521,33 @@ namespace gl {
             // render environment
             env_renderer.render();
 
+            outline_renderer.end();
+
             // render static objects
             pbr_forward_renderer.begin();
-            for (auto& entity : scene->forward_entities) {
-                pbr_forward_renderer.render(*entity);
-            }
-            for (auto& group : scene->forward_groups) {
-                pbr_forward_renderer.render(*group);
-            }
+            scene->each_component<PBR_Component_Forward>([this](PBR_Component_Forward* component) {
+                pbr_forward_renderer.render(component);
+            });
 
             // render dynamic objects
             skeletal_forward_renderer.begin();
-            for (auto& entity : scene->skeletal_forward_entities) {
-                skeletal_forward_renderer.render(*entity);
-            }
-            for (auto& group : scene->skeletal_forward_groups) {
-                skeletal_forward_renderer.render(*group);
-            }
+            scene->each_component<PBR_SkeletalComponent_Forward>([this](PBR_SkeletalComponent_Forward* component) {
+                skeletal_forward_renderer.render(component->object_id, component->drawable, &component->transform, component->material);
+            });
 
             // render outline objects
-            outline_renderer.end();
-            pbr_forward_renderer.begin();
-            for (auto& entity : scene->outline_entities) {
-                pbr_forward_renderer.render(*entity);
-            }
-            for (auto& group : scene->outline_groups) {
-                pbr_forward_renderer.render(*group);
-            }
             outline_renderer.begin();
-            for (auto& outline : scene->outlines) {
-                outline_renderer.render(outline);
-            }
+            scene->each_component<Outline>([this](Outline* component) {
+                outline_renderer.render(component);
+            });
+
             outline_renderer.end();
 
             // render transparent objects
             transparent_renderer.begin();
-            for (auto& entity : scene->transparent_entities) {
-                transparent_renderer.render(*entity);
-            }
-            for (auto& group : scene->transparent_groups) {
-                transparent_renderer.render(*group);
-            }
+            scene->each_component<PBR_Component_Transparent>([this](PBR_Component_Transparent* component) {
+                transparent_renderer.render(component->object_id, component->drawable, &component->transform, component->material);
+            });
             transparent_renderer.end();
         }
 
@@ -736,20 +556,14 @@ namespace gl {
         {
             // render static objects
             pbr_forward_renderer.begin();
-            for (auto& entity : scene->culled_forward_entities) {
-                pbr_forward_renderer.render(*entity);
-            }
-            for (auto& group : scene->culled_forward_entities) {
-                pbr_forward_renderer.render(*group);
-            }
+            scene->each_component<PBR_Component_ForwardCull>([this](PBR_Component_ForwardCull* component) {
+                pbr_forward_renderer.render(component);
+            });
             // render dynamic objects
             skeletal_forward_renderer.begin();
-            for (auto& entity : scene->culled_skeletal_forward_entities) {
-                skeletal_forward_renderer.render(*entity);
-            }
-            for (auto& group : scene->culled_skeletal_forward_groups) {
-                skeletal_forward_renderer.render(*group);
-            }
+            scene->each_component<PBR_SkeletalComponent_ForwardCull>([this](PBR_SkeletalComponent_ForwardCull* component) {
+                skeletal_forward_renderer.render(component->object_id, component->drawable, &component->transform, component->material);
+            });
         }
 
         pbr_forward_renderer.unbind();
@@ -763,20 +577,14 @@ namespace gl {
         {
             // static objects
             pbr_deferred_renderer.begin();
-            for (auto& entity : scene->deferred_entities) {
-                pbr_deferred_renderer.render(*entity);
-            }
-            for (auto& group : scene->deferred_groups) {
-                pbr_deferred_renderer.render(*group);
-            }
+            scene->each_component<PBR_Component_Deferred>([this](PBR_Component_Deferred* component) {
+                pbr_deferred_renderer.render(component);
+            });
             // skeletal objects
             skeletal_deferred_renderer.begin();
-            for (auto& entity : scene->skeletal_deferred_entities) {
-                skeletal_deferred_renderer.render(*entity);
-            }
-            for (auto& group : scene->skeletal_deferred_groups) {
-                skeletal_deferred_renderer.render(*group);
-            }
+            scene->each_component<PBR_SkeletalComponent_Deferred>([this](PBR_SkeletalComponent_Deferred* component) {
+                skeletal_deferred_renderer.render(component->object_id, component->drawable, &component->transform, component->material);
+            });
         }
 
         // render face-culled objects
@@ -784,20 +592,14 @@ namespace gl {
         {
             // static objects
             pbr_deferred_renderer.begin();
-            for (auto& entity : scene->culled_deferred_entities) {
-                pbr_deferred_renderer.render(*entity);
-            }
-            for (auto& group : scene->culled_deferred_groups) {
-                pbr_deferred_renderer.render(*group);
-            }
+            scene->each_component<PBR_Component_DeferredCull>([this](PBR_Component_DeferredCull* component) {
+                pbr_deferred_renderer.render(component);
+            });
             // skeletal objects
             skeletal_deferred_renderer.begin();
-            for (auto& entity : scene->culled_skeletal_deferred_entities) {
-                skeletal_deferred_renderer.render(*entity);
-            }
-            for (auto& group : scene->culled_skeletal_deferred_groups) {
-                skeletal_deferred_renderer.render(*group);
-            }
+            scene->each_component<PBR_SkeletalComponent_DeferredCull>([this](PBR_SkeletalComponent_DeferredCull* component) {
+                skeletal_deferred_renderer.render(component->object_id, component->drawable, &component->transform, component->material);
+            });
         }
 
         pbr_deferred_renderer.unbind();
@@ -819,6 +621,18 @@ namespace gl {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_STENCIL_TEST);
         glDisable(GL_BLEND);
+    }
+
+    void PBR_Pipeline::update_flashlight() {
+        flashlight_ubo.update({ 0, sizeof(flashlight), &flashlight });
+    }
+
+    void PBR_Pipeline::update_sunlight() {
+        sunlight_ubo.update({ 0, sizeof(sunlight), &sunlight });
+    }
+
+    void PBR_Pipeline::update_pointlights() {
+        lights_ubo.update({ 0, sizeof(point_lights), point_lights.data() });
     }
 
 }
