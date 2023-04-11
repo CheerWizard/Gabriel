@@ -6,12 +6,11 @@
 #include <transform.h>
 #include <draw.h>
 #include <model_loader.h>
+#include <scene.h>
 
 namespace gl {
 
-    struct DirectShadow final {
-        Transform transform;
-        DrawableElements drawable;
+    struct DirectShadow : ecs::Component {
         glm::vec3 direction;
         glm::mat4 light_space;
 
@@ -19,7 +18,7 @@ namespace gl {
     };
 
     struct DirectShadowRenderer final {
-        Texture render_target;
+        ImageBuffer render_target;
 
         void init(int w, int h);
         void free();
@@ -30,16 +29,14 @@ namespace gl {
         void end();
 
         void update(DirectShadow& direct_shadow);
-        void render(DirectShadow& direct_shadow);
+        void render(Transform& transform, DrawableElements& drawable);
 
     private:
         FrameBuffer fbo;
         Shader shader;
     };
 
-    struct PointShadow final {
-        Transform transform;
-        DrawableElements drawable;
+    struct PointShadow : ecs::Component {
         int width = 1024;
         int height = 1024;
         glm::vec3 position;
@@ -50,7 +47,7 @@ namespace gl {
     };
 
     struct PointShadowRenderer final {
-        Texture render_target;
+        ImageBuffer render_target;
 
         void init(int w, int h);
         void free();
@@ -61,11 +58,11 @@ namespace gl {
         void end();
 
         void update(PointShadow& point_shadow);
-        void render(PointShadow& point_shadow);
+        void render(Transform& transform, DrawableElements& drawable);
 
     private:
-        Shader shader;
         FrameBuffer fbo;
+        Shader shader;
     };
 
 }

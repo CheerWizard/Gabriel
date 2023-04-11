@@ -1,10 +1,63 @@
 #pragma once
 
-#include <triangle.h>
-#include <rect.h>
-#include <cube.h>
+#include <draw.h>
+
+#include <glm/glm.hpp>
 
 namespace gl {
+
+    template<typename T>
+    struct Vertices {
+        T* vertices = null;
+        int count = 0;
+
+        inline size_t size() const { return sizeof(T) * count; }
+        inline float* to_float() const { return (float*) vertices; }
+        inline T& operator [](int i) { return vertices[i]; }
+
+        void init(int count);
+        void free();
+
+        void copy_from(Vertices<T>* src);
+    };
+
+    template<typename T>
+    void Vertices<T>::init(int count) {
+        this->count = count;
+        vertices = (T*) std::malloc(size());
+    }
+
+    template<typename T>
+    void Vertices<T>::free() {
+        std::free(vertices);
+        count = 0;
+    }
+
+    template<typename T>
+    void Vertices<T>::copy_from(Vertices<T>* src) {
+        free();
+        init(src->count);
+        std::memcpy(vertices, src->vertices, src->size());
+    }
+
+    template<typename T>
+    static void init_uv(T* v0, T* v1, T* v2, T* v3) {
+        v0->uv = { 0, 0 };
+        v1->uv = { 0, 1 };
+        v2->uv = { 1, 1 };
+        v3->uv = { 1, 0 };
+    }
+
+    template<typename T>
+    static void init_normal(T* v0, T* v1, T* v2, T* v3) {
+        glm::vec3 x1 = v1->pos - v0->pos;
+        glm::vec3 x2 = v3->pos - v0->pos;
+        glm::vec3 normal = -glm::normalize(glm::cross(x1, x2));
+        v0->normal = normal;
+        v1->normal = normal;
+        v2->normal = normal;
+        v3->normal = normal;
+    }
 
     template<typename T>
     static void init_tbn(T* v0, T* v1, T* v2, T* v3) {
@@ -31,6 +84,42 @@ namespace gl {
         v1->tangent = tangent;
         v2->tangent = tangent;
         v3->tangent = tangent;
+    }
+
+    struct Indices final {
+        u32* indices = null;
+        int count = 0;
+
+        inline size_t size() const { return sizeof(u32) * count; }
+        inline u32& operator [](int i) const { return indices[i]; }
+
+        void init(int count);
+        void free();
+
+        void copy_from(Indices* src);
+    };
+
+    template<typename T>
+    struct Geometry {
+        Vertices<T> vertices;
+        Indices indices;
+
+        void init_drawable(DrawableElements& drawable);
+        void free();
+    };
+
+    template<typename T>
+    void Geometry<T>::init_drawable(DrawableElements &drawable) {
+        drawable.vao.init();
+        drawable.vao.bind();
+        drawable.vbo.init(vertices, T::format, GL_DYNAMIC_DRAW);
+        drawable.ibo.init(indices.indices, drawable.strips * drawable.vertices_per_strip, GL_DYNAMIC_DRAW);
+    }
+
+    template<typename T>
+    void Geometry<T>::free() {
+        vertices.free();
+        indices.free();
     }
 
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <uniform.h>
-#include <texture.h>
+#include <image.h>
 
 namespace gl {
 
@@ -19,11 +19,11 @@ namespace gl {
 
         void free();
 
-        void bind_sampler(const char* name, int slot, const Texture& texture);
-        void bind_sampler(const TextureSampler& sampler, const Texture& texture);
+        void bind_sampler(const char* name, int slot, const ImageBuffer& buffer);
+        void bind_sampler(const ImageSampler& sampler, const ImageBuffer& buffer);
 
-        void bind_sampler_struct(const char* struct_name, const char* name, int slot, const Texture& texture);
-        void bind_sampler_struct(const char* struct_name, const TextureSampler& sampler, const Texture& texture);
+        void bind_sampler_struct(const char* struct_name, const char* name, int slot, const ImageBuffer& buffer);
+        void bind_sampler_struct(const char* struct_name, const ImageSampler& sampler, const ImageBuffer& buffer);
 
         int get_uniform_location(const char* name) const;
         int get_uniform_array_location(u32 index, const char* name);

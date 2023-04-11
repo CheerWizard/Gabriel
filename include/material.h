@@ -1,6 +1,7 @@
 #pragma once
 
 #include <shader.h>
+#include <component.h>
 
 namespace gl {
 
@@ -12,33 +13,35 @@ namespace gl {
         constexpr static float diamond = 2.42f;
     };
 
-    struct Material final {
+    struct Material : ecs::Component {
         static const int slots = 6;
         // base color
         glm::vec4 color = { 1, 1, 1, 1 };
-        Texture albedo;
+        ImageBuffer albedo;
         bool enable_albedo = false;
         // bumping
-        Texture normal;
+        ImageBuffer normal;
         bool enable_normal = false;
         // parallax
-        Texture parallax;
+        ImageBuffer parallax;
         bool enable_parallax = false;
         float height_scale = 0.1;
         float parallax_min_layers = 8;
         float parallax_max_layers = 32;
         // metallic
         float metallic_factor = 0.5f;
-        Texture metallic;
+        ImageBuffer metallic;
         bool enable_metallic = false;
         // roughness
         float roughness_factor = 0.5f;
-        Texture roughness;
+        ImageBuffer roughness;
         bool enable_roughness = false;
         // AO
         float ao_factor = 0.5f;
-        Texture ao;
+        ImageBuffer ao;
         bool enable_ao = false;
+
+        Material() = default;
 
         void init(
             bool flip_uv = false,

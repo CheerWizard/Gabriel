@@ -8,8 +8,8 @@ namespace gl {
     FrameBuffer Blur::fbo;
     VertexArray Blur::vao;
     float Blur::offset = 1.0 / 300.0;
-    Texture Blur::src;
-    Texture Blur::render_target;
+    ImageBuffer Blur::src;
+    ImageBuffer Blur::render_target;
 
     void Blur::init(int w, int h) {
         shader.init(
@@ -19,9 +19,9 @@ namespace gl {
 
         fbo.init();
         ColorAttachment color = { 0, w, h };
-        color.data.internal_format = GL_RGB;
-        color.data.data_format = GL_RGB;
-        color.data.primitive_type = GL_UNSIGNED_BYTE;
+        color.image.internal_format = GL_RGB;
+        color.image.pixel_format = GL_RGB;
+        color.image.pixel_type = PixelType::U8;
         fbo.colors = { color };
         fbo.init_colors();
         fbo.attach_colors();
@@ -54,7 +54,7 @@ namespace gl {
 
         vao.draw_quad();
 
-        render_target = fbo.colors[0].view;
+        render_target = fbo.colors[0].buffer;
     }
 
 }

@@ -3,6 +3,7 @@
 #include <vertex.h>
 #include <draw.h>
 #include <material_loader.h>
+#include <geometry.h>
 
 namespace io {
 
@@ -18,17 +19,7 @@ namespace io {
         glm::fvec4 weight = {0, 0, 0, 0 };
     };
 
-    struct SkeletalVertices final {
-        SkeletalVertex* data;
-
-        inline float* to_float() const { return (float*) &data->pos.x; }
-    };
-
-    struct SkeletalMesh final {
-        SkeletalVertices vertices;
-        u32 vertex_count;
-        u32* indices;
-        u32 index_count;
+    struct SkeletalMesh : Geometry<SkeletalVertex> {
         u32 material_index = 0;
     };
 
@@ -87,36 +78,17 @@ namespace io {
         std::unordered_map<u32, Material> materials;
         std::unordered_map<std::string, Bone> bones;
         Animation animation;
-    };
 
-    struct DrawableSkeletalModel final {
-        io::SkeletalModel model;
-        DrawableElements drawable;
+        void init(DrawableElements& drawable);
+        void free();
 
-        void init(
+        void generate(
                 const std::string& filepath,
                 u32 flags = aiProcess_Triangulate
                             | aiProcess_FlipUVs
                             | aiProcess_CalcTangentSpace
                             | aiProcess_OptimizeMeshes
         );
-
-        void free();
-    };
-
-    struct DrawableSkeletalModels final {
-        io::SkeletalModel model;
-        std::vector<DrawableElements> elements;
-
-        void init(
-                const std::string& filepath,
-                u32 flags = aiProcess_Triangulate
-                            | aiProcess_FlipUVs
-                            | aiProcess_CalcTangentSpace
-                            | aiProcess_OptimizeMeshes
-        );
-
-        void free();
     };
 
 }

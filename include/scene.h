@@ -1,21 +1,12 @@
 #pragma once
 
-#include <primitives.h>
+#include <component.h>
 
 #include <unordered_map>
 #include <vector>
 #include <functional>
 
 namespace ecs {
-
-    typedef u32 EntityID;
-    static constexpr EntityID InvalidEntity = 0;
-    typedef size_t ComponentID;
-    typedef void* ComponentAddress;
-
-    struct Component {
-        EntityID entity_id = InvalidEntity;
-    };
 
     struct ComponentVector final {
 
@@ -46,10 +37,10 @@ namespace ecs {
         void update(T* component, Args &&... args);
 
         template<typename T>
-        void erase(int index);
+        void erase_at(int index, size_t type_size);
 
         template<typename T>
-        void erase(T* component);
+        void erase(EntityID entity_id);
 
         template<typename T>
         void for_each(const std::function<void(T*)>& iterate_function);
@@ -60,7 +51,6 @@ namespace ecs {
 
     template<typename T>
     void ComponentVector::reserve(size_t new_capacity) {
-        // allocate memory for components
         components.reserve(sizeof(T) * new_capacity);
     }
 
@@ -86,22 +76,21 @@ namespace ecs {
     }
 
     template<typename T>
-    void ComponentVector::erase(int index) {
-        auto begin = components.begin() + (index * sizeof(T));
-        auto end = begin + sizeof(T);
+    void ComponentVector::erase_at(int index, size_t type_size) {
+        auto begin = components.begin() + (index * type_size);
+        auto end = begin + type_size;
         components.erase(begin, end);
     }
 
     template<typename T>
-    void ComponentVector::erase(T* component) {
+    void ComponentVector::erase(EntityID entity_id) {
         size_t size = components.size();
-        size_t step = sizeof(T);
-        for (size_t i = 0 ; i < size ; i += step) {
-            ComponentAddress src = &components[i];
-            ComponentAddress target = component;
-            if (src == target) {
+        size_t type_size = sizeof(T);
+        for (size_t i = 0 ; i < size ; i += type_size) {
+            T* component = (T*) &components[i];
+            if (component->entity_id == entity_id) {
                 component->~T();
-                erase<T>(i / sizeof(T));
+                erase_at<T>(i / type_size, type_size);
                 break;
             }
         }
@@ -187,6 +176,7 @@ namespace ecs {
     template<typename T, typename... Args>
     T* Scene::add_component(EntityID entity_id, Args&&... args) {
         ComponentID cid = get_component_id<T>();
+
         T* component = (T*) component_addresses[entity_id][cid];
         // update component if it already exists
         if (component) {
@@ -213,13 +203,13 @@ namespace ecs {
     template<typename T>
     void Scene::remove_component(EntityID entity_id) {
         ComponentID cid = get_component_id<T>();
-        T* component = (T*) component_addresses[entity_id][cid];
-        if (!component) {
-            print_err("Scene::remove_component: component for entity " << entity_id << "does not exist");
+        ComponentAddress component_address = component_addresses[entity_id][cid];
+        if (component_address == null) {
+            print_err("Scene::remove_component(): component for entity " << entity_id << "does not exist");
             return;
         }
         // remove component from storage
-        component_table[cid].erase<T>(component);
+        component_table[cid].erase<T>(entity_id);
         component_addresses[entity_id][cid] = null;
     }
 

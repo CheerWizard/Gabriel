@@ -24,31 +24,6 @@ namespace gl {
     };
 
     template<typename T>
-    static void init_uv(RectVertices<T>& vertices) {
-        vertices.v0.uv = { 0, 0 };
-        vertices.v1.uv = { 0, 1 };
-        vertices.v2.uv = { 1, 1 };
-        vertices.v3.uv = { 1, 0 };
-    }
-
-    template<typename T>
-    static void init_normal(RectVertices<T>& vertices) {
-        glm::vec3 normal = -glm::normalize(glm::cross(
-                vertices.v1.pos - vertices.v0.pos,
-                vertices.v3.pos - vertices.v0.pos
-        ));
-        vertices.v0.normal = normal;
-        vertices.v1.normal = normal;
-        vertices.v2.normal = normal;
-        vertices.v3.normal = normal;
-    }
-
-    template<typename T>
-    static void init_tbn(RectVertices<T>& vertices) {
-        init_tbn(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
-    }
-
-    template<typename T>
     struct Rect final {
         RectVertices<T> vertices;
         u32 indices[6] = {
@@ -72,27 +47,28 @@ namespace gl {
         drawable.vao.bind();
         drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
         drawable.ibo.init(indices, 6, GL_STATIC_DRAW);
-        drawable.index_count = 6;
+        drawable.strips = 1;
+        drawable.vertices_per_strip = 6;
     }
 
     template<typename T>
     void Rect<T>::init_uv(DrawableElements &drawable) {
-        gl::init_uv(vertices);
+        gl::init_uv(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
         init(drawable);
     }
 
     template<typename T>
     void Rect<T>::init_normal_uv(DrawableElements &drawable) {
-        gl::init_uv(vertices);
-        gl::init_normal(vertices);
+        gl::init_uv(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
+        gl::init_normal(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
         init(drawable);
     }
 
     template<typename T>
     void Rect<T>::init_tbn(DrawableElements &drawable) {
-        gl::init_uv(vertices);
-        gl::init_normal(vertices);
-        gl::init_tbn(vertices);
+        gl::init_uv(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
+        gl::init_normal(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
+        gl::init_tbn(&vertices.v0, &vertices.v1, &vertices.v2, &vertices.v3);
         init(drawable);
     }
 
@@ -108,8 +84,10 @@ namespace gl {
 
         drawable.vao.init();
         drawable.vao.bind();
+
         vertices.reserve(count * 4);
         indices.reserve(count * 6);
+
         int index_offset = 0;
         for (u32 i = 0 ; i < count ; i++) {
             Rect<T> new_rect = rect_factory_fn(i);
@@ -120,6 +98,7 @@ namespace gl {
             rects.emplace_back(new_rect);
             index_offset += 4;
         }
+
         drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
         drawable.ibo.init(indices.data(), indices.size(), GL_STATIC_DRAW);
 

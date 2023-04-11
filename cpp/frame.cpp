@@ -129,24 +129,24 @@ namespace gl {
         int color_size = colors.size();
         for (int i = 0 ; i < color_size ; i++) {
             auto& color = colors[i];
-            color.data.width = w;
-            color.data.height = h;
+            color.image.width = w;
+            color.image.height = h;
             color.free();
             color.init();
             color.attach();
         }
 
-        if (depth.view.id != invalid_texture) {
-            depth.data.width = w;
-            depth.data.height = h;
+        if (depth.buffer.id != invalid_image_buffer) {
+            depth.image.width = w;
+            depth.image.height = h;
             depth.free();
             depth.init();
             depth.attach();
         }
 
-        if (depth_stencil.view.id != invalid_texture) {
-            depth_stencil.data.width = w;
-            depth_stencil.data.height = h;
+        if (depth_stencil.buffer.id != invalid_image_buffer) {
+            depth_stencil.image.width = w;
+            depth_stencil.image.height = h;
             depth_stencil.free();
             depth_stencil.init();
             depth_stencil.attach();
@@ -162,79 +162,73 @@ namespace gl {
     }
 
     void ColorAttachment::init() {
-        if (view.type == GL_TEXTURE_CUBE_MAP) {
-            glGenTextures(1, &view.id);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, view.id);
+        buffer.init();
+        buffer.bind();
 
+        if (buffer.type == GL_TEXTURE_CUBE_MAP) {
             for (int i = 0 ; i < 6 ; i++) {
-                glTexImage2D(
-                        GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
-                        GL_COLOR_ATTACHMENT0 + i,
-                        data.width, data.height, 0,
-                        GL_COLOR_ATTACHMENT0 + i,
-                        data.primitive_type,
-                        data.data
-                );
+                buffer.type = GL_TEXTURE_CUBE_MAP_POSITIVE_X + i;
+                image.internal_format = GL_COLOR_ATTACHMENT0 + i;
+                image.pixel_format = GL_COLOR_ATTACHMENT0 + i;
+                buffer.store(image);
             }
-
-            if (params.min_filter == GL_NEAREST_MIPMAP_NEAREST
-                || params.min_filter == GL_NEAREST_MIPMAP_LINEAR
-                || params.min_filter == GL_LINEAR_MIPMAP_NEAREST
-                || params.min_filter == GL_LINEAR_MIPMAP_LINEAR
-                    ) {
-                view.generate_mipmaps(params);
-            }
-
-            view.update_params(params);
-        }
-        else {
-            view.init(data, params, view.type);
+            buffer.type = GL_TEXTURE_CUBE_MAP;
+            buffer.update_params(params);
+        } else {
+            buffer.store(image);
+            buffer.update_params(params);
         }
     }
 
     void ColorAttachment::free() {
-        view.free();
+        buffer.free();
+        image.free();
     }
 
     void ColorAttachment::attach() const {
-        if (view.type == GL_TEXTURE_CUBE_MAP) {
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, view.id, 0);
+        if (buffer.type == GL_TEXTURE_CUBE_MAP) {
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, buffer.id, 0);
         } else {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, view.type, view.id, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, buffer.type, buffer.id, 0);
         }
     }
 
     void DepthAttachment::init() {
-        data.internal_format = GL_DEPTH_COMPONENT;
-        data.data_format = GL_DEPTH_COMPONENT;
-        view.init(data, params, view.type);
+        image.internal_format = GL_DEPTH_COMPONENT;
+        image.pixel_format = GL_DEPTH_COMPONENT;
+        buffer.init();
+        buffer.load(image, params);
     }
 
     void DepthAttachment::free() {
-        view.free();
+        buffer.free();
+        image.free();
     }
 
     void DepthAttachment::attach() {
-        if (view.type == GL_TEXTURE_CUBE_MAP) {
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, view.id, 0);
+        if (buffer.type == GL_TEXTURE_CUBE_MAP) {
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, buffer.id, 0);
         } else {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, view.type, view.id, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, buffer.type, buffer.id, 0);
         }
     }
 
     void DepthStencilAttachment::init() {
-        data.internal_format = GL_DEPTH24_STENCIL8;
-        data.data_format = GL_DEPTH_STENCIL;
-        data.primitive_type = GL_UNSIGNED_INT_24_8;
-        view.init(data);
+        image.internal_format = GL_DEPTH24_STENCIL8;
+        image.pixel_format = GL_DEPTH_STENCIL;
+        image.pixel_type = PixelType::UINT248;
+        buffer.init();
+        buffer.bind();
+        buffer.store(image);
     }
 
     void DepthStencilAttachment::free() {
-        view.free();
+        buffer.free();
+        image.free();
     }
 
     void DepthStencilAttachment::attach() {
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, view.type, view.id, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, buffer.type, buffer.id, 0);
     }
 
     void RenderBuffer::init() {

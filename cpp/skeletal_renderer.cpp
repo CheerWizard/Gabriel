@@ -21,17 +21,17 @@ namespace gl {
         shader.set_uniform_args("camera_pos", camera_pos);
     }
 
-    void SkeletalRenderer::render(u32 object_id, DrawableElements* drawable, Transform* transform) {
-        shader.set_uniform_args("object_id", object_id);
-        transform->update(shader);
-        drawable->draw();
+    void SkeletalRenderer::render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable) {
+        shader.set_uniform_args("object_id", entity_id);
+        transform.update(shader);
+        drawable.draw();
     }
 
-    void SkeletalRenderer::render(u32 object_id, DrawableElements* drawable, Transform* transform, Material* material) {
-        shader.set_uniform_args("object_id", object_id);
-        transform->update(shader);
-        material->update(shader, 0);
-        drawable->draw();
+    void SkeletalRenderer::render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material) {
+        shader.set_uniform_args("object_id", entity_id);
+        transform.update(shader);
+        material.update(shader, 0);
+        drawable.draw();
     }
 
 }

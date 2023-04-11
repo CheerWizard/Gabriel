@@ -3,14 +3,15 @@
 #include <buffers.h>
 #include <shader.h>
 #include <commands.h>
+#include <component.h>
 
 namespace gl {
 
-    struct DrawableVertices {
-        int vertex_count = 0;
+    struct DrawableVertices : ecs::Component {
+        u32 type = GL_TRIANGLES;
         VertexArray vao;
         VertexBuffer vbo;
-        u32 type = GL_TRIANGLES;
+        int vertex_count = 0;
 
         void free();
 
@@ -18,12 +19,13 @@ namespace gl {
         void draw(int instances);
     };
 
-    struct DrawableElements {
-        int index_count;
+    struct DrawableElements : ecs::Component {
+        u32 type = GL_TRIANGLES;
         VertexArray vao;
         VertexBuffer vbo;
         IndexBuffer ibo;
-        u32 type = GL_TRIANGLES;
+        u32 strips = 1;
+        int vertices_per_strip = 0;
 
         void free();
 

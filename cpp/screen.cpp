@@ -6,7 +6,7 @@ namespace gl {
 
     Shader Screen::shader;
     VertexArray Screen::vao;
-    Texture Screen::src;
+    ImageBuffer Screen::src;
     float Screen::gamma = 2.2f; // average value on most monitors
 
     void Screen::init() {

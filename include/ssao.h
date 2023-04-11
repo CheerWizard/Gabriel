@@ -7,9 +7,9 @@
 namespace gl {
 
     struct SSAO_Pass final {
-        Texture positions;
-        Texture normals;
-        Texture noise;
+        ImageBuffer positions;
+        ImageBuffer normals;
+        ImageBuffer noise;
         int noise_size = 4;
         glm::vec2 resolution = { 512, 512 };
         std::vector<glm::vec3> samples = std::vector<glm::vec3>(64);
@@ -22,7 +22,7 @@ namespace gl {
     };
 
     struct SSAO final {
-        static Texture render_target;
+        static ImageBuffer render_target;
 
         static void init(int width, int height);
         static void free();

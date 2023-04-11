@@ -2,7 +2,7 @@
 
 #include <shader.h>
 #include <draw.h>
-#include <texture.h>
+#include <image.h>
 #include <frame.h>
 
 namespace gl {
@@ -12,19 +12,18 @@ namespace gl {
         glm::ivec2 prefilter_resolution;
         glm::ivec2 irradiance_resolution = { 32, 32 };
         int prefilter_levels = 5;
-        Texture hdr = { 0, GL_TEXTURE_CUBE_MAP };
-        Texture skybox = {0, GL_TEXTURE_CUBE_MAP };
-        Texture irradiance = { 0, GL_TEXTURE_CUBE_MAP };
-        Texture prefilter = { 0, GL_TEXTURE_CUBE_MAP };
-        Texture brdf_convolution = { 0, GL_TEXTURE_2D };
-        TextureParams params = {
+        ImageBuffer hdr = GL_TEXTURE_2D;
+        ImageBuffer skybox = GL_TEXTURE_CUBE_MAP;
+        ImageBuffer irradiance = GL_TEXTURE_CUBE_MAP;
+        ImageBuffer prefilter = GL_TEXTURE_CUBE_MAP;
+        ImageBuffer brdf_convolution = GL_TEXTURE_2D;
+        ImageParams params = {
                 GL_CLAMP_TO_EDGE,
                 GL_CLAMP_TO_EDGE,
                 GL_CLAMP_TO_EDGE,
                 { 1, 1, 1, 1 },
                 GL_LINEAR,
                 GL_LINEAR,
-                false,
                 -0.4f
         };
 

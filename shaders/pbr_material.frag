@@ -12,7 +12,7 @@ layout(location = 1) out vec4 out_normal; // normal
 layout(location = 2) out vec4 out_albedo; // albedo + transparency
 layout(location = 3) out vec4 out_pbr_params; // metalness + roughness + occlusion
 layout(location = 4) out vec4 out_shadow_proj_coords; // shadow proj coords
-layout(location = 5) out uint out_object_id;
+layout(location = 5) out uint out_entity_id;
 layout(location = 6) out vec4 out_view_position;
 layout(location = 7) out vec4 out_view_normal;
 
@@ -53,8 +53,7 @@ uniform vec3 camera_pos;
 
 uniform Material material;
 
-uniform uint object_id;
-uniform uint draw_id;
+uniform uint entity_id;
 
 vec2 parallax_function(vec2 uv)
 {
@@ -171,5 +170,5 @@ void main()
     out_view_position = vec4(v_pos, 1.0);
     out_view_normal = vec4(view_normal, 1.0);
 
-    out_object_id = object_id;
+    out_entity_id = entity_id;
 }

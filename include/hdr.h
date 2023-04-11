@@ -7,9 +7,9 @@
 namespace gl {
 
     struct HDR_Renderer final {
-        Texture render_target;
-        Texture src;
-        Texture shiny;
+        ImageBuffer render_target;
+        ImageBuffer src;
+        ImageBuffer shiny;
 
         float exposure = 1.0f;
         float shiny_strength = 7.5f;

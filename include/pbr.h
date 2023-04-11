@@ -11,83 +11,57 @@
 #include <skeletal_renderer.h>
 #include <environment.h>
 #include <transparency.h>
+#include <polygon_visual.h>
+#include <normal_visual.h>
 
 namespace gl {
 
     struct PBR_Pixel final {
-        u32 object_id = 0;
+        ecs::EntityID entity_id = ecs::InvalidEntity;
     };
 
-    using namespace ecs;
+    struct PBR_Component_Forward : ecs::Component {};
+    struct PBR_Component_Deferred : ecs::Component {};
+    struct PBR_Component_ForwardCull : ecs::Component {};
+    struct PBR_Component_DeferredCull : ecs::Component {};
 
-    struct PBR_Component : Component {
-        u32 object_id;
-        Transform transform;
-        Material* material;
-        DrawableElements* drawable;
+    struct PBR_SkeletalComponent_Forward : ecs::Component {};
+    struct PBR_SkeletalComponent_Deferred : ecs::Component {};
+    struct PBR_SkeletalComponent_ForwardCull : ecs::Component {};
+    struct PBR_SkeletalComponent_DeferredCull : ecs::Component {};
 
-        PBR_Component() = default;
+    struct PBR_Component_Transparent : ecs::Component {};
 
-        explicit PBR_Component(u32 object_id) : object_id(object_id) {}
+    struct PBR_Entity : ecs::Entity {
 
-        PBR_Component(u32 object_id, const Transform &transform)
-        : object_id(object_id), transform(transform) {}
+        PBR_Entity() : ecs::Entity() {}
 
-        PBR_Component(u32 object_id, const Transform &transform, Material *material)
-        : object_id(object_id), transform(transform), material(material) {}
-
-        PBR_Component(u32 object_id, const Transform &transform, Material *material, DrawableElements *drawable)
-        : object_id(object_id), transform(transform), material(material), drawable(drawable) {}
-    };
-
-#define decl_pbr_component(type) \
-struct type : PBR_Component { \
-    explicit type(u32 object_id) : PBR_Component(object_id) {} \
-    type(u32 object_id, const Transform& transform) : PBR_Component(object_id, transform) {} \
-    type(u32 object_id, const Transform& transform, Material* material) : PBR_Component(object_id, transform, material) {} \
-    type(u32 object_id, const Transform& transform, Material* material, DrawableElements* drawable) : PBR_Component(object_id, transform, material, drawable) {} \
-};
-
-    decl_pbr_component(PBR_Component_Forward)
-    decl_pbr_component(PBR_Component_Deferred)
-    decl_pbr_component(PBR_Component_ForwardCull)
-    decl_pbr_component(PBR_Component_DeferredCull)
-
-    decl_pbr_component(PBR_SkeletalComponent_Forward)
-    decl_pbr_component(PBR_SkeletalComponent_Deferred)
-    decl_pbr_component(PBR_SkeletalComponent_ForwardCull)
-    decl_pbr_component(PBR_SkeletalComponent_DeferredCull)
-
-    decl_pbr_component(PBR_Component_Transparent)
-
-    template<typename T>
-    struct PBR_Entity : Entity {
-
-        PBR_Entity() : Entity() {}
-
-        PBR_Entity(Scene* scene, const Transform& transform) : Entity(scene) {
-            add_component<T>(id, transform);
+        PBR_Entity(ecs::Scene* scene, const glm::vec3& translation, const glm::vec3& rotation, const glm::vec3& scale)
+        : ecs::Entity(scene) {
+            add_component<Transform>(translation, rotation, scale);
+            add_component<DrawableElements>();
+            add_component<Material>();
         }
 
-        PBR_Entity(Scene* scene, const Transform& transform, Material* material) : Entity(scene) {
-            add_component<T>(id, transform, material);
+        Transform* transform() {
+            return scene->get_component<Transform>(id);
         }
 
-        PBR_Entity(Scene* scene, const Transform& transform, Material* material, DrawableElements* drawable) : Entity(scene) {
-            add_component<T>(id, transform, material, drawable);
+        DrawableElements* drawable() {
+            return scene->get_component<DrawableElements>(id);
         }
 
-        T* component() {
-            return scene->get_component<T>(id);
+        Material* material() {
+            return scene->get_component<Material>(id);
         }
 
     };
 
     struct PBR_ForwardRenderer final {
-        Texture render_target;
+        ImageBuffer render_target;
         int samples = 1;
-        Texture direct_shadow_map;
-        Texture point_shadow_map;
+        ImageBuffer direct_shadow_map;
+        ImageBuffer point_shadow_map;
         float far_plane = 25;
 
         inline Shader& get_shader();
@@ -99,18 +73,17 @@ struct type : PBR_Component { \
         void resize(int w, int h);
 
         void set_camera_pos(glm::vec3& camera_pos);
-
         void set_samples(int samples);
 
-        PBR_Pixel read_pixel(int x, int y);
+        void read_pixel(PBR_Pixel& pixel, int x, int y);
 
         void bind();
         void unbind();
 
         void begin();
 
-        void render(PBR_Component* pbr_component);
-        void render(PBR_Component* pbr_component, glm::mat4& light_space);
+        void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material);
+        void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& light_space);
 
         void update(Environment* env);
 
@@ -123,24 +96,24 @@ struct type : PBR_Component { \
     };
 
     struct PBR_GBuffer final {
-        Texture position;
-        Texture normal;
-        Texture albedo;
-        Texture pbr_params;
-        Texture shadow_proj_coords;
-        Texture object_id;
-        Texture view_position;
-        Texture view_normal;
+        ImageBuffer position;
+        ImageBuffer normal;
+        ImageBuffer albedo;
+        ImageBuffer pbr_params;
+        ImageBuffer shadow_proj_coords;
+        ImageBuffer object_id;
+        ImageBuffer view_position;
+        ImageBuffer view_normal;
     };
 
     struct PBR_DeferredRenderer final {
-        Texture render_target;
+        ImageBuffer render_target;
         PBR_GBuffer gbuffer;
         int samples = 1;
         bool enable_ssao = true;
         SSAO_Pass* ssao_pass;
-        Texture direct_shadow_map;
-        Texture point_shadow_map;
+        ImageBuffer direct_shadow_map;
+        ImageBuffer point_shadow_map;
         float far_plane = 25;
 
         void init(int w, int h);
@@ -150,22 +123,21 @@ struct type : PBR_Component { \
         void resize(int w, int h);
 
         void set_camera_pos(glm::vec3& camera_pos);
-
         void set_samples(int samples);
 
-        PBR_Pixel read_pixel(int x, int y);
+        void read_pixel(PBR_Pixel& pixel, int x, int y);
 
         void bind();
         void unbind();
 
         void begin();
 
-        void render(PBR_Component* pbr_component);
-        void render(PBR_Component* pbr_component, glm::mat4& light_space);
+        void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material);
+        void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& light_space);
 
         void update(Environment* env);
 
-        void blit(int w, int h, u32 dest_fbo, int dest_object_id);
+        void blit(int w, int h, u32 dest_fbo, int dest_entity_id);
 
     private:
         VertexArray vao;
@@ -188,13 +160,13 @@ struct type : PBR_Component { \
     };
 
     struct PBR_Pipeline final {
-        Scene* scene;
+        ecs::Scene* scene = null;
         Environment env;
         DirectLight sunlight;
         std::array<PointLight, 4> point_lights;
         SpotLight flashlight;
 
-        inline Texture& render_target() {
+        inline ImageBuffer& render_target() {
             return pbr_forward_renderer.render_target;
         }
 
@@ -219,7 +191,7 @@ struct type : PBR_Component { \
 
         void set_camera_pos(glm::vec3& camera_pos);
 
-        PBR_Pixel read_pixel(int x, int y);
+        void read_pixel(PBR_Pixel& pixel, int x, int y);
 
         void render();
 
@@ -252,6 +224,9 @@ struct type : PBR_Component { \
         UniformBuffer sunlight_ubo;
         UniformBuffer lights_ubo;
         UniformBuffer flashlight_ubo;
+
+        PolygonVisualRenderer polygon_visual_renderer;
+        NormalVisualRenderer normal_visual_renderer;
     };
 
 }

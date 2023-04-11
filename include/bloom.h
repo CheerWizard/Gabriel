@@ -8,8 +8,8 @@
 namespace gl {
 
     struct Bloom final {
-        Texture render_target;
-        Texture src;
+        ImageBuffer render_target;
+        ImageBuffer src;
 
         glm::ivec2 resolution;
         int mip_levels = 6;

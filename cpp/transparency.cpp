@@ -11,16 +11,16 @@ namespace gl {
 
         // setup accumulation
         ColorAttachment scene_accum = { 0, w, h };
-        scene_accum.data.internal_format = GL_RGBA16F;
-        scene_accum.data.data_format = GL_RGBA;
-        scene_accum.data.primitive_type = GL_FLOAT;
+        scene_accum.image.internal_format = GL_RGBA16F;
+        scene_accum.image.pixel_format = GL_RGBA;
+        scene_accum.image.pixel_type = PixelType::FLOAT;
         scene_accum.params.min_filter = GL_LINEAR;
         scene_accum.params.mag_filter= GL_LINEAR;
         // setup alpha revealage
         ColorAttachment scene_reveal = { 1, w, h };
-        scene_reveal.data.internal_format = GL_R8;
-        scene_reveal.data.data_format = GL_RED;
-        scene_reveal.data.primitive_type = GL_FLOAT;
+        scene_reveal.image.internal_format = GL_R8;
+        scene_reveal.image.pixel_format = GL_RED;
+        scene_reveal.image.pixel_type = PixelType::FLOAT;
         scene_reveal.params.min_filter = GL_LINEAR;
         scene_reveal.params.mag_filter= GL_LINEAR;
         fbo.colors = { scene_accum, scene_reveal };
@@ -45,10 +45,10 @@ namespace gl {
 
         vao.init();
 
-        render_target = composite_fbo.colors[0].view;
+        render_target = composite_fbo.colors[0].buffer;
         transparent_buffer = {
-                fbo.colors[0].view,
-                fbo.colors[1].view,
+                fbo.colors[0].buffer,
+                fbo.colors[1].buffer,
         };
     }
 
@@ -84,25 +84,25 @@ namespace gl {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         composite_shader.use();
-        composite_shader.bind_sampler("accum", 0, fbo.colors[0].view);
-        composite_shader.bind_sampler("reveal", 1, fbo.colors[1].view);
+        composite_shader.bind_sampler("accum", 0, fbo.colors[0].buffer);
+        composite_shader.bind_sampler("reveal", 1, fbo.colors[1].buffer);
         vao.draw_quad();
 
         glDepthMask(GL_TRUE);
         glDepthFunc(GL_LESS);
     }
 
-    void TransparentRenderer::render(u32 object_id, DrawableElements* drawable, Transform* transform) {
-        shader.set_uniform_args("object_id", object_id);
-        transform->update(shader);
-        drawable->draw();
+    void TransparentRenderer::render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable) {
+        shader.set_uniform_args("object_id", entity_id);
+        transform.update(shader);
+        drawable.draw();
     }
 
-    void TransparentRenderer::render(u32 object_id, DrawableElements* drawable, Transform* transform, Material* material) {
-        shader.set_uniform_args("object_id", object_id);
-        transform->update(shader);
-        material->update(shader, 0);
-        drawable->draw();
+    void TransparentRenderer::render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material) {
+        shader.set_uniform_args("object_id", entity_id);
+        transform.update(shader);
+        material.update(shader, 0);
+        drawable.draw();
     }
 
 }

@@ -9,12 +9,12 @@
 namespace gl {
 
     struct TransparentBuffer final {
-        Texture accumulation;
-        Texture revealage;
+        ImageBuffer accumulation;
+        ImageBuffer revealage;
     };
 
     struct TransparentRenderer final {
-        Texture render_target;
+        ImageBuffer render_target;
         TransparentBuffer transparent_buffer;
 
         void init(Shader& shader, int w, int h);
@@ -25,8 +25,8 @@ namespace gl {
 
         void resize(int w, int h);
 
-        void render(u32 object_id, DrawableElements* drawable, Transform* transform);
-        void render(u32 object_id, DrawableElements* drawable, Transform* transform, Material* material);
+        void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable);
+        void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material);
 
     private:
         VertexArray vao;

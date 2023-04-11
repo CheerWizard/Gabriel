@@ -6,7 +6,7 @@
 namespace gl {
 
     struct Screen final {
-        static Texture src;
+        static ImageBuffer src;
         static float gamma;
 
         static void init();

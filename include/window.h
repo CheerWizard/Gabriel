@@ -24,6 +24,11 @@ namespace win {
         int profile_version = GLFW_OPENGL_CORE_PROFILE;
     };
 
+    struct Cursor final {
+        double x = 0;
+        double y = 0;
+    };
+
     void init(const window_props& props);
     void free();
 
@@ -43,6 +48,7 @@ namespace win {
     float get_aspect_ratio();
     window_props& props();
 
+    Cursor mouse_cursor();
     void disable_cursor();
 
     bool is_key_press(int key);

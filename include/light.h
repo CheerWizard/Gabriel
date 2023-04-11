@@ -1,10 +1,9 @@
 #pragma once
 
-#include <geometry.h>
+#include <cube.h>
 #include <transform.h>
 #include <camera.h>
 #include <frame.h>
-#include <draw.h>
 
 namespace gl {
 

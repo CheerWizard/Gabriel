@@ -10,7 +10,7 @@ namespace gl {
     FrameBuffer SSAO::fbo;
     FrameBuffer SSAO::blur_fbo;
     VertexArray SSAO::vao;
-    Texture SSAO::render_target;
+    ImageBuffer SSAO::render_target;
 
     void SSAO::init(int width, int height) {
         // SSAO quad
@@ -26,9 +26,9 @@ namespace gl {
         );
         // SSAO frame
         ColorAttachment color = { 0, width, height };
-        color.data.internal_format = GL_RED;
-        color.data.data_format = GL_RED;
-        color.data.primitive_type = GL_FLOAT;
+        color.image.internal_format = GL_RED;
+        color.image.pixel_format = GL_RED;
+        color.image.pixel_type = PixelType::FLOAT;
         color.params.min_filter = GL_NEAREST;
         color.params.mag_filter = GL_NEAREST;
         color.params.s = GL_REPEAT;
@@ -41,9 +41,9 @@ namespace gl {
         fbo.complete();
         // SSAO Blur frame
         ColorAttachment blur_color = { 0, width, height };
-        blur_color.data.internal_format = GL_RED;
-        blur_color.data.data_format = GL_RED;
-        blur_color.data.primitive_type = GL_FLOAT;
+        blur_color.image.internal_format = GL_RED;
+        blur_color.image.pixel_format = GL_RED;
+        blur_color.image.pixel_type = PixelType::FLOAT;
         blur_color.params.min_filter = GL_NEAREST;
         blur_color.params.mag_filter = GL_NEAREST;
         blur_color.params.s = GL_REPEAT;
@@ -55,7 +55,7 @@ namespace gl {
         blur_fbo.attach_colors();
         blur_fbo.complete();
 
-        render_target = blur_fbo.colors[0].view;
+        render_target = blur_fbo.colors[0].buffer;
     }
 
     void SSAO::free() {
@@ -96,7 +96,7 @@ namespace gl {
 
         blur_shader.use();
 
-        blur_shader.bind_sampler({ "ssao", 0 }, fbo.colors[0].view);
+        blur_shader.bind_sampler({ "ssao", 0 }, fbo.colors[0].buffer);
 
         vao.draw_quad();
     }
@@ -134,16 +134,15 @@ namespace gl {
             };
         }
         // SSAO noise texture
-        TextureParams noise_params;
+        ImageParams noise_params;
         noise_params.min_filter = GL_NEAREST;
         noise_params.mag_filter = GL_NEAREST;
         noise_params.s = GL_REPEAT;
         noise_params.t = GL_REPEAT;
         noise_params.r = GL_REPEAT;
-        noise.init(
-                { noise_size, noise_size, GL_RGBA32F, GL_RGB, GL_FLOAT, &noises[0] },
-                noise_params
-        );
+        noise.init();
+        Image noise_image = { noise_size, noise_size, 3, GL_RGBA32F, GL_RGB, PixelType::FLOAT, &noises[0] };
+        noise.load(noise_image, noise_params);
     }
 
     void SSAO_Pass::free() {

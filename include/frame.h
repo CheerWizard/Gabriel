@@ -1,29 +1,29 @@
 #pragma once
 
-#include <texture.h>
+#include <image.h>
 #include <vector>
 
 namespace gl {
 
     struct ColorAttachment final {
         u32 index = 0;
-        gl::Texture view;
-        gl::TextureParams params;
-        gl::TextureData data;
+        gl::ImageBuffer buffer;
+        gl::ImageParams params;
+        gl::Image image;
 
         ColorAttachment() = default;
 
         ColorAttachment(u32 index) : index(index) {}
 
         ColorAttachment(u32 index, int w, int h) : index(index) {
-            data.width = w;
-            data.height = h;
+            image.width = w;
+            image.height = h;
         }
 
         ColorAttachment(u32 index, int w, int h, int s) : index(index) {
-            data.width = w;
-            data.height = h;
-            data.samples = s;
+            image.width = w;
+            image.height = h;
+            image.samples = s;
         }
 
         void init();
@@ -33,9 +33,9 @@ namespace gl {
     };
 
     struct DepthAttachment final {
-        gl::Texture view;
-        gl::TextureParams params;
-        gl::TextureData data;
+        gl::ImageBuffer buffer;
+        gl::ImageParams params;
+        gl::Image image;
 
         void init();
         void free();
@@ -44,8 +44,8 @@ namespace gl {
     };
 
     struct DepthStencilAttachment final {
-        TextureData data;
-        Texture view;
+        ImageBuffer buffer;
+        Image image;
 
         void init();
         void free();
@@ -102,7 +102,7 @@ namespace gl {
         void resize(int w, int h);
 
         template<typename T>
-        T read_pixel(int attachment_index, int x, int y);
+        void read_pixel(T& pixel, int attachment_index, int x, int y);
 
         static void blit(
                 u32 in_fbo, int in_w, int in_h,
@@ -120,19 +120,18 @@ namespace gl {
     };
 
     template<typename T>
-    T FrameBuffer::read_pixel(int attachment_index, int x, int y) {
+    void FrameBuffer::read_pixel(T& pixel, int attachment_index, int x, int y) {
         bind();
 
         glReadBuffer(GL_COLOR_ATTACHMENT0 + attachment_index);
 
-        T pixel;
-        glReadPixels(x, y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, &pixel);
+        T p;
+        glReadPixels(x, y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, &p);
+        pixel.entity_id = p.entity_id;
 
         glReadBuffer(GL_NONE);
 
         unbind();
-
-        return pixel;
     }
 
 }

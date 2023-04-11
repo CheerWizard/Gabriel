@@ -11,37 +11,67 @@ namespace gl {
             const char* roughness_path,
             const char* ao_path
     ) {
-        gl::TextureParams params;
+        gl::ImageParams params;
         params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
         if (albedo_path) {
-            albedo.init(albedo_path, flip_uv, params);
-            enable_albedo = albedo.id != invalid_texture;
+            Image image = ImageReader::read(albedo_path, flip_uv);
+
+            albedo.init();
+            albedo.load(image, params);
+            enable_albedo = albedo.id != invalid_image_buffer;
+
+            image.free();
         }
 
         if (normal_path) {
-            normal.init(normal_path, flip_uv, params);
-            enable_normal = normal.id != invalid_texture;
+            Image image = ImageReader::read(normal_path, flip_uv);
+
+            normal.init();
+            normal.load(image, params);
+            enable_normal = normal.id != invalid_image_buffer;
+
+            image.free();
         }
 
         if (parallax_path) {
-            parallax.init(parallax_path, flip_uv, params);
-            enable_parallax = parallax.id != invalid_texture;
+            Image image = ImageReader::read(parallax_path, flip_uv);
+
+            parallax.init();
+            parallax.load(image, params);
+            enable_parallax = parallax.id != invalid_image_buffer;
+
+            image.free();
         }
 
         if (metallic_path) {
-            metallic.init(metallic_path, flip_uv, params);
-            enable_metallic = metallic.id != invalid_texture;
+            Image image = ImageReader::read(metallic_path, flip_uv);
+
+            metallic.init();
+            metallic.load(image, params);
+            enable_metallic = metallic.id != invalid_image_buffer;
+
+            image.free();
         }
 
         if (roughness_path) {
-            roughness.init(roughness_path, flip_uv, params);
-            enable_roughness = roughness.id != invalid_texture;
+            Image image = ImageReader::read(roughness_path, flip_uv);
+
+            roughness.init();
+            roughness.load(image, params);
+            enable_roughness = roughness.id != invalid_image_buffer;
+
+            image.free();
         }
 
         if (ao_path) {
-            ao.init(ao_path, flip_uv, params);
-            enable_ao = ao.id != invalid_texture;
+            Image image = ImageReader::read(ao_path, flip_uv);
+
+            ao.init();
+            ao.load(image, params);
+            enable_ao = ao.id != invalid_image_buffer;
+
+            image.free();
         }
     }
 

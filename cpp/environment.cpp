@@ -16,24 +16,24 @@ namespace gl {
 
     void Environment::init() {
         params.min_filter = GL_LINEAR;
-        brdf_convolution.init(
-                { resolution.x, resolution.y, GL_RG16F, GL_RG, GL_FLOAT },
-                params
-        );
-        skybox.init_cubemap(
-                { resolution.x, resolution.y, GL_RGB16F, GL_RGB, GL_FLOAT },
-                params
-        );
-        irradiance.init_cubemap(
-                { irradiance_resolution.x, irradiance_resolution.y, GL_RGB16F, GL_RGB, GL_FLOAT },
-                params
-        );
+
+        brdf_convolution.init();
+        Image brdf_image = { resolution.x, resolution.y, 2, GL_RG16F, GL_RG, PixelType::FLOAT };
+        brdf_convolution.load(brdf_image, params);
+
+        skybox.init();
+        Image skybox_image = { resolution.x, resolution.y, 3, GL_RGB16F, GL_RGB, PixelType::FLOAT };
+        skybox.load_cubemap(skybox_image, params);
+
+        irradiance.init();
+        Image irradiance_image = { irradiance_resolution.x, irradiance_resolution.y, 3, GL_RGB16F, GL_RGB, PixelType::FLOAT };
+        irradiance.load_cubemap(irradiance_image, params);
 
         params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-        prefilter.init_cubemap(
-                { prefilter_resolution.x, prefilter_resolution.y, GL_RGB16F, GL_RGB, GL_FLOAT },
-                params
-        );
+
+        prefilter.init();
+        Image prefilter_image = { prefilter_resolution.x, prefilter_resolution.y, 3, GL_RGB16F, GL_RGB, PixelType::FLOAT  };
+        prefilter.load_cubemap(prefilter_image, params);
     }
 
     void Environment::free() {

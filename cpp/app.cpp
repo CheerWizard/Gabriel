@@ -16,6 +16,8 @@
 #include <blur.h>
 #include <bloom.h>
 #include <skeletal_animation.h>
+#include <entity_picker.h>
+#include <terrain.h>
 
 namespace gl {
 
@@ -23,26 +25,31 @@ namespace gl {
     static float dt = 6;
     static float begin_time = 0;
 
-    static Scene scene;
+    static ecs::Scene scene;
 
     static Camera camera;
 
     static LightPresent point_light_present;
 
-    static Material plane_material;
-    static DrawableElements plane_drawable;
-    static PBR_Entity<PBR_Component_Deferred> plane;
+    static Terrain terrain = {
+            &scene,
+            { 0, -5, 4 },
+            { 0, 0, 0 },
+            { 1, 1, 1 },
+            32
+    };
 
-    static Material backpack_material;
-    static io::DrawableModel backpack_model;
-    static PBR_Entity<PBR_Component_Deferred> backpack;
+    static io::Model backpack_model;
+    static PBR_Entity backpack = {
+            &scene,
+            { -3, 1.5, 5 },
+            { -90, 0, 0 },
+            { 1, 1, 1 }
+    };
 
     static int enable_hdr = true;
     static int enable_blur = false;
     static int enable_bloom = true;
-
-    static DirectShadow direct_shadow;
-    static PointShadow point_shadow;
 
     static SSAO_Pass ssao_pass;
     static int enable_ssao = true;
@@ -53,23 +60,36 @@ namespace gl {
 
     static Bloom bloom;
 
-    static Material human_material;
-    static io::DrawableSkeletalModel human_model;
-    static PBR_Entity<PBR_SkeletalComponent_Deferred> human;
     static Animator human_animator;
+    static io::SkeletalModel human_model;
+    static PBR_Entity human = {
+            &scene,
+            { 0, 0, 0 },
+            { 0, 0, 0 },
+            { 1, 1, 1 }
+    };
 
-    static DrawableElements sphere_drawable;
+    static SphereTBN rock_sphere_geometry = { 128, 128 };
+    static PBR_Entity rock_sphere = {
+            &scene,
+            { 0, 1.5, 0 },
+            { 0, 0, 0 },
+            { 1, 1, 1 }
+    };
 
-    static Material rock_material;
-    static DrawableElements rock_drawable;
-    static SphereTBN rock_sphere_geometry;
-    static PBR_Entity<PBR_Component_Deferred> rock_sphere;
+    static PBR_Entity wood_sphere = {
+            &scene,
+            { 0, 1.5, 4 },
+            { 0, 0, 0 },
+            { 1, 1, 1 }
+    };
 
-    static Material wood_material;
-    static PBR_Entity<PBR_Component_Deferred> wood_sphere;
-
-    static Material metal_material;
-    static PBR_Entity<PBR_Component_Deferred> metal_sphere;
+    static PBR_Entity metal_sphere = {
+            &scene,
+            { 0, 1.5, 8 },
+            { 0, 0, 0 },
+            { 1, 1, 1 }
+    };
 
     static int print_limiter = 100;
 
@@ -109,8 +129,37 @@ namespace gl {
         ssao_pass.resolution = { w, h };
     }
 
+    static void geometry_debug_enabled() {
+        terrain.add_component<PolygonVisual>();
+        rock_sphere.add_component<PolygonVisual>();
+        wood_sphere.add_component<PolygonVisual>();
+        metal_sphere.add_component<PolygonVisual>();
+        backpack.add_component<PolygonVisual>();
+
+        terrain.add_component<NormalVisual>();
+        rock_sphere.add_component<NormalVisual>();
+        wood_sphere.add_component<NormalVisual>();
+        metal_sphere.add_component<NormalVisual>();
+        backpack.add_component<NormalVisual>();
+    }
+
+    static void geometry_debug_disabled() {
+        terrain.remove_component<PolygonVisual>();
+        rock_sphere.remove_component<PolygonVisual>();
+        wood_sphere.remove_component<PolygonVisual>();
+        metal_sphere.remove_component<PolygonVisual>();
+        backpack.remove_component<PolygonVisual>();
+
+        terrain.remove_component<NormalVisual>();
+        rock_sphere.remove_component<NormalVisual>();
+        wood_sphere.remove_component<NormalVisual>();
+        metal_sphere.remove_component<NormalVisual>();
+        backpack.remove_component<NormalVisual>();
+    }
+
     static int enable_normal_mapping = true;
     static int enable_parallax_mapping = true;
+    static int enable_geometry_debug = false;
 
     static void key_press(int key) {
         print("key_press(): " << key);
@@ -121,8 +170,13 @@ namespace gl {
         if (key == KEY::N)
             enable_normal_mapping = !enable_normal_mapping;
 
-        if (key == KEY::P)
-            enable_parallax_mapping = !enable_parallax_mapping;
+        if (key == KEY::P) {
+            enable_geometry_debug = !enable_geometry_debug;
+            if (enable_geometry_debug)
+                geometry_debug_enabled();
+            else
+                geometry_debug_disabled();
+        }
 
         if (key == KEY::B)
             enable_blur = !enable_blur;
@@ -138,9 +192,7 @@ namespace gl {
         }
 
         if (key == KEY::E) {
-            Outline outline;
-            auto* component = rock_sphere.get_component<PBR_Component_Deferred>();
-            rock_sphere.add_component<Outline>(&component->transform, component->drawable);
+            rock_sphere.add_component<Outline>();
         }
 
         if (key == KEY::R) {
@@ -154,6 +206,14 @@ namespace gl {
 
     static void mouse_press(int button) {
         print("mouse_press()");
+        if (button == GLFW_MOUSE_BUTTON_LEFT) {
+            win::Cursor mouse_cursor = win::mouse_cursor();
+            PBR_Pixel pixel;
+            pbr_pipeline.read_pixel(pixel, (int) mouse_cursor.x, (int) mouse_cursor.y);
+            print("Read pixel from [x,y] = [" << mouse_cursor.x << "," << mouse_cursor.y << "]");
+            EntityPicker entity_picker(&scene, pixel.entity_id);
+            print("");
+        }
     }
 
     static void mouse_release(int button) {
@@ -162,12 +222,6 @@ namespace gl {
 
     static void mouse_cursor(double x, double y) {
         camera.look(x, y);
-
-        if (win::is_key_press(KEY::LeftControl)) {
-            PBR_Pixel pixel = pbr_pipeline.read_pixel((int) x, (int) y);
-            print("PBR: read pixel from [x,y]=[" << x << "," << y << "]");
-            print("PBR: object id=" << pixel.object_id);
-        }
     }
 
     static void mouse_scroll(double x, double y) {
@@ -175,87 +229,22 @@ namespace gl {
     }
 
     static void init_scene() {
-        plane = {
-                &scene,
-                {
-                        {0, 0, 4 },
-                        {0, 0, 0},
-                        {40, 1, 40}
-                },
-                &plane_material,
-                &plane_drawable
-        };
-        plane.component()->material = &plane_material;
-        plane.component()->drawable = &plane_drawable;
+        pbr_pipeline.scene = &scene;
 
-        backpack = {
-                &scene,
-                {
-                        { -3, 1.5, 5 },
-                        { -90, 0, 0 },
-                        { 1, 1, 1 }
-                },
-                &backpack_material,
-                &backpack_model.drawable
-        };
-        backpack.component()->material = &backpack_material;
-        backpack.component()->drawable = &backpack_model.drawable;
+        terrain.add_component<PBR_Component_Forward>();
+        terrain.init();
 
-        human = {
-                &scene,
-                {
-                        { 0, 0, 0 },
-                        { 0, 0, 0 },
-                        { 1, 1, 1 }
-                },
-                &human_material,
-                &human_model.drawable
-        };
-        human.component()->material = &human_material;
-        human.component()->drawable = &human_model.drawable;
+        rock_sphere.add_component<PBR_Component_Deferred>();
+        wood_sphere.add_component<PBR_Component_Deferred>();
+        metal_sphere.add_component<PBR_Component_Deferred>();
 
-        rock_sphere = {
-                &scene,
-                {
-                        { 0, 1.3, 0 },
-                        { 0, 0, 0 },
-                        { 1, 1, 1 }
-                },
-                &rock_material,
-                &rock_drawable
-        };
-        rock_sphere.component()->material = &rock_material;
-        rock_sphere.component()->drawable = &rock_drawable;
+        backpack.add_component<PBR_Component_Deferred>();
 
-        wood_sphere = {
-                &scene,
-                {
-                        { 0, 1.5, 4 },
-                        { 0, 0, 0 },
-                        { 1, 1, 1 }
-                },
-                &wood_material,
-                &sphere_drawable
-        };
-        wood_sphere.component()->material = &wood_material;
-        wood_sphere.component()->drawable = &sphere_drawable;
-
-        metal_sphere = {
-                &scene,
-                {
-                        { 0, 1.5, 8 },
-                        { 0, 0, 0 },
-                        { 1, 1, 1 }
-                },
-                &metal_material,
-                &sphere_drawable
-        };
-        metal_sphere.component()->material = &metal_material;
-        metal_sphere.component()->drawable = &sphere_drawable;
+        human.add_component<PBR_SkeletalComponent_Deferred>();
     }
 
     static void init() {
-        win::init({ 0, 0, 1920, 1080, "Educational Project", win::win_flags::sync });
+        win::init({ 0, 0, 800, 600, "Educational Project", win::win_flags::sync });
 
         win::event_registry::window_error = window_error;
         win::event_registry::window_close = window_close;
@@ -276,12 +265,9 @@ namespace gl {
 
         init_scene();
 
-        // setup scene
-        pbr_pipeline.scene = &scene;
         // setup environment
         pbr_pipeline.env.resolution = { 2048, 2048 };
         pbr_pipeline.env.prefilter_resolution = { 2048, 2048 };
-        pbr_pipeline.env.hdr.init_hdr("images/hdr/Arches_E_PineTree_3k.hdr", true);
         pbr_pipeline.env.init();
         // setup sunlight
         static const float sunlight_intensity = 0.05;
@@ -305,10 +291,15 @@ namespace gl {
         // setup HDR
         hdr_renderer.init(win::props().width, win::props().height);
         hdr_renderer.set_exposure(1);
-        hdr_renderer.shiny.init("images/lens_dirt/lens_dirt.png");
+
+        Image shiny_image = ImageReader::read("images/lens_dirt/lens_dirt.png");
+        hdr_renderer.shiny.init();
+        hdr_renderer.shiny.load(shiny_image);
+        shiny_image.free();
 
         // setup PBR
         pbr_pipeline.init(win::props().width, win::props().height);
+        pbr_pipeline.init_hdr_env("images/hdr/Arches_E_PineTree_3k.hdr", true);
         pbr_pipeline.generate_env();
 
         // setup Blur
@@ -334,11 +325,10 @@ namespace gl {
         point_light_present.init();
 
         // setup 3D model
-        backpack_model.init("models/backpack/backpack.obj");
+        backpack_model.generate("models/backpack/backpack.obj");
+        backpack_model.init(*backpack.get_component<DrawableElements>());
 //        model_shadow.init(model);
-        auto* plane_component = plane.component();
-        auto* backpack_component = backpack.component();
-        backpack.component()->material->init(
+        backpack.material()->init(
                 true,
                 "models/backpack/diffuse.jpg",
                 "models/backpack/normal.png",
@@ -347,13 +337,14 @@ namespace gl {
                 "models/backpack/roughness.jpg",
                 "models/backpack/ao.jpg"
         );
-        backpack.component()->material->metallic_factor = 1;
-        backpack.component()->material->roughness_factor = 1;
-        backpack.component()->material->ao_factor = 1;
+        backpack.material()->metallic_factor = 1;
+        backpack.material()->roughness_factor = 1;
+        backpack.material()->ao_factor = 1;
 
         // setup human model
-        human_model.init("models/dancing-stormtrooper/source/silly_dancing.fbx");
-        human.component()->material->init(
+        human_model.generate("models/dancing-stormtrooper/source/silly_dancing.fbx");
+        human_model.init(*human.get_component<DrawableElements>());
+        human.material()->init(
                 false,
                 "models/dancing-stormtrooper/textures/Stormtrooper_D.png",
                 null,
@@ -362,26 +353,40 @@ namespace gl {
                 null,
                 null
         );
-        human.component()->material->metallic_factor = 0.5;
-        human.component()->material->roughness_factor = 0.5;
-        human.component()->material->ao_factor = 1.0;
-        human_animator = Animator(&human_model.model.animation);
+        human.material()->metallic_factor = 0.5;
+        human.material()->roughness_factor = 0.5;
+        human.material()->ao_factor = 1.0;
+        human_animator = Animator(&human_model.animation);
+
+        // setup horizontal plane
+        terrain.material()->init(
+                false,
+                "images/bumpy-rockface1-bl/albedo.png",
+                "images/bumpy-rockface1-bl/normal.png",
+                null,
+                "images/bumpy-rockface1-bl/metallic.png",
+                "images/bumpy-rockface1-bl/roughness.png",
+                "images/bumpy-rockface1-bl/ao.png"
+        );
+        terrain.material()->color = { 1, 1, 1, 1 };
+        terrain.material()->metallic_factor = 1;
+        terrain.material()->roughness_factor = 1;
+        terrain.material()->ao_factor = 1;
 
         // setup sphere
         SphereTBN sphere_geometry;
-        sphere_geometry.init_tbn(sphere_drawable);
+        sphere_geometry.init(*wood_sphere.get_component<DrawableElements>());
+        sphere_geometry.init(*metal_sphere.get_component<DrawableElements>());
 //        SphereTBN sphere_shadow_geometry;
 //        sphere_shadow_geometry.init_default();
         // setup rock sphere
-        rock_sphere_geometry.x_segments = 2047;
-        rock_sphere_geometry.y_segments = 2047;
-        rock_sphere_geometry.init_tbn(rock_drawable);
+        rock_sphere_geometry.init(*rock_sphere.get_component<DrawableElements>());
 //        sphere_rock_shadow_geometry.x_segments = 2047;
 //        sphere_rock_shadow_geometry.y_segments = 2047;
 //        sphere_rock_shadow_geometry.init_default(sphere_rock_shadow);
 
         {
-            rock_sphere.component()->material->init(
+            rock_sphere.material()->init(
                     false,
                     "images/bumpy-rockface1-bl/albedo.png",
                     "images/bumpy-rockface1-bl/normal.png",
@@ -390,15 +395,31 @@ namespace gl {
                     "images/bumpy-rockface1-bl/roughness.png",
                     "images/bumpy-rockface1-bl/ao.png"
             );
-            rock_sphere.component()->material->metallic_factor = 1;
-            rock_sphere.component()->material->roughness_factor = 1;
-            rock_sphere.component()->material->ao_factor = 1;
-            rock_sphere.component()->material->color = { 1, 1, 1, 1 };
+            rock_sphere.material()->metallic_factor = 1;
+            rock_sphere.material()->roughness_factor = 1;
+            rock_sphere.material()->ao_factor = 1;
+            rock_sphere.material()->color = { 1, 1, 1, 1 };
 
-            rock_sphere_geometry.displace(*rock_sphere.component()->drawable, "images/bumpy-rockface1-bl/height.png", false, 3.0f);
-//            sphere_rock_shadow_geometry.displace(sphere_rock_shadow, "images/bumpy-rockface1-bl/height.png", false, 3.0f, 0, [](gl::VertexDefault& V) {});
+            // displacement
+            {
+                // displace rock sphere
+                Image rock_height_map = ImageReader::read("images/bumpy-rockface1-bl/height.png");
+                rock_height_map.resize(rock_sphere_geometry.x_segments + 1, rock_sphere_geometry.y_segments + 1);
 
-            wood_sphere.component()->material->init(
+                rock_sphere.add_component<DisplacementTBN>();
+                auto* rock_sphere_displacement = rock_sphere.get_component<DisplacementTBN>();
+                rock_sphere_displacement->set_origin_vertices(&rock_sphere_geometry.vertices);
+                rock_sphere_displacement->scale = 0.125f;
+                rock_sphere_displacement->map = HeightMap(rock_height_map);
+                rock_sphere_displacement->displace(*rock_sphere.get_component<DrawableElements>());
+
+                rock_height_map.free();
+
+                // displace terrain
+                terrain.displace(10.0f, 10, 0, 1, 0.5f);
+            }
+
+            wood_sphere.material()->init(
                     false,
                     "images/cheap-plywood1-bl/albedo.png",
                     "images/cheap-plywood1-bl/normal.png",
@@ -407,11 +428,11 @@ namespace gl {
                     "images/cheap-plywood1-bl/roughness.png",
                     "images/cheap-plywood1-bl/ao.png"
             );
-            wood_sphere.component()->material->metallic_factor = 1;
-            wood_sphere.component()->material->roughness_factor = 1;
-            wood_sphere.component()->material->ao_factor = 1;
+            wood_sphere.material()->metallic_factor = 1;
+            wood_sphere.material()->roughness_factor = 1;
+            wood_sphere.material()->ao_factor = 1;
 
-            metal_sphere.component()->material->init(
+            metal_sphere.material()->init(
                     false,
                     "images/light-gold-bl/albedo.png",
                     "images/light-gold-bl/normal.png",
@@ -420,18 +441,10 @@ namespace gl {
                     "images/light-gold-bl/roughness.png",
                     null
             );
-            metal_sphere.component()->material->metallic_factor = 1;
-            metal_sphere.component()->material->roughness_factor = 1;
-            metal_sphere.component()->material->ao_factor = 1;
+            metal_sphere.material()->metallic_factor = 1;
+            metal_sphere.material()->roughness_factor = 1;
+            metal_sphere.material()->ao_factor = 1;
         }
-
-        // setup horizontal plane
-        CubeTBN plane_geometry;
-        plane_geometry.init_tbn(*plane.component()->drawable);
-        plane.component()->material->color = {1, 1, 1, 1 };
-        plane.component()->material->metallic_factor = 0;
-        plane.component()->material->roughness_factor = 0;
-        plane.component()->material->ao_factor = 1;
 
         // render_deferred Shadow pass
 //        {
@@ -469,30 +482,29 @@ namespace gl {
 //            direct_shadow.update_depth_map(pbr_light_shader);
 //        }
 
-        Texture::unbind();
-        Shader::stop();
         Screen::src = pbr_pipeline.render_target();
-
         pbr_pipeline.update_sunlight();
         pbr_pipeline.update_pointlights();
         pbr_pipeline.update_flashlight();
     }
 
     static void free() {
+        terrain.free();
+
         pbr_pipeline.env.free();
 
         pbr_pipeline.free();
         Screen::free();
         hdr_renderer.free();
 
-        wood_sphere.component()->material->free();
-        wood_sphere.component()->drawable->free();
+        wood_sphere.material()->free();
+        wood_sphere.drawable()->free();
 
-        metal_sphere.component()->material->free();
-        metal_sphere.component()->drawable->free();
+        metal_sphere.material()->free();
+        metal_sphere.drawable()->free();
 
-        rock_sphere.component()->material->free();
-        rock_sphere.component()->drawable->free();
+        rock_sphere.material()->free();
+        rock_sphere.drawable()->free();
 
         Blur::free();
 
@@ -501,17 +513,14 @@ namespace gl {
         SSAO::free();
         ssao_pass.free();
 
-        plane.component()->material->free();
-        plane.component()->drawable->free();
-
         point_light_present.free();
 
-        backpack.component()->material->free();
-        backpack.component()->drawable->free();
+        backpack.material()->free();
+        backpack.drawable()->free();
         backpack_model.free();
 
-        human.component()->material->free();
-        human.component()->drawable->free();
+        human.material()->free();
+        human.drawable()->free();
         human_model.free();
 
         camera.free();
@@ -531,10 +540,10 @@ namespace gl {
 
         // rotate object each frame
         float f = 0.05f;
-        rock_sphere.component()->transform.rotation.y += f;
-        wood_sphere.component()->transform.rotation.y += f * 2;
-        metal_sphere.component()->transform.rotation.y += f * 4;
-        human.component()->transform.rotation.y += f * 4;
+        rock_sphere.transform()->rotation.y += f;
+        wood_sphere.transform()->rotation.y += f * 2;
+        metal_sphere.transform()->rotation.y += f * 4;
+        human.transform()->rotation.y += f * 4;
 
         // translate point lights up/down
 //        for (auto& point_light : point_lights) {
@@ -614,32 +623,44 @@ namespace gl {
     }
 
     static void debug_screen_update() {
-        if (win::is_key_press(KEY::D1))
+        if (win::is_key_press(KEY::D1)) {
             Screen::src = pbr_pipeline.render_target();
+        }
 
-        else if (win::is_key_press(KEY::D2))
+        else if (win::is_key_press(KEY::D2)) {
             Screen::src = pbr_pipeline.gbuffer().position;
+        }
 
-        else if (win::is_key_press(KEY::D3))
+        else if (win::is_key_press(KEY::D3)) {
             Screen::src = pbr_pipeline.gbuffer().normal;
+        }
 
-        else if (win::is_key_press(KEY::D4))
+        else if (win::is_key_press(KEY::D4)) {
             Screen::src = pbr_pipeline.gbuffer().albedo;
+        }
 
-        else if (win::is_key_press(KEY::D5))
+        else if (win::is_key_press(KEY::D5)) {
             Screen::src = pbr_pipeline.gbuffer().pbr_params;
+        }
 
-        else if (win::is_key_press(KEY::D6))
+        else if (win::is_key_press(KEY::D6)) {
             Screen::src = pbr_pipeline.gbuffer().shadow_proj_coords;
+        }
 
-        else if (win::is_key_press(KEY::D7))
+        else if (win::is_key_press(KEY::D7)) {
             Screen::src = SSAO::render_target;
+        }
 
-        else if (win::is_key_press(KEY::D8))
+        else if (win::is_key_press(KEY::D8)) {
             Screen::src = pbr_pipeline.env.hdr;
+        }
 
-        else if (win::is_key_press(KEY::D9))
+        else if (win::is_key_press(KEY::D9)) {
             Screen::src = pbr_pipeline.transparent_buffer().revealage;
+        }
+
+        else if (win::is_key_press(KEY::D0)) {
+        }
     }
 
     static void render() {

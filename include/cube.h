@@ -191,7 +191,8 @@ namespace gl {
         drawable.vao.bind();
         drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
         drawable.ibo.init(indices, 36, GL_STATIC_DRAW);
-        drawable.index_count = 36;
+        drawable.strips = 1;
+        drawable.vertices_per_strip = 36;
     }
 
     template<typename T>

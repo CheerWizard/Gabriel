@@ -94,8 +94,8 @@ namespace io {
         {
             int vertex_id = weights[weight_index].mVertexId;
             float weight = weights[weight_index].mWeight;
-            assert(vertex_id <= skeletal_mesh.vertex_count);
-            SkeletalVertex& vertex = skeletal_mesh.vertices.data[vertex_id];
+            assert(vertex_id <= skeletal_mesh.vertices.count);
+            SkeletalVertex& vertex = skeletal_mesh.vertices[vertex_id];
             vertex.bone_id = { bone_id, bone_id, bone_id, bone_id };
             vertex.weight = { weight, weight, weight, weight };
         }
@@ -106,11 +106,10 @@ namespace io {
         io::SkeletalMesh result;
         std::vector<u32> indices;
 
-        result.vertex_count = mesh->mNumVertices;
-        result.vertices.data = new SkeletalVertex[mesh->mNumVertices];
+        result.vertices.init((int) mesh->mNumVertices);
 
-        for (u32 i = 0 ; i < mesh->mNumVertices ; i++) {
-            result.vertices.data[i] = parse_skeletal_vertex(mesh, i);
+        for (int i = 0 ; i < mesh->mNumVertices ; i++) {
+            result.vertices[i] = parse_skeletal_vertex(mesh, i);
         }
 
         for (int bone_index = 0; bone_index < mesh->mNumBones; ++bone_index)
@@ -124,9 +123,8 @@ namespace io {
                 indices.push_back(face.mIndices[j]);
         }
 
-        result.index_count = indices.size();
-        result.indices = new u32[indices.size()];
-        for (u32 i = 0 ; i < indices.size() ; i++) {
+        result.indices.init((int) indices.size());
+        for (int i = 0 ; i < indices.size() ; i++) {
             result.indices[i] = indices[i];
         }
 
@@ -169,41 +167,18 @@ namespace io {
         }
     }
 
-    static SkeletalModel skeletal_model_read(
-            const std::string& filepath,
-            u32 flags
-    ) {
-        SkeletalModel model;
-
-        AssimpCore::read_file([&filepath, &model, &flags](const aiScene* scene) {
-
-            std::string directory = filepath.substr(0, filepath.find_last_of('/'));
-            parse_skeletal_meshes(scene->mRootNode, scene, model, directory, flags);
-
-            auto ai_animation = scene->mAnimations[0];
-            model.animation.duration = ai_animation->mDuration;
-            model.animation.ticks_per_second = ai_animation->mTicksPerSecond;
-            read_hierarchy_data(scene->mRootNode, model.animation.root);
-
-        }, filepath, flags);
-
-        return model;
-    }
-
-    void DrawableSkeletalModel::init(const std::string &filepath, u32 flags) {
-        model = skeletal_model_read(filepath, flags);
-        model.animation.bones = &model.bones;
+    void SkeletalModel::init(DrawableElements& drawable) {
         // invalidate model vertices and indices to group together
-        size_t mesh_count = model.meshes.size();
+        size_t mesh_count = meshes.size();
         u32 vertex_count = 0;
         u32 index_count = 0;
         for (u32 i = 0 ; i < mesh_count ; i++) {
-            auto& mesh = model.meshes[i];
-            for (u32 j = 0 ; j < mesh.index_count ; j++) {
+            auto& mesh = meshes[i];
+            for (int j = 0 ; j < mesh.indices.count ; j++) {
                 mesh.indices[j] += vertex_count;
             }
-            vertex_count += mesh.vertex_count;
-            index_count += mesh.index_count;
+            vertex_count += mesh.vertices.count;
+            index_count += mesh.indices.count;
         }
 
         drawable.vao.init();
@@ -221,72 +196,44 @@ namespace io {
         u32 vertex_offset = 0;
         u32 index_offset = 0;
         for (u32 i = 0 ; i < mesh_count ; i++) {
-            auto& mesh = model.meshes[i];
+            auto& mesh = meshes[i];
 
             glBindBuffer(GL_ARRAY_BUFFER, drawable.vbo.id);
-            glBufferSubData(GL_ARRAY_BUFFER, vertex_offset, mesh.vertex_count * sizeof(SkeletalVertex), mesh.vertices.to_float());
+            glBufferSubData(GL_ARRAY_BUFFER, vertex_offset, mesh.vertices.size(), mesh.vertices.to_float());
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.ibo.id);
-            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, index_offset, mesh.index_count * sizeof(u32), mesh.indices);
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, index_offset, mesh.indices.size(), mesh.indices.indices);
 
-            vertex_offset += mesh.vertex_count * sizeof(SkeletalVertex);
-            index_offset += mesh.index_count * sizeof(u32);
+            vertex_offset += mesh.vertices.size();
+            index_offset += mesh.indices.size();
         }
 
-        drawable.index_count = index_count;
+        drawable.type = GL_TRIANGLES;
+        drawable.strips = 1;
+        drawable.vertices_per_strip = index_count;
     }
 
-    void DrawableSkeletalModels::init(const std::string &filepath, u32 flags) {
-        model = skeletal_model_read(filepath, flags);
-        model.animation.bones = &model.bones;
-
-        size_t mesh_size = model.meshes.size();
-        elements.resize(mesh_size);
-        for (int i = 0 ; i < elements.size() ; i++) {
-            auto& element = elements[i];
-            auto& mesh = model.meshes[i];
-
-            element.vao.init();
-            element.vao.bind();
-
-            glGenBuffers(1, &element.vbo.id);
-            glBindBuffer(GL_ARRAY_BUFFER, element.vbo.id);
-            glBufferData(GL_ARRAY_BUFFER, mesh.vertex_count * sizeof(SkeletalVertex), mesh.vertices.to_float(), GL_DYNAMIC_DRAW);
-            element.vbo.set_format(SkeletalVertex::format);
-
-            glGenBuffers(1, &element.ibo.id);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element.ibo.id);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.index_count * sizeof(u32), mesh.indices, GL_DYNAMIC_DRAW);
-
-            element.index_count = mesh.index_count;
+    void SkeletalModel::free() {
+        for (auto& mesh : meshes) {
+            mesh.free();
         }
-    }
-
-    void DrawableSkeletalModel::free() {
-        for (auto& mesh : model.meshes) {
-            delete[] mesh.vertices.data;
-            delete[] mesh.indices;
-        }
-
-        for (auto& material : model.materials) {
+        for (auto& material : materials) {
             material.second.free();
         }
-
-        drawable.free();
     }
 
-    void DrawableSkeletalModels::free() {
-        for (auto& mesh : model.meshes) {
-            delete[] mesh.vertices.data;
-            delete[] mesh.indices;
-        }
+    void SkeletalModel::generate(const std::string &filepath, u32 flags) {
+        AssimpCore::read_file([&filepath, this, &flags](const aiScene* scene) {
 
-        for (auto& material : model.materials) {
-            material.second.free();
-        }
+            std::string directory = filepath.substr(0, filepath.find_last_of('/'));
+            parse_skeletal_meshes(scene->mRootNode, scene, *this, directory, flags);
 
-        for (auto& element : elements) {
-            element.free();
-        }
+            auto ai_animation = scene->mAnimations[0];
+            animation.duration = ai_animation->mDuration;
+            animation.ticks_per_second = ai_animation->mTicksPerSecond;
+            read_hierarchy_data(scene->mRootNode, animation.root);
+            animation.bones = &bones;
+
+        }, filepath, flags);
     }
 
 }

@@ -26,13 +26,21 @@ namespace gl {
     void DrawableElements::draw() const {
         vao.bind();
         ibo.bind();
-        glDrawElements(type, index_count, GL_UNSIGNED_INT, null);
+        // draws with either triangles or triangle strips
+        for (u32 strip = 0; strip < strips; strip++)
+        {
+            glDrawElements(type, vertices_per_strip, GL_UNSIGNED_INT, (void*)(sizeof(u32) * vertices_per_strip * strip));
+        }
     }
 
     void DrawableElements::draw(int instances) const {
         vao.bind();
         ibo.bind();
-        glDrawElementsInstanced(type, index_count, GL_UNSIGNED_INT, null, instances);
+        // draws with either triangles or triangle strips
+        for (u32 strip = 0; strip < strips; strip++)
+        {
+            glDrawElementsInstanced(type, vertices_per_strip, GL_UNSIGNED_INT, (void*)(sizeof(u32) * vertices_per_strip * strip), instances);
+        }
     }
 
 }

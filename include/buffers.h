@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vertex.h>
-#include <texture.h>
 
 #include <glad/glad.h>
 

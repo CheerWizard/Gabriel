@@ -2,31 +2,36 @@
 
 namespace io {
 
-    static std::unordered_map<std::string, Texture> textures_table {};
+    static std::unordered_map<std::string, ImageBuffer> buffer_table {};
 
     static void read_material(
             aiMaterial* material,
             aiTextureType type,
             const std::string& directory,
             u32 flags,
-            Texture& texture,
-            const TextureParams& params = {}
+            ImageBuffer& buffer,
+            const ImageParams& params = {}
     ) {
         aiString texture_file;
         material->Get(AI_MATKEY_TEXTURE(type, 0), texture_file);
         std::stringstream ss;
         ss << directory << "/" << texture_file.data;
-        std::string texture_filepath = ss.str();
+        std::string image_filepath = ss.str();
 
-        if (textures_table.find(texture_filepath) != textures_table.end()) {
-            texture = textures_table[texture_filepath];
+        if (buffer_table.find(image_filepath) != buffer_table.end()) {
+            buffer = buffer_table[image_filepath];
             return;
         }
 
-        texture.init(texture_filepath.c_str(), flags & aiProcess_FlipUVs, params);
-        if (texture.id != invalid_texture) {
-            textures_table[texture_filepath] = texture;
+        Image image = ImageReader::read(image_filepath.c_str(), flags & aiProcess_FlipUVs);
+
+        buffer.init();
+        buffer.load(image, params);
+        if (buffer.id != invalid_image_buffer) {
+            buffer_table[image_filepath] = buffer;
         }
+
+        image.free();
     }
 
     u32 parse_material(
@@ -39,26 +44,26 @@ namespace io {
             u32 material_index = mesh->mMaterialIndex;
 
             gl::Material result_material;
-            gl::TextureParams material_params;
+            gl::ImageParams material_params;
             material_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
             read_material(material, aiTextureType_BASE_COLOR, directory, flags, result_material.albedo, material_params);
-            result_material.enable_albedo = result_material.albedo.id != invalid_texture;
+            result_material.enable_albedo = result_material.albedo.id != invalid_image_buffer;
 
             read_material(material, aiTextureType_NORMALS, directory, flags, result_material.normal, material_params);
-            result_material.enable_normal = result_material.normal.id != invalid_texture;
+            result_material.enable_normal = result_material.normal.id != invalid_image_buffer;
 
             read_material(material, aiTextureType_DISPLACEMENT, directory, flags, result_material.parallax, material_params);
-            result_material.enable_parallax = result_material.parallax.id != invalid_texture;
+            result_material.enable_parallax = result_material.parallax.id != invalid_image_buffer;
 
             read_material(material, aiTextureType_METALNESS, directory, flags, result_material.metallic, material_params);
-            result_material.enable_metallic = result_material.metallic.id != invalid_texture;
+            result_material.enable_metallic = result_material.metallic.id != invalid_image_buffer;
 
             read_material(material, aiTextureType_DIFFUSE_ROUGHNESS, directory, flags, result_material.roughness, material_params);
-            result_material.enable_roughness = result_material.roughness.id != invalid_texture;
+            result_material.enable_roughness = result_material.roughness.id != invalid_image_buffer;
 
             read_material(material, aiTextureType_AMBIENT_OCCLUSION, directory, flags, result_material.ao, material_params);
-            result_material.enable_ao = result_material.ao.id != invalid_texture;
+            result_material.enable_ao = result_material.ao.id != invalid_image_buffer;
 
             materials[material_index] = result_material;
             return material_index;

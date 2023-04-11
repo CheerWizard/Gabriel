@@ -9,7 +9,7 @@
 namespace gl {
 
     static u32 shader_init(const char* filepath, u32 shader_type) {
-        std::string src = io::read_file_string(filepath);
+        std::string src = io::FileReader::read(filepath);
         const char* c_src = src.c_str();
         if (src.empty()) {
             print_err("shader_init() : failed to read shader from file");
@@ -225,22 +225,22 @@ namespace gl {
         glUniformMatrix4dv(location, 1, GL_FALSE, glm::value_ptr(value));
     }
 
-    void Shader::bind_sampler(const char* name, int slot, const Texture &texture) {
-        Texture::bind_activate(texture.type, texture.id, slot);
+    void Shader::bind_sampler(const char* name, int slot, const ImageBuffer &buffer) {
+        ImageBuffer::bind_activate(buffer.type, buffer.id, slot);
         set_uniform(get_uniform_location(name), slot);
     }
 
-    void Shader::bind_sampler(const TextureSampler& sampler, const Texture &texture) {
-        bind_sampler(sampler.name, sampler.slot, texture);
+    void Shader::bind_sampler(const ImageSampler& sampler, const ImageBuffer &buffer) {
+        bind_sampler(sampler.name, sampler.slot, buffer);
     }
 
-    void Shader::bind_sampler_struct(const char* struct_name, const char* name, int slot, const Texture &texture) {
-        Texture::bind_activate(texture.type, texture.id, slot);
+    void Shader::bind_sampler_struct(const char* struct_name, const char* name, int slot, const ImageBuffer &buffer) {
+        ImageBuffer::bind_activate(buffer.type, buffer.id, slot);
         set_uniform(get_uniform_struct_location(struct_name, name), slot);
     }
 
-    void Shader::bind_sampler_struct(const char* struct_name, const TextureSampler& sampler, const Texture &texture) {
-        bind_sampler_struct(struct_name, sampler.name, sampler.slot, texture);
+    void Shader::bind_sampler_struct(const char* struct_name, const ImageSampler& sampler, const ImageBuffer &buffer) {
+        bind_sampler_struct(struct_name, sampler.name, sampler.slot, buffer);
     }
 
 }

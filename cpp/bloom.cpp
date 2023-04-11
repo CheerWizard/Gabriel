@@ -51,11 +51,11 @@ namespace gl {
         mix_color.params.min_filter = GL_LINEAR;
         mix_color.params.mag_filter = GL_LINEAR;
         // data
-        mix_color.data.internal_format = GL_RGB16F;
-        mix_color.data.data_format = GL_RGB;
-        mix_color.data.primitive_type = GL_FLOAT;
-        mix_color.data.width = resolution.x;
-        mix_color.data.height = resolution.y;
+        mix_color.image.internal_format = GL_RGB16F;
+        mix_color.image.pixel_format = GL_RGB;
+        mix_color.image.pixel_type = PixelType::FLOAT;
+        mix_color.image.width = resolution.x;
+        mix_color.image.height = resolution.y;
 
         mix_color.init();
     }
@@ -66,7 +66,7 @@ namespace gl {
         mips.resize(mip_levels);
 
         // mips filter
-        TextureParams mip_params;
+        ImageParams mip_params;
         mip_params.s = GL_CLAMP_TO_EDGE;
         mip_params.r = GL_CLAMP_TO_EDGE;
         mip_params.t = GL_CLAMP_TO_EDGE;
@@ -74,19 +74,19 @@ namespace gl {
         mip_params.mag_filter = GL_LINEAR;
 
         // mips data
-        TextureData mip_data;
+        Image mip_data;
         mip_data.internal_format = GL_RGB16F;
-        mip_data.data_format = GL_RGB;
-        mip_data.primitive_type = GL_FLOAT;
+        mip_data.pixel_format = GL_RGB;
+        mip_data.pixel_type = PixelType::FLOAT;
 
         glm::ivec2 mip_size = resolution / 2;
 
         // init mips
         for (ColorAttachment& mip : mips) {
-            mip.data = mip_data;
+            mip.image = mip_data;
             mip.params = mip_params;
-            mip.data.width = mip_size.x;
-            mip.data.height = mip_size.y;
+            mip.image.width = mip_size.x;
+            mip.image.height = mip_size.y;
             mip.init();
 
             mip_size /= 2;
@@ -135,7 +135,7 @@ namespace gl {
         render_downsample();
         render_upsample();
         render_mix();
-        render_target = mix_color.view;
+        render_target = mix_color.buffer;
     }
 
     void Bloom::render_downsample() {
@@ -151,13 +151,13 @@ namespace gl {
 
         for (int i = 0 ; i < mip_levels ; i++) {
             auto& mip = mips[i];
-            glViewport(0, 0, mip.data.width, mip.data.height);
+            glViewport(0, 0, mip.image.width, mip.image.height);
             mip.attach();
             vao.draw_quad();
 
-            glm::ivec2 mip_resolution = { mip.data.width, mip.data.height };
+            glm::ivec2 mip_resolution = { mip.image.width, mip.image.height };
             downsample_shader.set_uniform_args("resolution", mip_resolution);
-            mip.view.bind();
+            mip.buffer.bind();
 
             if (i == 0) {
                 mip_level = 1;
@@ -178,9 +178,9 @@ namespace gl {
             auto& mip = mips[i];
             auto& next_mip = mips[i - 1];
 
-            mip.view.bind();
+            mip.buffer.bind();
 
-            glViewport(0, 0, next_mip.data.width, next_mip.data.height);
+            glViewport(0, 0, next_mip.image.width, next_mip.image.height);
             next_mip.attach();
 
             vao.draw_quad();
@@ -197,7 +197,7 @@ namespace gl {
         mix_shader.use();
 
         mix_shader.bind_sampler("hdr", 0, src);
-        mix_shader.bind_sampler("bloom", 1, fbo.colors[0].view);
+        mix_shader.bind_sampler("bloom", 1, fbo.colors[0].buffer);
 
         vao.draw_quad();
     }

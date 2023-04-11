@@ -9,18 +9,9 @@
 
 namespace gl {
 
-    using namespace ecs;
-
-    struct Outline : Component {
-        Transform* transform;
-        DrawableElements* drawable;
-        float thickness = 0.02f;
+    struct Outline : ecs::Component {
         glm::vec4 color = { 1, 1, 0, 1 };
-
-        Outline() = default;
-
-        Outline(Transform* transform, DrawableElements* drawable)
-        : transform(transform), drawable(drawable) {}
+        float thickness = 0.02f;
     };
 
     struct OutlineRenderer final {
@@ -31,7 +22,7 @@ namespace gl {
         void begin();
         void end();
 
-        void render(Outline* outline);
+        void render(Outline& outline, Transform& transform, DrawableElements& drawable);
 
     private:
         Shader shader;

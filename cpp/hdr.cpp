@@ -11,11 +11,11 @@ namespace gl {
         );
         fbo.init();
         ColorAttachment color;
-        color.data.internal_format = GL_RGB;
-        color.data.data_format = GL_RGB;
-        color.data.primitive_type = GL_UNSIGNED_BYTE;
-        color.data.width = w;
-        color.data.height = h;
+        color.image.internal_format = GL_RGB;
+        color.image.pixel_format = GL_RGB;
+        color.image.pixel_type = PixelType::U8;
+        color.image.width = w;
+        color.image.height = h;
         fbo.colors = { color };
         fbo.init_colors();
         fbo.attach_colors();
@@ -47,7 +47,7 @@ namespace gl {
 
         vao.draw_quad();
 
-        render_target = fbo.colors[0].view;
+        render_target = fbo.colors[0].buffer;
     }
 
     void HDR_Renderer::set_exposure(float exposure) {

@@ -7,7 +7,7 @@ in vec4 dls_pos;
 
 layout(location = 0) out vec4 out_color;
 layout(location = 1) out float out_reveal;
-layout(location = 2) out uint out_object_id;
+layout(location = 2) out uint out_entity_id;
 
 vec2 UV;
 vec3 N;
@@ -110,8 +110,7 @@ vec3 sample_offset_directions[20] = vec3[]
 
 uniform Material material;
 
-uniform uint object_id;
-uniform uint draw_id;
+uniform uint entity_id;
 
 float attenuation_function(vec3 light_position, float q, float l, float c)
 {
@@ -424,5 +423,5 @@ void main()
 //        out_color = vec4(out_color.rgb * out_color.a, out_color.a) * weight;
 //    }
 
-    out_object_id = object_id;
+    out_entity_id = entity_id;
 }

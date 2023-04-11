@@ -20,8 +20,8 @@ namespace gl {
             "shaders/direct_shadow.frag"
         );
 
-        fbo.depth.data = { w, h };
-        fbo.depth.data.primitive_type = GL_FLOAT;
+        fbo.depth.image = { w, h };
+        fbo.depth.image.pixel_type = PixelType::FLOAT;
         fbo.depth.params.min_filter = GL_NEAREST;
         fbo.depth.params.mag_filter = GL_NEAREST;
         fbo.depth.params.s = GL_CLAMP_TO_EDGE;
@@ -33,7 +33,7 @@ namespace gl {
         fbo.attach_depth();
         fbo.complete();
 
-        render_target = fbo.depth.view;
+        render_target = fbo.depth.buffer;
     }
 
     void DirectShadowRenderer::free() {
@@ -46,7 +46,7 @@ namespace gl {
     }
 
     void DirectShadowRenderer::begin() {
-        glViewport(0, 0, fbo.depth.data.width, fbo.depth.data.height);
+        glViewport(0, 0, fbo.depth.image.width, fbo.depth.image.height);
         fbo.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
@@ -62,15 +62,15 @@ namespace gl {
         glCullFace(GL_BACK);
     }
 
-    void DirectShadowRenderer::update(DirectShadow &direct_shadow) {
+    void DirectShadowRenderer::update(DirectShadow& direct_shadow) {
         direct_shadow.update();
         shader.use();
         shader.set_uniform_args("direct_light_space", direct_shadow.light_space);
     }
 
-    void DirectShadowRenderer::render(DirectShadow& direct_shadow) {
-        direct_shadow.transform.update(shader);
-        direct_shadow.drawable.draw();
+    void DirectShadowRenderer::render(Transform& transform, DrawableElements& drawable) {
+        transform.update(shader);
+        drawable.draw();
     }
 
     void PointShadow::update() {
@@ -93,9 +93,9 @@ namespace gl {
             "shaders/point_shadow.geom"
         );
 
-        fbo.depth.view.type = GL_TEXTURE_CUBE_MAP;
-        fbo.depth.data = { w, h };
-        fbo.depth.data.primitive_type = GL_FLOAT;
+        fbo.depth.buffer.type = GL_TEXTURE_CUBE_MAP;
+        fbo.depth.image = { w, h };
+        fbo.depth.image.pixel_type = PixelType::FLOAT;
         fbo.depth.params.min_filter = GL_NEAREST;
         fbo.depth.params.mag_filter = GL_NEAREST;
         fbo.depth.params.s = GL_CLAMP_TO_EDGE;
@@ -107,7 +107,7 @@ namespace gl {
         fbo.attach_depth();
         fbo.complete();
 
-        render_target = fbo.depth.view;
+        render_target = fbo.depth.buffer;
     }
 
     void PointShadowRenderer::free() {
@@ -120,7 +120,7 @@ namespace gl {
     }
 
     void PointShadowRenderer::begin() {
-        glViewport(0, 0, fbo.depth.data.width, fbo.depth.data.height);
+        glViewport(0, 0, fbo.depth.image.width, fbo.depth.image.height);
         fbo.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
@@ -136,7 +136,7 @@ namespace gl {
         glCullFace(GL_BACK);
     }
 
-    void PointShadowRenderer::update(PointShadow &point_shadow) {
+    void PointShadowRenderer::update(PointShadow& point_shadow) {
         point_shadow.update();
         shader.use();
         UniformArrayM4F light_spaces = { "light_spaces", point_shadow.light_spaces };
@@ -145,9 +145,9 @@ namespace gl {
         shader.set_uniform_args("light_pos", point_shadow.position);
     }
 
-    void PointShadowRenderer::render(PointShadow& point_shadow) {
-        point_shadow.transform.update(shader);
-        point_shadow.drawable.draw();
+    void PointShadowRenderer::render(Transform& transform, DrawableElements& drawable) {
+        transform.update(shader);
+        drawable.draw();
     }
 
 }

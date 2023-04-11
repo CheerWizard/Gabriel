@@ -7,8 +7,8 @@
 namespace gl {
 
     struct Blur final {
-        static Texture src;
-        static Texture render_target;
+        static ImageBuffer src;
+        static ImageBuffer render_target;
         static float offset;
 
         static void init(int w, int h);

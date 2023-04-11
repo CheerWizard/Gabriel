@@ -147,6 +147,12 @@ namespace win {
         return win_props;
     }
 
+    Cursor mouse_cursor() {
+        Cursor cursor;
+        glfwGetCursorPos(window, &cursor.x, &cursor.y);
+        return cursor;
+    }
+
     void disable_cursor() {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
