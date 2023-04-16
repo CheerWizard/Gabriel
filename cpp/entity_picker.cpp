@@ -12,8 +12,6 @@ namespace gl {
             auto* pickable = scene->get_component<Pickable>(entity_id);
             if (pickable) {
                 pickable->enable = !pickable->enable;
-                auto* drawable = scene->get_component<DrawableElements>(entity_id);
-                auto* transform = scene->get_component<Transform>(entity_id);
                 if (pickable->enable) {
                     scene->add_component<PolygonVisual>(entity_id);
                     scene->add_component<NormalVisual>(entity_id);

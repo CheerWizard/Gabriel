@@ -11,30 +11,27 @@ namespace gl {
     struct Plane : Geometry<T> {
         int size = 64;
 
-        Plane() {
-            generate();
-        }
+        Plane() = default;
 
         Plane(int size) : size(size) {
             generate();
         }
 
-        void init(DrawableElements& drawable);
-
-    private:
         void generate();
+        void init(DrawableElements& drawable);
     };
 
     struct PlaneUV : Plane<VertexUV> {
-        PlaneUV();
-        PlaneUV(int size);
+        PlaneUV() = default;
+        PlaneUV(int size) : Plane<VertexUV>(size) {}
     };
 
     struct PlaneTBN : Plane<VertexTBN> {
-        PlaneTBN();
-        PlaneTBN(int size);
+        PlaneTBN() = default;
+        PlaneTBN(int size) : Plane<VertexTBN>(size) {
+            generate_tbn();
+        }
 
-    private:
         void generate_tbn();
     };
 

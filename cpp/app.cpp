@@ -33,7 +33,7 @@ namespace gl {
 
     static Terrain terrain = {
             &scene,
-            { 0, -5, 4 },
+            { 0, -6, 4 },
             { 0, 0, 0 },
             { 1, 1, 1 },
             32
@@ -208,11 +208,10 @@ namespace gl {
         print("mouse_press()");
         if (button == GLFW_MOUSE_BUTTON_LEFT) {
             win::Cursor mouse_cursor = win::mouse_cursor();
-            PBR_Pixel pixel;
+            static PBR_Pixel pixel;
             pbr_pipeline.read_pixel(pixel, (int) mouse_cursor.x, (int) mouse_cursor.y);
             print("Read pixel from [x,y] = [" << mouse_cursor.x << "," << mouse_cursor.y << "]");
             EntityPicker entity_picker(&scene, pixel.entity_id);
-            print("");
         }
     }
 
@@ -231,16 +230,24 @@ namespace gl {
     static void init_scene() {
         pbr_pipeline.scene = &scene;
 
-        terrain.add_component<PBR_Component_Forward>();
+        terrain.add_component<PBR_Component_Deferred>();
+        terrain.add_component<Pickable>();
         terrain.init();
 
         rock_sphere.add_component<PBR_Component_Deferred>();
+        rock_sphere.add_component<Pickable>();
+
         wood_sphere.add_component<PBR_Component_Deferred>();
+        wood_sphere.add_component<Pickable>();
+
         metal_sphere.add_component<PBR_Component_Deferred>();
+        metal_sphere.add_component<Pickable>();
 
         backpack.add_component<PBR_Component_Deferred>();
+        backpack.add_component<Pickable>();
 
         human.add_component<PBR_SkeletalComponent_Deferred>();
+        human.add_component<Pickable>();
     }
 
     static void init() {
@@ -374,7 +381,7 @@ namespace gl {
         terrain.material()->ao_factor = 1;
 
         // setup sphere
-        SphereTBN sphere_geometry;
+        SphereTBN sphere_geometry = { 64, 64 };
         sphere_geometry.init(*wood_sphere.get_component<DrawableElements>());
         sphere_geometry.init(*metal_sphere.get_component<DrawableElements>());
 //        SphereTBN sphere_shadow_geometry;
@@ -416,7 +423,7 @@ namespace gl {
                 rock_height_map.free();
 
                 // displace terrain
-                terrain.displace(10.0f, 10, 0, 1, 0.5f);
+                terrain.displace_with(MidPointFormation(terrain.size(), terrain.size(), 1, 0, 10), 1);
             }
 
             wood_sphere.material()->init(

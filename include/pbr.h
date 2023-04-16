@@ -87,6 +87,9 @@ namespace gl {
 
         void update(Environment* env);
 
+        void blit_color_depth(int w, int h, u32 src_color_fbo, u32 src_depth_fbo);
+        void blit_entity_id(int w, int h, u32 src_fbo, int src_entity_id);
+
     private:
         VertexArray vao;
         Shader shader;
@@ -116,6 +119,9 @@ namespace gl {
         ImageBuffer point_shadow_map;
         float far_plane = 25;
 
+        inline FrameBuffer& get_geometry_fbo() { return geometry_fbo; }
+        inline FrameBuffer& get_light_fbo() { return light_fbo; }
+
         void init(int w, int h);
 
         void free();
@@ -136,8 +142,6 @@ namespace gl {
         void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& light_space);
 
         void update(Environment* env);
-
-        void blit(int w, int h, u32 dest_fbo, int dest_entity_id);
 
     private:
         VertexArray vao;

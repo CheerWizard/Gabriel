@@ -416,10 +416,13 @@ namespace gl {
         light_shader.bind_sampler_struct("envlight", "brdf_convolution", 10, env->brdf_convolution);
     }
 
-    void PBR_DeferredRenderer::blit(int w, int h, u32 dest_fbo, int dest_entity_id) {
-        FrameBuffer::blit(light_fbo.id, w, h, dest_fbo, w, h, 1, GL_COLOR_BUFFER_BIT);
-        FrameBuffer::blit(geometry_fbo.id, w, h, 5, dest_fbo, w, h, dest_entity_id);
-        FrameBuffer::blit(geometry_fbo.id, w, h, dest_fbo, w, h, 1, GL_DEPTH_BUFFER_BIT);
+    void PBR_ForwardRenderer::blit_color_depth(int w, int h, u32 src_color_fbo, u32 src_depth_fbo) {
+        FrameBuffer::blit(src_color_fbo, w, h, current_fbo.id, w, h, 1, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::blit(src_depth_fbo, w, h, current_fbo.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
+    }
+
+    void PBR_ForwardRenderer::blit_entity_id(int w, int h, u32 src_fbo, int src_entity_id) {
+        FrameBuffer::blit(src_fbo, w, h, 5, current_fbo.id, w, h, 2);
     }
 
     void PBR_Pipeline::init(int w, int h) {
@@ -717,8 +720,18 @@ namespace gl {
         glStencilMask(GL_FALSE);
 
         deferred_rendering();
-        pbr_deferred_renderer.blit(resolution.x, resolution.y, pbr_forward_renderer.get_current_frame().id, 2);
+        pbr_forward_renderer.blit_color_depth(
+                resolution.x, resolution.y,
+                pbr_deferred_renderer.get_light_fbo().id,
+                pbr_deferred_renderer.get_geometry_fbo().id
+        );
         forward_rendering();
+        pbr_forward_renderer.blit_entity_id(
+            resolution.x,
+            resolution.y,
+            pbr_deferred_renderer.get_geometry_fbo().id,
+            5
+        );
 
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_STENCIL_TEST);

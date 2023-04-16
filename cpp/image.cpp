@@ -1,5 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <image.h>
 #include <device.h>
@@ -103,6 +104,16 @@ namespace gl {
         pixels = resized_data;
         width = w;
         height = h;
+    }
+
+    glm::vec4 Image::get_color(int x, int y) {
+        u8* p = (u8*) pixels;
+        u8* pixel = p + (x + width * y) * channels;
+        u8 r = pixel[0];
+        u8 g = pixel[1];
+        u8 b = pixel[2];
+        u8 a = channels >= 4 ? pixel[3] : 0xff;
+        return { r, g, b, a };
     }
 
     void ImageBuffer::init() {
@@ -258,4 +269,7 @@ namespace gl {
         update_params(params);
     }
 
+    void ImageWriter::write(const char* filepath, const Image &image) {
+        stbi_write_png(filepath, image.width, image.height, image.channels, image.pixels, image.width * image.channels);
+    }
 }

@@ -15,7 +15,7 @@ namespace gl {
 
         Terrain(ecs::Scene* scene, int size)
         : Entity(scene) {
-            plane.size = size;
+            plane = PlaneTBN(size);
             add_component<Transform>();
             add_component<DrawableElements>();
             add_component<Material>();
@@ -24,7 +24,7 @@ namespace gl {
 
         Terrain(ecs::Scene* scene, const glm::vec3& translation, const glm::vec3& rotation, const glm::vec3& scale, int size)
         : Entity(scene) {
-            plane.size = size;
+            plane = PlaneTBN(size);
             add_component<Transform>(translation, rotation, scale);
             add_component<DrawableElements>();
             add_component<Material>();
@@ -47,11 +47,13 @@ namespace gl {
             return scene->get_component<DisplacementTBN>(id);
         }
 
+        inline int size() const { return plane.size; }
+
         void init();
         void free();
 
-        void displace(float scale, const Image& image);
-        void displace(float scale, int iterations, float min_height, float max_height, float filter);
+        void displace_with(const DisplacementMap& displacement_map, float scale);
+        void displace(float scale);
     };
 
 }

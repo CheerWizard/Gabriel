@@ -34,7 +34,7 @@ namespace gl {
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
-            print_err("fbo_init(): Failed to complete framebuffer!");
+            print_err("Failed to complete framebuffer!");
             print_err("Error status=" << status);
         }
 
@@ -56,7 +56,7 @@ namespace gl {
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
-            print_err("fbo_init(): Failed to complete framebuffer!");
+            print_err("Failed to complete framebuffer!");
             print_err("Error status=" << status);
         }
 

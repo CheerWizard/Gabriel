@@ -1,8 +1,6 @@
 #pragma once
 
-#include <primitives.h>
-
-#define glCheckError() gl::check_err(__FILE__, __LINE__)
+#include <debugger.h>
 
 namespace gl {
 
@@ -13,7 +11,5 @@ namespace gl {
 
     void init(int viewport_width, int viewport_height);
     void resize(int w, int h);
-
-    u32 check_err(const char* file, int line);
 
 }

@@ -17,30 +17,27 @@ namespace gl {
         int x_segments = 64;
         int y_segments = 64;
 
-        Sphere() {
-            generate();
-        }
+        Sphere() = default;
 
         Sphere(int x_segments, int y_segments) : x_segments(x_segments), y_segments(y_segments) {
             generate();
         }
 
-        void init(DrawableElements& drawable);
-
-    private:
         void generate();
+        void init(DrawableElements& drawable);
     };
 
     struct SphereUV : Sphere<VertexUV> {
-        SphereUV();
-        SphereUV(int x_segments, int y_segments);
+        SphereUV() = default;
+        SphereUV(int x_segments, int y_segments) : Sphere<VertexUV>(x_segments, y_segments) {}
     };
 
     struct SphereTBN : Sphere<VertexTBN> {
-        SphereTBN();
-        SphereTBN(int x_segments, int y_segments);
+        SphereTBN() = default;
+        SphereTBN(int x_segments, int y_segments) : Sphere<VertexTBN>(x_segments, y_segments) {
+            generate_tbn();
+        }
 
-    private:
         void generate_tbn();
     };
 

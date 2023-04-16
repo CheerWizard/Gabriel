@@ -12,6 +12,7 @@
 
 #include <stb_image.h>
 #include <stb_image_resize.h>
+#include <stb_image_write.h>
 
 namespace gl {
 
@@ -31,7 +32,10 @@ namespace gl {
         bool srgb = false;
 
         void free();
+
         void resize(int w, int h);
+
+        glm::vec4 get_color(int x, int y);
     };
 
     struct ImageFace final {
@@ -45,6 +49,10 @@ namespace gl {
     struct ImageReader final {
         static Image read(const char* filepath, bool flip_uv = false, PixelType pixel_type = PixelType::U8, bool srgb = false);
         static std::array<Image, 6> read(const std::array<ImageFace, 6> &faces);
+    };
+
+    struct ImageWriter final {
+        static void write(const char* filepath, const Image& image);
     };
 
     struct ImageParams final {

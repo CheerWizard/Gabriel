@@ -125,9 +125,7 @@ namespace gl {
 
         glReadBuffer(GL_COLOR_ATTACHMENT0 + attachment_index);
 
-        T p;
-        glReadPixels(x, y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, &p);
-        pixel.entity_id = p.entity_id;
+        glReadPixels(x, y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, &pixel);
 
         glReadBuffer(GL_NONE);
 

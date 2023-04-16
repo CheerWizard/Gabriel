@@ -10,17 +10,16 @@ namespace gl {
         plane.free();
     }
 
-    void Terrain::displace(float scale, int iterations, float min_height, float max_height, float filter) {
+    void Terrain::displace_with(const DisplacementMap& displacementMap, float scale) {
         displacement()->set_origin_vertices(&plane.vertices);
         displacement()->scale = scale;
-        displacement()->map = FaultFormation(plane.size, plane.size, iterations, min_height, max_height, filter);
+        displacement()->map = displacementMap;
         displacement()->displace(*drawable());
     }
 
-    void Terrain::displace(float scale, const Image &image) {
+    void Terrain::displace(float scale) {
         displacement()->set_origin_vertices(&plane.vertices);
         displacement()->scale = scale;
-        displacement()->map = HeightMap(image);
         displacement()->displace(*drawable());
     }
 

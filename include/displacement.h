@@ -12,6 +12,12 @@ namespace gl {
         int columns;
         std::vector<float> map;
 
+        DisplacementMap() = default;
+
+        DisplacementMap(int rows, int columns) : rows(rows), columns(columns) {
+            map.resize(rows * columns);
+        }
+
         inline int size() const { return rows * columns; }
 
         inline float& get(int row, int col) {
@@ -19,6 +25,24 @@ namespace gl {
         }
 
         inline float& operator [](int i) { return map[i]; }
+
+        void get_min_max(float& min, float& max);
+
+        void normalize(float min_range, float max_range);
+
+        float get_interpolated_height(float x, float y);
+    };
+
+    struct DisplacementImageMixer final {
+        std::vector<Image> images;
+        Image mixed_image;
+        DisplacementMap* displacement_map = null;
+
+        void add_image(const char* filepath, bool flip_uv = false, PixelType pixel_type = PixelType::U8);
+        void mix(float min_height, float max_height);
+
+    private:
+        float region_percent(int tile, float height);
     };
 
     struct HeightMap : DisplacementMap {
@@ -31,8 +55,12 @@ namespace gl {
         void apply_fir_filter(float filter);
     };
 
-    struct MidPoint : DisplacementMap {
-        MidPoint();
+    struct MidPointFormation : DisplacementMap {
+        MidPointFormation(int row, int columns, float roughness, float min_height, float max_height);
+
+    private:
+        void diamond_step(int rect_size, float height);
+        void square_step(int rect_size, float height);
     };
 
     template<typename T>
