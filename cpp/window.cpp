@@ -1,11 +1,11 @@
 #include <window.h>
-#include <ui.h>
+#include <nuklear_ui.h>
 
 #include <unordered_map>
 
-namespace win {
+namespace gl {
 
-    static window_props win_props;
+    static WindowProps win_props;
     static GLFWwindow* window;
     static GLFWmonitor* primary_monitor;
     static std::unordered_map<GLFWmonitor*, const GLFWvidmode*> video_modes;
@@ -17,7 +17,7 @@ namespace win {
 
     static bool enable_fullscreen = false;
 
-    void init(const window_props& props) {
+    void Window::init(const WindowProps& props) {
         win_props = props;
         window_mode_x = props.x;
         window_mode_y = props.y;
@@ -26,8 +26,8 @@ namespace win {
 
         glfwSetErrorCallback([](int error, const char* msg) {
             print_err("GLFW error=" << error << ", msg=" << msg);
-            if (event_registry::window_error) {
-                event_registry::window_error(error, msg);
+            if (EventRegistry::window_error) {
+                EventRegistry::window_error(error, msg);
             }
         });
 
@@ -65,7 +65,7 @@ namespace win {
 
         glfwMakeContextCurrent(window);
 
-        gl::init(props.width, props.height);
+        Device::init(props.width, props.height);
 
         if (props.flags & win_flags::fullscreen)
             set_full_screen();
@@ -80,7 +80,7 @@ namespace win {
 #endif
     }
 
-    void free() {
+    void Window::free() {
 #ifdef UI
         ui::free();
 #else
@@ -89,7 +89,7 @@ namespace win {
         glfwTerminate();
     }
 
-    void set_full_screen() {
+    void Window::set_full_screen() {
         window_mode_x = win_props.x;
         window_mode_y = win_props.y;
         window_mode_width = win_props.width;
@@ -98,7 +98,7 @@ namespace win {
         glfwSetWindowMonitor(window, primary_monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     }
 
-    void set_windowed() {
+    void Window::set_windowed() {
         win_props.x = window_mode_x;
         win_props.y = window_mode_y;
         win_props.width = window_mode_width;
@@ -107,92 +107,100 @@ namespace win {
         glfwSetWindowMonitor(window, null, win_props.x, win_props.y, win_props.width, win_props.height, refresh_rate);
     }
 
-    void toggle_window_mode() {
+    void Window::toggle_window_mode() {
         enable_fullscreen = !enable_fullscreen;
         if (enable_fullscreen)
-            win::set_full_screen();
+            set_full_screen();
         else
-            win::set_windowed();
+            set_windowed();
     }
 
-    void enable_sync() {
+    void Window::enable_sync() {
         glfwSwapInterval(true);
     }
 
-    void disable_sync() {
+    void Window::disable_sync() {
         glfwSwapInterval(false);
     }
 
-    void poll() {
+    void Window::poll() {
         glfwPollEvents();
     }
 
-    void swap() {
+    void Window::swap() {
         glfwSwapBuffers(window);
     }
 
-    void close() {
+    void Window::close() {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
-    bool is_open() {
+    bool Window::is_open() {
         return !glfwWindowShouldClose(window);
     }
 
-    float get_aspect_ratio() {
+    float Window::get_aspect_ratio() {
         return (float) win_props.width / (float) win_props.height;
     }
 
-    window_props& props() {
+    WindowProps& Window::get_props() {
         return win_props;
     }
 
-    Cursor mouse_cursor() {
+    int& Window::get_width() {
+        return win_props.width;
+    }
+
+    int& Window::get_height() {
+        return win_props.height;
+    }
+
+    Cursor Window::mouse_cursor() {
         Cursor cursor;
         glfwGetCursorPos(window, &cursor.x, &cursor.y);
         return cursor;
     }
 
-    void disable_cursor() {
+    void Window::disable_cursor() {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
-    bool is_key_press(int key) {
+    bool Window::is_key_press(int key) {
         return glfwGetKey(window, key) == GLFW_PRESS;
     }
 
-    bool is_mouse_press(int button) {
+    bool Window::is_mouse_press(int button) {
         return glfwGetMouseButton(window, button) == GLFW_PRESS;
     }
 
-    bool is_key_release(int key) {
+    bool Window::is_key_release(int key) {
         return glfwGetKey(window, key) == GLFW_RELEASE;
     }
 
-    bool is_mouse_release(int button) {
+    bool Window::is_mouse_release(int button) {
         return glfwGetMouseButton(window, button) == GLFW_RELEASE;
     }
 
-    event_window_error event_registry::window_error = null;
-    event_window_resized event_registry::window_resized = null;
-    event_window_close event_registry::window_close = null;
-    event_window_positioned event_registry::window_positioned = null;
+    EventWindowError EventRegistry::window_error = null;
+    EventWindowResized EventRegistry::window_resized = null;
+    EventWindowClosed EventRegistry::window_close = null;
+    EventWindowPositioned EventRegistry::window_positioned = null;
 
-    event_framebuffer_resized event_registry::framebuffer_resized = null;
+    EventFramebufferResized EventRegistry::framebuffer_resized = null;
 
-    event_key_press event_registry::key_press = null;
-    event_key_release event_registry::key_release = null;
+    EventKeyPress EventRegistry::key_press = null;
+    EventKeyRelease EventRegistry::key_release = null;
 
-    event_mouse_press event_registry::mouse_press = null;
-    event_mouse_release event_registry::mouse_release = null;
-    event_mouse_cursor event_registry::mouse_cursor = null;
-    event_mouse_scroll event_registry::mouse_scroll = null;
+    EventMousePress EventRegistry::mouse_press = null;
+    EventMouseRelease EventRegistry::mouse_release = null;
+    EventMouseCursor EventRegistry::mouse_cursor = null;
+    EventMouseScroll EventRegistry::mouse_scroll = null;
 
-    #define event_handler(event, ...) if (event_registry::event) { \
-        event_registry::event(__VA_ARGS__);     \
+    #define event_handler(event, ...) if (EventRegistry::event) { \
+        EventRegistry::event(__VA_ARGS__);     \
     }
 
-    void event_registry::set_callbacks() {
+    void EventRegistry::set_callbacks() {
         glfwSetErrorCallback([](int error, const char* msg) {
             event_handler(window_error, error, msg)
         });
@@ -222,7 +230,7 @@ namespace win {
                 print_err("Window: invalid framebuffer size w <= 0 or h <= 0");
                 return;
             }
-            gl::resize(w, h);
+            Viewport::resize(0, 0, w, h);
             event_handler(framebuffer_resized, w, h)
         });
 

@@ -13,18 +13,18 @@
 namespace gl {
 
     template<typename T>
-    struct RectVertices final {
-        T v0 = { { 0.5f, 0.5f, 0 } };
-        T v1 = { { 0.5f, -0.5f, 0 } };
-        T v2 = { { -0.5f, -0.5f, 0 } };
-        T v3 = { { -0.5, 0.5f, 0 } };
+    struct RectVertices {
+        T v0 = { { 0.5f, 0.5f } };
+        T v1 = { { 0.5f, -0.5f } };
+        T v2 = { { -0.5f, -0.5f } };
+        T v3 = { { -0.5, 0.5f } };
 
         inline size_t size() const { return sizeof(RectVertices<T>); }
         inline float* to_float() const { return (float*) &v0.pos.x; }
     };
 
     template<typename T>
-    struct Rect final {
+    struct Rect {
         RectVertices<T> vertices;
         u32 indices[6] = {
                 0, 1, 3,
@@ -73,9 +73,9 @@ namespace gl {
     }
 
     template<typename T>
-    std::vector<Rect<T>> rects_init(
+    void init_rects(
             DrawableElements& drawable,
-            u32 count,
+            std::vector<Rect<T>>& rects,
             const std::function<Rect<T>(u32)>& rect_factory_fn = [](u32 i) { return Rect<T>(); })
     {
         std::vector<RectVertices<T>> vertices;
@@ -104,5 +104,7 @@ namespace gl {
 
         return rects;
     }
+
+    typedef Rect<Vertex2dUV> Rect2dUV;
 
 }

@@ -8,54 +8,98 @@
 
 namespace gl {
 
-    static u32 shader_init(const char* filepath, u32 shader_type) {
-        std::string src = io::FileReader::read(filepath);
-        const char* c_src = src.c_str();
-        if (src.empty()) {
-            print_err("shader_init() : failed to read shader from file");
-            print_err(filepath);
-            return 0;
+    std::string ShaderReader::read(const std::string& path, std::string include_identifier) {
+        include_identifier += ' ';
+        static bool recursive = false;
+
+        std::string full_src = "";
+        std::ifstream file(path);
+
+        if (!file.is_open()) {
+            print_err("Failed to open file " << path);
+            return full_src;
         }
 
-        u32 shader = glCreateShader(shader_type);
-        glShaderSource(shader, 1, &c_src, null);
-        glCompileShader(shader);
+        std::string line_buffer;
+        while (std::getline(file, line_buffer)) {
+            // Look for the new shader include identifier
+            if (line_buffer.find(include_identifier) != line_buffer.npos) {
+                // Remove the include identifier, this will cause the path to remain
+                line_buffer.erase(0, include_identifier.size());
+
+                // The include path is relative to the current shader file path
+                std::string pathOfThisFile;
+                get_filepath(path, pathOfThisFile);
+                line_buffer.insert(0, pathOfThisFile);
+
+                // By using recursion, the new include file can be extracted
+                // and inserted at this location in the shader source code
+                recursive = true;
+                full_src += read(line_buffer, include_identifier);
+
+                // Do not add this line to the shader source code, as the include
+                // path would generate a compilation issue in the final source code
+                continue;
+            }
+
+            full_src += line_buffer + '\n';
+        }
+
+        // Only add the null terminator at the end of the complete file,
+        // essentially skipping recursive function calls this way
+        if (!recursive)
+            full_src += '\0';
+
+        file.close();
+
+        return full_src;
+    }
+
+    void ShaderReader::get_filepath(
+            const std::string &full_path,
+            std::string &path_without_filename
+    ) {
+        // Remove the file name and store the path to this folder
+        size_t found = full_path.find_last_of("/\\");
+        path_without_filename = full_path.substr(0, found + 1);
+    }
+
+    ShaderStage::ShaderStage(u32 type, const char *filepath) {
+        std::string src = ShaderReader::read(filepath);
+        const char* c_src = src.c_str();
+        if (src.empty()) {
+            print_err("shader_init() : failed to read stage from file");
+            print_err(filepath);
+            id = 0;
+        }
+
+        id = glCreateShader(type);
+        glShaderSource(id, 1, &c_src, null);
+        glCompileShader(id);
 
         int status;
         char info[512];
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+        glGetShaderiv(id, GL_COMPILE_STATUS, &status);
         if (!status) {
-            glGetShaderInfoLog(shader, 512, null, info);
-            print_err("shader_init() : failed shader compilation");
+            glGetShaderInfoLog(id, 512, null, info);
+            print_err("shader_init() : failed stage compilation");
             print_err(info);
-            return 0;
+            id = 0;
         }
-
-        return shader;
     }
 
-    void Shader::init(const char *vertex_filepath, const char *fragment_filepath, const char *geometry_filepath) {
-        u32 vertex_shader = shader_init(vertex_filepath, GL_VERTEX_SHADER);
-        if (!vertex_shader)
+    void Shader::complete() {
+        if (stages.empty()) {
+            print_err("Shader has no stages to complete");
             return;
-
-        u32 fragment_shader = shader_init(fragment_filepath, GL_FRAGMENT_SHADER);
-        if (!fragment_shader)
-            return;
-
-        std::vector<u32> shaders = { vertex_shader, fragment_shader };
-
-        if (geometry_filepath) {
-            u32 geometry_shader = shader_init(geometry_filepath, GL_GEOMETRY_SHADER);
-            if (geometry_shader) {
-                shaders.emplace_back(geometry_shader);
-            }
         }
 
         id = glCreateProgram();
-        for (u32 shader : shaders) {
-            glAttachShader(id, shader);
+
+        for (u32 stage : stages) {
+            glAttachShader(id, stage);
         }
+
         glLinkProgram(id);
 
         int status;
@@ -68,8 +112,8 @@ namespace gl {
             return;
         }
 
-        for (u32 shader : shaders) {
-            glDeleteShader(shader);
+        for (u32 stage : stages) {
+            glDeleteShader(stage);
         }
     }
 
@@ -241,6 +285,42 @@ namespace gl {
 
     void Shader::bind_sampler_struct(const char* struct_name, const ImageSampler& sampler, const ImageBuffer &buffer) {
         bind_sampler_struct(struct_name, sampler.name, sampler.slot, buffer);
+    }
+
+    void Shader::add_stage(u32 type, const char* filepath) {
+        u32 stage = ShaderStage(type, filepath).id;
+        if (stage != 0) {
+            stages.emplace_back(stage);
+        }
+    }
+
+    void Shader::add_vertex_stage(const char *filepath) {
+        add_stage(GL_VERTEX_SHADER, filepath);
+    }
+
+    void Shader::add_fragment_stage(const char *filepath) {
+        add_stage(GL_FRAGMENT_SHADER, filepath);
+    }
+
+    void Shader::add_geometry_stage(const char *filepath) {
+        add_stage(GL_GEOMETRY_SHADER, filepath);
+    }
+
+    void Shader::add_tess_control_stage(const char *filepath) {
+        add_stage(GL_TESS_CONTROL_SHADER, filepath);
+    }
+
+    void Shader::add_tess_eval_stage(const char *filepath) {
+        add_stage(GL_TESS_EVALUATION_SHADER, filepath);
+    }
+
+    void ComputeShader::init(const char *filepath) {
+        add_stage(GL_COMPUTE_SHADER, filepath);
+        complete();
+    }
+
+    void ComputeShader::dispatch(u32 x, u32 y, u32 z) {
+        glDispatchCompute(x, y, z);
     }
 
 }

@@ -2,23 +2,56 @@
 
 namespace gl {
 
-    void Bloom::init() {
-        // setup shaders
-        downsample_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/bloom/bloom_downsample.frag"
-        );
-        upsample_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/bloom/bloom_upsample.frag"
-        );
-        mix_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/bloom/bloom_mix.frag"
-        );
-        // setup screen vao
-        vao.init();
-        // setup Bloom frame
+    void BloomUpsampleShader::init() {
+        add_vertex_stage("shaders/fullscreen_quad.vert");
+        add_fragment_stage("shaders/bloom/bloom_upsample.frag");
+        complete();
+        update_filter_radius();
+    }
+
+    void BloomUpsampleShader::update_filter_radius() {
+        use();
+        set_uniform(filter_radius);
+    }
+
+    void BloomDownsampleShader::init(const glm::ivec2& resolution) {
+        this->resolution.value = resolution;
+        add_vertex_stage("shaders/fullscreen_quad.vert");
+        add_fragment_stage("shaders/bloom/bloom_downsample.frag");
+        complete();
+        update_resolution();
+    }
+
+    void BloomDownsampleShader::update_resolution() {
+        use();
+        set_uniform(resolution);
+    }
+
+    void BloomMixShader::init() {
+        add_vertex_stage("shaders/fullscreen_quad.vert");
+        add_fragment_stage("shaders/bloom/bloom_mix.frag");
+        complete();
+        update_bloom_strength();
+    }
+
+    void BloomMixShader::update_bloom_strength() {
+        use();
+        set_uniform(bloom_strength);
+    }
+
+    void BloomMixShader::update() {
+        bind_sampler(hdr_sampler, hdr_buffer);
+        bind_sampler(bloom_sampler, bloom_buffer);
+    }
+
+    BloomRenderer::BloomRenderer(int width, int height) {
+        resolution = { width, height };
+        downsample_shader.init(resolution);
+        upsample_shader.init();
+        mix_shader.init();
+
+        drawable.init();
+
         init_mix_color();
         init_mips();
         fbo.colors = { mips[0] };
@@ -26,28 +59,28 @@ namespace gl {
         fbo.attach_colors();
         fbo.complete();
 
-        set_resolution(resolution);
-        set_filter_radius(filter_radius);
-        set_bloom_strength(bloom_strength);
+        mix_shader.bloom_buffer = fbo.colors[0].buffer;
+        render_target = mix_color.buffer;
     }
 
-    void Bloom::free() {
+    BloomRenderer::~BloomRenderer() {
         fbo.free();
-        vao.free();
         downsample_shader.free();
         upsample_shader.free();
         mix_shader.free();
+        drawable.free();
+
         mix_color.free();
         for (auto& mip : mips) {
             mip.free();
         }
     }
 
-    void Bloom::init_mix_color() {
+    void BloomRenderer::init_mix_color() {
         // filter
         mix_color.params.s = GL_CLAMP_TO_EDGE;
-        mix_color.params.r = GL_CLAMP_TO_EDGE;
         mix_color.params.t = GL_CLAMP_TO_EDGE;
+        mix_color.params.r = GL_CLAMP_TO_EDGE;
         mix_color.params.min_filter = GL_LINEAR;
         mix_color.params.mag_filter = GL_LINEAR;
         // data
@@ -60,7 +93,7 @@ namespace gl {
         mix_color.init();
     }
 
-    void Bloom::init_mips() {
+    void BloomRenderer::init_mips() {
         if (mip_levels <= 0)
             mip_levels = 1;
         mips.resize(mip_levels);
@@ -93,26 +126,8 @@ namespace gl {
         }
     }
 
-    void Bloom::set_resolution(const glm::ivec2& resolution) {
-        this->resolution = resolution;
-        downsample_shader.use();
-        downsample_shader.set_uniform_args("resolution", this->resolution);
-    }
-
-    void Bloom::set_filter_radius(float filter_radius) {
-        this->filter_radius = filter_radius;
-        upsample_shader.use();
-        upsample_shader.set_uniform_args("filter_radius", filter_radius);
-    }
-
-    void Bloom::set_bloom_strength(float bloom_strength) {
-        this->bloom_strength = bloom_strength;
-        mix_shader.use();
-        mix_shader.set_uniform_args("bloom_strength", bloom_strength);
-    }
-
-    void Bloom::resize(int w, int h) {
-        set_resolution({ w, h });
+    void BloomRenderer::resize(int w, int h) {
+        resolution = { w, h };
 
         fbo.bind();
 
@@ -129,44 +144,47 @@ namespace gl {
         fbo.complete();
     }
 
-    void Bloom::render() {
+    void BloomRenderer::render() {
         fbo.bind();
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
         render_downsample();
         render_upsample();
         render_mix();
-        render_target = mix_color.buffer;
     }
 
-    void Bloom::render_downsample() {
+    void BloomRenderer::render_downsample() {
         downsample_shader.use();
 
-        src.activate(0);
-        src.bind();
+        ImageBuffer& hdr_buffer = get_hdr_buffer();
+        hdr_buffer.activate(0);
+        hdr_buffer.bind();
 
-        downsample_shader.set_uniform_args("resolution", resolution);
+        downsample_shader.resolution.value = resolution;
+        downsample_shader.set_uniform(downsample_shader.resolution);
 
-        int mip_level = 0;
-        downsample_shader.set_uniform_args("mip_level", mip_level);
+        auto& mip_level = downsample_shader.mip_level;
+        mip_level.value = 0;
+        downsample_shader.set_uniform(mip_level);
 
         for (int i = 0 ; i < mip_levels ; i++) {
             auto& mip = mips[i];
             glViewport(0, 0, mip.image.width, mip.image.height);
             mip.attach();
-            vao.draw_quad();
+            drawable.draw();
 
-            glm::ivec2 mip_resolution = { mip.image.width, mip.image.height };
-            downsample_shader.set_uniform_args("resolution", mip_resolution);
+            downsample_shader.resolution.value = { mip.image.width, mip.image.height };
+            downsample_shader.set_uniform(downsample_shader.resolution);
+
             mip.buffer.bind();
 
             if (i == 0) {
-                mip_level = 1;
-                downsample_shader.set_uniform_args("mip_level", mip_level);
+                mip_level.value = 1;
+                downsample_shader.set_uniform(mip_level);
             }
         }
     }
 
-    void Bloom::render_upsample() {
+    void BloomRenderer::render_upsample() {
         // Enable additive blending
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE);
@@ -183,23 +201,21 @@ namespace gl {
             glViewport(0, 0, next_mip.image.width, next_mip.image.height);
             next_mip.attach();
 
-            vao.draw_quad();
+            drawable.draw();
         }
 
         glDisable(GL_BLEND);
     }
 
-    void Bloom::render_mix() {
+    void BloomRenderer::render_mix() {
         mix_color.attach();
         glViewport(0, 0, resolution.x, resolution.y);
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         mix_shader.use();
+        mix_shader.update();
 
-        mix_shader.bind_sampler("hdr", 0, src);
-        mix_shader.bind_sampler("bloom", 1, fbo.colors[0].buffer);
-
-        vao.draw_quad();
+        drawable.draw();
     }
 
 }

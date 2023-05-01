@@ -189,8 +189,8 @@ namespace gl {
     {
         drawable.vao.init();
         drawable.vao.bind();
-        drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
-        drawable.ibo.init(indices, 36, GL_STATIC_DRAW);
+        drawable.vbo.init(vertices, T::format, BufferAllocType::STATIC);
+        drawable.ibo.init(indices, 36, BufferAllocType::STATIC);
         drawable.strips = 1;
         drawable.vertices_per_strip = 36;
     }
@@ -270,8 +270,8 @@ namespace gl {
             cubes.emplace_back(new_cube);
             index_offset += 24;
         }
-        drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
-        drawable.ibo.init(indices.data(), indices.size(), GL_STATIC_DRAW);
+        drawable.vbo.init(vertices, T::format, BufferAllocType::STATIC);
+        drawable.ibo.init(indices.data(), indices.size(), BufferAllocType::STATIC);
 
         return cubes;
     }

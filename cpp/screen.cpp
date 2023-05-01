@@ -1,45 +1,50 @@
 #include <screen.h>
 #include <frame.h>
-#include <commands.h>
 
 namespace gl {
 
-    Shader Screen::shader;
-    VertexArray Screen::vao;
-    ImageBuffer Screen::src;
-    float Screen::gamma = 2.2f; // average value on most monitors
-
-    void Screen::init() {
-        shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/screen.frag"
-        );
-        vao.init();
-        set_gamma(gamma);
+    void ScreenShader::init() {
+        add_vertex_stage("shaders/fullscreen_quad.vert");
+        add_fragment_stage("shaders/screen.frag");
+        complete();
+        update_gamma();
     }
 
-    void Screen::free() {
+    void ScreenShader::update() {
+        bind_sampler(params.scene_sampler, params.scene_buffer);
+        bind_sampler(params.ui_sampler, params.ui_buffer);
+#ifdef DEBUG
+        bind_sampler(params.debug_control_sampler, params.debug_control_buffer);
+#endif
+    }
+
+    void ScreenShader::update_gamma() {
+        use();
+        set_uniform(params.gamma);
+    }
+
+    ScreenRenderer::ScreenRenderer() {
+        shader.init();
+        drawable.init();
+    }
+
+    ScreenRenderer::~ScreenRenderer() {
         shader.free();
-        vao.free();
-        src.free();
+        drawable.free();
     }
 
-    void Screen::render() {
+    void ScreenRenderer::render() {
         FrameBuffer::unbind();
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         shader.use();
+        shader.update();
 
-        src.activate(0);
-        src.bind();
-
-        vao.draw_quad();
+        drawable.draw();
     }
 
-    void Screen::set_gamma(float gamma) {
-        Screen::gamma = gamma;
-        shader.use();
-        shader.set_uniform_args("gamma", gamma);
+    void ScreenRenderer::update_gamma() {
+        shader.update_gamma();
     }
 
 }

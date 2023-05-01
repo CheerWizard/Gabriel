@@ -31,4 +31,35 @@ namespace gl {
             shader.set_uniform("models", model, i);
         }
     }
+
+    void Transform2d::update(Shader &shader) const {
+        UniformV2F uniform_translation = { "translation", translation };
+        UniformF uniform_rotation = { "rotation", rotation };
+        UniformV2F uniform_scale = { "scale", scale };
+        shader.set_uniform_struct("transform", uniform_translation);
+        shader.set_uniform_struct("transform", uniform_rotation);
+        shader.set_uniform_struct("transform", uniform_scale);
+    }
+
+    void Transform2d::update_array_element(Shader &shader, int i, const Transform2d &transform) {
+        UniformV2F uniform_translation = { "translation", transform.translation };
+        UniformF uniform_rotation = { "rotation", transform.rotation };
+        UniformV2F uniform_scale = { "scale", transform.scale };
+        shader.set_uniform_struct("transform", uniform_translation, i);
+        shader.set_uniform_struct("transform", uniform_rotation, i);
+        shader.set_uniform_struct("transform", uniform_scale, i);
+    }
+
+    void Transform2d::update_array(Shader &shader, const std::vector<Transform2d> &transforms) {
+        size_t size = transforms.size();
+        for (int i = 0; i < size; i++) {
+            auto& transform = transforms[i];
+            UniformV2F uniform_translation = { "translation", transform.translation };
+            UniformF uniform_rotation = { "rotation", transform.rotation };
+            UniformV2F uniform_scale = { "scale", transform.scale };
+            shader.set_uniform_struct("transform", uniform_translation, i);
+            shader.set_uniform_struct("transform", uniform_rotation, i);
+            shader.set_uniform_struct("transform", uniform_scale, i);
+        }
+    }
 }

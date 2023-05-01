@@ -4,7 +4,7 @@
 namespace io {
 
     VertexFormat SkeletalVertex::format = {
-            { attr::pos, attr::uv, attr::normal, attr::tangent, attr::bone_id, attr::weight },
+            {attr::pos3, attr::uv, attr::normal, attr::tangent, attr::bone_id, attr::weight },
             sizeof(SkeletalVertex)
     };
 

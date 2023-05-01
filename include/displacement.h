@@ -10,6 +10,8 @@ namespace gl {
     struct DisplacementMap {
         int rows;
         int columns;
+        float min = 0.0f;
+        float max = 1.0f;
         std::vector<float> map;
 
         DisplacementMap() = default;
@@ -26,22 +28,36 @@ namespace gl {
 
         inline float& operator [](int i) { return map[i]; }
 
-        void get_min_max(float& min, float& max);
-
-        void normalize(float min_range, float max_range);
+        void normalize();
 
         float get_interpolated_height(float x, float y);
     };
 
+    struct DisplacementRange final {
+        float min = 0;
+        float median = 0.5f;
+        float max = 1;
+    };
+
+    struct DisplacementImage final {
+        Image image;
+        DisplacementRange range;
+
+        DisplacementImage() = default;
+        DisplacementImage(const Image& image) : image(image) {}
+        DisplacementImage(const Image& image, const DisplacementRange& range) : image(image), range(range) {}
+    };
+
     struct DisplacementImageMixer final {
-        std::vector<Image> images;
+        std::vector<DisplacementImage> displacement_images;
         Image mixed_image;
         DisplacementMap* displacement_map = null;
 
-        void add_image(const char* filepath, bool flip_uv = false, PixelType pixel_type = PixelType::U8);
-        void mix(float min_height, float max_height);
+        void add_image(const DisplacementRange& range, const char* filepath, bool flip_uv = false, PixelType pixel_type = PixelType::U8);
+        void mix(int width, int height);
 
     private:
+        void resize_images(int width, int height);
         float region_percent(int tile, float height);
     };
 
@@ -64,7 +80,7 @@ namespace gl {
     };
 
     template<typename T>
-    struct Displacement : ecs::Component {
+    struct Displacement {
         DisplacementMap map;
         float scale = 1.0f;
 
@@ -107,6 +123,6 @@ namespace gl {
         origin_vertices.free();
     }
 
-    typedef Displacement<VertexTBN> DisplacementTBN;
+    struct DisplacementTBN : Displacement<VertexTBN>, ecs::Component<DisplacementTBN> {};
 
 }

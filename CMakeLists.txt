@@ -13,7 +13,7 @@ file(GLOB_RECURSE SRC
         vendor/Nuklear/demo/glfw_opengl3/nuklear_glfw_gl3.h
 )
 
-add_executable(${PROJECT_NAME} ${SRC})
+add_executable(${PROJECT_NAME} ${SRC} include/font.h cpp/font.cpp include/ui.h cpp/ui.cpp include/ui.h include/debug_break.h include/debug_control.h cpp/debug_control.cpp include/memory_barrier.h cpp/memory_barrier.cpp include/viewport.h cpp/viewport.cpp)
 
 include_directories(
         include
@@ -24,6 +24,7 @@ include_directories(
         vendor/assimp/include
         vendor/Nuklear
         vendor/Nuklear/demo/glfw_opengl3
+        vendor/freetype/include
 )
 
 add_subdirectory(vendor/glfw)
@@ -31,10 +32,12 @@ add_subdirectory(vendor/glm)
 
 configure_file(libs/assimp-vc143-mtd.lib assimp-vc143-mtd.lib COPYONLY)
 configure_file(libs/assimp-vc143-mtd.dll assimp-vc143-mtd.dll COPYONLY)
+configure_file(libs/freetype.lib freetype.lib COPYONLY)
+configure_file(libs/freetype.dll freetype.dll COPYONLY)
 
 replace_dirs(shaders shaders)
 replace_dirs(images images)
 replace_dirs(models models)
 replace_dirs(fonts fonts)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm assimp-vc143-mtd)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm assimp-vc143-mtd freetype)

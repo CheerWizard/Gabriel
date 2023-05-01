@@ -6,7 +6,9 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-namespace win {
+#include <functional>
+
+namespace gl {
 
     enum win_flags : u8 {
         none = 0,
@@ -14,7 +16,7 @@ namespace win {
         fullscreen = 2
     };
 
-    struct window_props final {
+    struct WindowProps final {
         int x, y;
         int width, height;
         const char* title;
@@ -29,64 +31,68 @@ namespace win {
         double y = 0;
     };
 
-    void init(const window_props& props);
-    void free();
+    struct Window final {
+        static void init(const WindowProps& props);
+        static void free();
 
-    void set_full_screen();
-    void set_windowed();
-    void toggle_window_mode();
+        static void set_full_screen();
+        static void set_windowed();
+        static void toggle_window_mode();
 
-    void enable_sync();
-    void disable_sync();
+        static void enable_sync();
+        static void disable_sync();
 
-    void poll();
-    void swap();
+        static void poll();
+        static void swap();
 
-    void close();
-    bool is_open();
+        static void close();
+        static bool is_open();
 
-    float get_aspect_ratio();
-    window_props& props();
+        static float get_aspect_ratio();
+        static WindowProps& get_props();
+        static int& get_width();
+        static int& get_height();
 
-    Cursor mouse_cursor();
-    void disable_cursor();
+        static Cursor mouse_cursor();
+        static void disable_cursor();
 
-    bool is_key_press(int key);
-    bool is_key_release(int key);
+        static bool is_key_press(int key);
+        static bool is_key_release(int key);
 
-    bool is_mouse_press(int button);
-    bool is_mouse_release(int key);
+        static bool is_mouse_press(int button);
+        static bool is_mouse_release(int key);
+    };
 
-    typedef void (*event_window_error)(int, const char*);
-    typedef void (*event_window_resized)(int, int);
-    typedef void (*event_window_close)();
-    typedef void (*event_window_positioned)(int, int);
+    typedef std::function<void(int, const char*)> EventWindowError;
+    typedef std::function<void(int, int)> EventWindowResized;
+    typedef std::function<void()> EventWindowClosed;
+    typedef std::function<void(int, int)> EventWindowPositioned;
 
-    typedef void (*event_framebuffer_resized)(int, int);
+    typedef std::function<void(int, int)> EventFramebufferResized;
 
-    typedef void (*event_key_press)(int);
-    typedef void (*event_key_release)(int);
+    typedef std::function<void(int)> EventKeyPress;
+    typedef std::function<void(int)> EventKeyRelease;
 
-    typedef void (*event_mouse_press)(int);
-    typedef void (*event_mouse_release)(int);
-    typedef void (*event_mouse_cursor)(double, double);
-    typedef void (*event_mouse_scroll)(double, double);
+    typedef std::function<void(int)> EventMousePress;
+    typedef std::function<void(int)> EventMouseRelease;
+    typedef std::function<void(double, double)> EventMouseCursor;
+    typedef std::function<void(double, double)> EventMouseScroll;
 
-    struct event_registry final {
-        static event_window_error window_error;
-        static event_window_resized window_resized;
-        static event_window_close window_close;
-        static event_window_positioned window_positioned;
+    struct EventRegistry final {
+        static EventWindowError window_error;
+        static EventWindowResized window_resized;
+        static EventWindowClosed window_close;
+        static EventWindowPositioned window_positioned;
 
-        static event_framebuffer_resized framebuffer_resized;
+        static EventFramebufferResized framebuffer_resized;
 
-        static event_key_press key_press;
-        static event_key_release key_release;
+        static EventKeyPress key_press;
+        static EventKeyRelease key_release;
 
-        static event_mouse_press mouse_press;
-        static event_mouse_release mouse_release;
-        static event_mouse_cursor mouse_cursor;
-        static event_mouse_scroll mouse_scroll;
+        static EventMousePress mouse_press;
+        static EventMouseRelease mouse_release;
+        static EventMouseCursor mouse_cursor;
+        static EventMouseScroll mouse_scroll;
 
         static void set_callbacks();
     };

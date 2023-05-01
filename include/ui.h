@@ -1,31 +1,39 @@
 #pragma once
 
-#include <window.h>
+#include <text.h>
+#include <frame.h>
+#include <entity.h>
 
-#include <glm/glm.hpp>
+namespace gl {
 
-namespace ui {
+    struct UI_Pipeline final {
+        ecs::Scene* scene;
 
-    void init(GLFWwindow *window);
+        UI_Pipeline(ecs::Scene* scene) : scene(scene) {}
 
-    void free();
+        ~UI_Pipeline() {
+            free();
+        }
 
-    void begin();
+        inline const ImageBuffer& get_render_target() const {
+            return render_target;
+        }
 
-    void end();
+        void init(int w, int h);
+        void free();
 
-    typedef void (*draw_window_items_fn)();
+        void resize(int w, int h);
 
-    void window(const char *title, draw_window_items_fn draw_items);
+        void render();
 
-    void image(u32 id, u16 w, u16 h);
+    private:
+        void init_frame(int w, int h);
 
-    void slider(const char *label, float *value, float min, float max, float step);
-
-    void checkbox(const char *label, int *value);
-
-    void theme_selector(const char *label);
-
-    void color_picker(const char *label, glm::vec4 &color);
+    private:
+        ImageBuffer render_target;
+        FrameBuffer fbo;
+        Text2dRenderer text2d_renderer;
+        Text3dRenderer text3d_renderer;
+    };
 
 }

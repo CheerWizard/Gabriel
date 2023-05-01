@@ -7,7 +7,7 @@
 
 namespace gl {
 
-    struct NormalVisual : ecs::Component {
+    component(NormalVisual) {
         glm::vec3 color = { 1, 1, 0 };
         float length = 0.1f;
     };

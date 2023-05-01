@@ -9,4 +9,8 @@ namespace io {
         static std::string read(const char* filepath);
     };
 
+    struct FileWriter final {
+        static bool write(const char* filepath, const int* data, size_t size);
+    };
+
 }

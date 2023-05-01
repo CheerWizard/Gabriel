@@ -10,7 +10,7 @@ namespace io {
     using namespace gl;
 
     VertexFormat VertexMesh::format = {
-            { attr::pos, attr::uv, attr::normal, attr::tangent },
+            {attr::pos3, attr::uv, attr::normal, attr::tangent },
             sizeof(VertexMesh)
     };
 

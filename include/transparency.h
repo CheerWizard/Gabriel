@@ -29,11 +29,11 @@ namespace gl {
         void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material);
 
     private:
-        VertexArray vao;
-        Shader shader;
         FrameBuffer fbo;
-        Shader composite_shader;
         FrameBuffer composite_fbo;
+        Shader shader;
+        Shader composite_shader;
+        DrawableQuad drawable;
     };
 
 }

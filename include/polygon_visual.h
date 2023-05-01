@@ -7,7 +7,7 @@
 
 namespace gl {
 
-    struct PolygonVisual : ecs::Component {
+    component(PolygonVisual) {
         glm::vec3 color = { 1, 1, 1 };
         float thickness = 1.0005f;
     };

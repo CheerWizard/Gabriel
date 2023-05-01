@@ -6,10 +6,9 @@ namespace gl {
     static DrawableElements light_present_drawable;
 
     void LightPresent::init() {
-        light_present_shader.init(
-            "shaders/light_present.vert",
-            "shaders/light_present.frag"
-        );
+        light_present_shader.add_vertex_stage("shaders/light_present.vert");
+        light_present_shader.add_fragment_stage("shaders/light_present.frag");
+        light_present_shader.complete();
 
         presentation.init(light_present_drawable);
     }

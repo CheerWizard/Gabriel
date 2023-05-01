@@ -9,7 +9,7 @@
 
 namespace gl {
 
-    struct Outline : ecs::Component {
+    component(Outline) {
         glm::vec4 color = { 1, 1, 0, 1 };
         float thickness = 0.02f;
     };

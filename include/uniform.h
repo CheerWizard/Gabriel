@@ -19,6 +19,23 @@ namespace gl {
     struct UniformArray {
         const char* name;
         std::vector<V> values;
+
+        UniformArray() = default;
+
+        UniformArray(const char* name, const std::vector<V>& values)
+        : name(name), values(values) {}
+
+        UniformArray(const char* name, size_t size) : name(name) {
+            values.resize(size);
+        }
+
+        inline size_t size() const {
+            return values.size();
+        }
+
+        V& operator [](int i) {
+            return values[i];
+        }
     };
 
     typedef Uniform<float> UniformF;

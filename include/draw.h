@@ -7,7 +7,7 @@
 
 namespace gl {
 
-    struct DrawableVertices : ecs::Component {
+    component(DrawableVertices) {
         u32 type = GL_TRIANGLES;
         VertexArray vao;
         VertexBuffer vbo;
@@ -19,7 +19,7 @@ namespace gl {
         void draw(int instances);
     };
 
-    struct DrawableElements : ecs::Component {
+    component(DrawableElements) {
         u32 type = GL_TRIANGLES;
         VertexArray vao;
         VertexBuffer vbo;
@@ -31,6 +31,17 @@ namespace gl {
 
         void draw() const;
         void draw(int instances) const;
+    };
+
+    component(DrawableQuad) {
+
+        void init();
+        void free();
+
+        void draw() const;
+
+    private:
+        VertexArray vao;
     };
 
 }

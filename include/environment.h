@@ -49,7 +49,7 @@ namespace gl {
         Shader brdf_convolution_shader;
         Shader env_shader;
         DrawableElements env_cube;
-        VertexArray brdf_vao;
+        DrawableQuad quad_drawable;
     };
 
 }

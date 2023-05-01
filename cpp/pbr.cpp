@@ -13,10 +13,9 @@ namespace gl {
     };
 
     void PBR_Skeletal_ForwardRenderer::init() {
-        shader.init(
-                "shaders/skeletal.vert",
-                "shaders/pbr.frag"
-        );
+        shader.add_vertex_stage("shaders/skeletal.vert");
+        shader.add_fragment_stage("shaders/pbr.frag");
+        shader.complete();
     }
 
     void PBR_Skeletal_ForwardRenderer::update(Environment* env) {
@@ -28,10 +27,9 @@ namespace gl {
     }
 
     void PBR_Skeletal_DeferredRenderer::init() {
-        shader.init(
-                "shaders/skeletal_deferred.vert",
-                "shaders/pbr_material.frag"
-        );
+        shader.add_vertex_stage("shaders/skeletal_deferred.vert");
+        shader.add_fragment_stage("shaders/pbr_material.frag");
+        shader.complete();
     }
 
     void PBR_Skeletal_DeferredRenderer::update(Environment* env) {
@@ -43,10 +41,9 @@ namespace gl {
     }
 
     void PBR_ForwardRenderer::init(int w, int h) {
-        shader.init(
-                "shaders/pbr.vert",
-                "shaders/pbr.frag"
-        );
+        shader.add_vertex_stage("shaders/pbr.vert");
+        shader.add_fragment_stage("shaders/pbr.frag");
+        shader.complete();
         // setup VAO
         vao.init();
         // setup PBR color
@@ -62,7 +59,7 @@ namespace gl {
         pbr_entity_id.image.pixel_format = GL_RED_INTEGER;
         pbr_entity_id.image.pixel_type = PixelType::U32;
         // setup PBR frame
-        fbo.colors = {pbr_color, pbr_entity_id };
+        fbo.colors = { pbr_color, pbr_entity_id };
         fbo.init_colors();
         fbo.rbo = { w, h };
         fbo.rbo.init();
@@ -171,18 +168,20 @@ namespace gl {
         render(entity_id, transform, drawable, material);
     }
 
-    void PBR_DeferredRenderer::init(int w, int h) {
-        vao.init();
-        geometry_shader.init(
-                "shaders/pbr_material.vert",
-                "shaders/pbr_material.frag"
-        );
-        light_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/pbr_light.frag"
-        );
+    PBR_DeferredRenderer::PBR_DeferredRenderer(int w, int h) {
+        ssao_renderer = new SsaoRenderer(w, h);
+
+        geometry_shader.add_vertex_stage("shaders/pbr_material.vert");
+        geometry_shader.add_fragment_stage("shaders/pbr_material.frag");
+        geometry_shader.complete();
+
+        light_shader.add_vertex_stage("shaders/fullscreen_quad.vert");
+        light_shader.add_fragment_stage("shaders/pbr_light.frag");
+        light_shader.complete();
+
+        drawable.init();
         // setup PBR positions
-        ColorAttachment pbr_pos = {0, w, h };
+        ColorAttachment pbr_pos = { 0, w, h };
         pbr_pos.image.internal_format = GL_RGBA32F;
         pbr_pos.image.pixel_format = GL_RGBA;
         pbr_pos.image.pixel_type = PixelType::FLOAT;
@@ -192,40 +191,40 @@ namespace gl {
         pbr_pos.params.t = GL_CLAMP_TO_EDGE;
         pbr_pos.params.r = GL_CLAMP_TO_EDGE;
         // setup PBR normals
-        ColorAttachment pbr_normal = {1, w, h };
+        ColorAttachment pbr_normal = { 1, w, h };
         pbr_normal.image.internal_format = GL_RGBA32F;
         pbr_normal.image.pixel_format = GL_RGBA;
         pbr_normal.image.pixel_type = PixelType::FLOAT;
         pbr_normal.params.min_filter = GL_NEAREST;
         pbr_normal.params.mag_filter= GL_NEAREST;
         // setup PBR albedos
-        ColorAttachment pbr_albedo = {2, w, h };
+        ColorAttachment pbr_albedo = { 2, w, h };
         pbr_albedo.image.internal_format = GL_RGBA;
         pbr_albedo.image.pixel_format = GL_RGBA;
         pbr_albedo.image.pixel_type = PixelType::U8;
         pbr_albedo.params.min_filter = GL_NEAREST;
         pbr_albedo.params.mag_filter= GL_NEAREST;
         // setup PBR params
-        ColorAttachment pbr_params = {3, w, h };
+        ColorAttachment pbr_params = { 3, w, h };
         pbr_params.image.internal_format = GL_RGBA;
         pbr_params.image.pixel_format = GL_RGBA;
         pbr_params.image.pixel_type = PixelType::U8;
         pbr_params.params.min_filter = GL_NEAREST;
         pbr_params.params.mag_filter= GL_NEAREST;
         // setup PBR shadow projection coords
-        ColorAttachment pbr_shadow_proj = {4, w, h };
+        ColorAttachment pbr_shadow_proj = { 4, w, h };
         pbr_shadow_proj.image.internal_format = GL_RGBA32F;
         pbr_shadow_proj.image.pixel_format = GL_RGBA;
         pbr_shadow_proj.image.pixel_type = PixelType::FLOAT;
         pbr_shadow_proj.params.min_filter = GL_NEAREST;
         pbr_shadow_proj.params.mag_filter= GL_NEAREST;
         // setup PBR object ID
-        ColorAttachment pbr_entity_id = {5, w, h };
+        ColorAttachment pbr_entity_id = { 5, w, h };
         pbr_entity_id.image.internal_format = GL_R32UI;
         pbr_entity_id.image.pixel_format = GL_RED_INTEGER;
         pbr_entity_id.image.pixel_type = PixelType::U32;
         // setup PBR view positions
-        ColorAttachment pbr_view_pos = {6, w, h };
+        ColorAttachment pbr_view_pos = { 6, w, h };
         pbr_view_pos.image.internal_format = GL_RGBA32F;
         pbr_view_pos.image.pixel_format = GL_RGBA;
         pbr_view_pos.image.pixel_type = PixelType::FLOAT;
@@ -235,7 +234,7 @@ namespace gl {
         pbr_view_pos.params.t = GL_CLAMP_TO_EDGE;
         pbr_view_pos.params.r = GL_CLAMP_TO_EDGE;
         // setup PBR view normals
-        ColorAttachment pbr_view_normal = {7, w, h };
+        ColorAttachment pbr_view_normal = { 7, w, h };
         pbr_view_normal.image.internal_format = GL_RGBA32F;
         pbr_view_normal.image.pixel_format = GL_RGBA;
         pbr_view_normal.image.pixel_type = PixelType::FLOAT;
@@ -311,7 +310,8 @@ namespace gl {
         set_samples(samples);
     }
 
-    void PBR_DeferredRenderer::free() {
+    PBR_DeferredRenderer::~PBR_DeferredRenderer() {
+        delete ssao_renderer;
         geometry_shader.free();
         geometry_fbo.free();
         geometry_msaa_fbo.free();
@@ -320,6 +320,7 @@ namespace gl {
     }
 
     void PBR_DeferredRenderer::resize(int w, int h) {
+        ssao_renderer->resize(w, h);
         geometry_fbo.resize(w, h);
         geometry_msaa_fbo.resize(w, h);
         light_fbo.resize(w, h);
@@ -358,11 +359,11 @@ namespace gl {
             FrameBuffer::blit(geometry_msaa_fbo.id, w, h, geometry_fbo.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
         }
 
-        // render SSAO
+        // render SsaoRenderer
         if (enable_ssao) {
-            ssao_pass->positions = gbuffer.view_position;
-            ssao_pass->normals = gbuffer.view_normal;
-            SSAO::render(*ssao_pass);
+            ssao_renderer->get_params().positions = gbuffer.view_position;
+            ssao_renderer->get_params().normals = gbuffer.view_normal;
+            ssao_renderer->render();
         }
 
         light_fbo.bind();
@@ -382,11 +383,11 @@ namespace gl {
         }
 
         if (enable_ssao) {
-            light_shader.bind_sampler(samplers[samplers_size - 1], SSAO::render_target);
+            light_shader.bind_sampler(samplers[samplers_size - 1], ssao_renderer->get_render_target());
         }
         light_shader.set_uniform_args("enable_ssao", enable_ssao);
 
-        vao.draw_quad();
+        drawable.draw();
 
         glEnable(GL_STENCIL_TEST);
         glEnable(GL_BLEND);
@@ -425,13 +426,13 @@ namespace gl {
         FrameBuffer::blit(src_fbo, w, h, 5, current_fbo.id, w, h, 2);
     }
 
-    void PBR_Pipeline::init(int w, int h) {
+    PBR_Pipeline::PBR_Pipeline(ecs::Scene *scene, int w, int h) : scene(scene) {
         resolution = { w, h };
 
         env_renderer.init(w, h);
 
         pbr_forward_renderer.init(w, h);
-        pbr_deferred_renderer.init(w, h);
+        pbr_deferred_renderer = new PBR_DeferredRenderer(w, h);
 
         skeletal_forward_renderer.init();
         skeletal_deferred_renderer.init();
@@ -446,16 +447,14 @@ namespace gl {
         sunlight_ubo.init(1, sizeof(sunlight));
         lights_ubo.init(2, sizeof(point_lights));
         flashlight_ubo.init(3, sizeof(flashlight));
-
-        polygon_visual_renderer.init();
-        normal_visual_renderer.init();
     }
 
-    void PBR_Pipeline::free() {
+    PBR_Pipeline::~PBR_Pipeline() {
         env_renderer.free();
+        env.free();
 
         pbr_forward_renderer.free();
-        pbr_deferred_renderer.free();
+        delete pbr_deferred_renderer;
 
         skeletal_forward_renderer.free();
         skeletal_deferred_renderer.free();
@@ -470,18 +469,11 @@ namespace gl {
         sunlight_ubo.free();
         lights_ubo.free();
         flashlight_ubo.free();
-
-        polygon_visual_renderer.free();
-        normal_visual_renderer.free();
     }
 
     void PBR_Pipeline::set_samples(int samples) {
         pbr_forward_renderer.set_samples(samples);
-        pbr_deferred_renderer.set_samples(samples);
-    }
-
-    void PBR_Pipeline::set_ssao_pass(SSAO_Pass* ssao_pass) {
-        pbr_deferred_renderer.ssao_pass = ssao_pass;
+        pbr_deferred_renderer->set_samples(samples);
     }
 
     void PBR_Pipeline::init_hdr_env(const char* filepath, bool flip_uv) {
@@ -506,7 +498,7 @@ namespace gl {
         env_renderer.env = &env;
         env_renderer.generate_env();
         pbr_forward_renderer.update(env_renderer.env);
-        pbr_deferred_renderer.update(env_renderer.env);
+        pbr_deferred_renderer->update(env_renderer.env);
         skeletal_forward_renderer.update(env_renderer.env);
         skeletal_deferred_renderer.update(env_renderer.env);
     }
@@ -515,7 +507,7 @@ namespace gl {
         resolution = { w, h };
 
         pbr_forward_renderer.resize(w, h);
-        pbr_deferred_renderer.resize(w, h);
+        pbr_deferred_renderer->resize(w, h);
 
         transparent_renderer.resize(w, h);
 
@@ -525,7 +517,7 @@ namespace gl {
 
     void PBR_Pipeline::set_camera_pos(glm::vec3& camera_pos) {
         pbr_forward_renderer.set_camera_pos(camera_pos);
-        pbr_deferred_renderer.set_camera_pos(camera_pos);
+        pbr_deferred_renderer->set_camera_pos(camera_pos);
 
         skeletal_forward_renderer.set_camera_pos(camera_pos);
         skeletal_deferred_renderer.set_camera_pos(camera_pos);
@@ -538,129 +530,108 @@ namespace gl {
     void PBR_Pipeline::forward_rendering() {
         pbr_forward_renderer.bind();
 
-        // render not face-culled objects
-        glDisable(GL_CULL_FACE);
-        {
-            // render environment
-            env_renderer.render();
-
-            // render visual polygons
-            polygon_visual_renderer.begin();
-            scene->each_component<PolygonVisual>([this](PolygonVisual* polygon_visual) {
-                ecs::EntityID entity_id = polygon_visual->entity_id;
-                polygon_visual_renderer.render(
-                        *polygon_visual,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id)
-                );
-            });
-            polygon_visual_renderer.end();
-
-            // render visual normals
-            normal_visual_renderer.begin();
-            scene->each_component<NormalVisual>([this](NormalVisual* normal_visual) {
-                ecs::EntityID entity_id = normal_visual->entity_id;
-                normal_visual_renderer.render(
-                        *normal_visual,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id)
-                );
-            });
-
-            outline_renderer.end();
-
-            // render static objects
-            pbr_forward_renderer.begin();
-            scene->each_component<PBR_Component_Forward>([this](PBR_Component_Forward* component) {
-                ecs::EntityID entity_id = component->entity_id;
-                pbr_forward_renderer.render(
-                        entity_id,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id),
-                        *scene->get_component<Material>(entity_id)
-                );
-            });
-
-            // render dynamic objects
-            skeletal_forward_renderer.begin();
-            scene->each_component<PBR_SkeletalComponent_Forward>([this](PBR_SkeletalComponent_Forward* component) {
-                ecs::EntityID entity_id = component->entity_id;
-                skeletal_forward_renderer.render(
-                        entity_id,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id),
-                        *scene->get_component<Material>(entity_id)
-                );
-            });
-
-            // render outline objects
-            outline_renderer.begin();
-            scene->each_component<Outline>([this](Outline* component) {
-                ecs::EntityID entity_id = component->entity_id;
-                outline_renderer.render(
-                        *component,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id)
-                );
-            });
-
-            outline_renderer.end();
-
-            // render transparent objects
-            transparent_renderer.begin();
-            scene->each_component<PBR_Component_Transparent>([this](PBR_Component_Transparent* component) {
-                ecs::EntityID entity_id = component->entity_id;
-                transparent_renderer.render(
-                        entity_id,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id),
-                        *scene->get_component<Material>(entity_id)
-                );
-            });
-            transparent_renderer.end();
-        }
-
         // render face-culled objects
-        glEnable(GL_CULL_FACE);
-        {
-            // render static objects
-            pbr_forward_renderer.begin();
-            scene->each_component<PBR_Component_ForwardCull>([this](PBR_Component_ForwardCull* component) {
-                ecs::EntityID entity_id = component->entity_id;
-                pbr_forward_renderer.render(
-                        entity_id,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id),
-                        *scene->get_component<Material>(entity_id)
-                );
-            });
-            // render dynamic objects
-            skeletal_forward_renderer.begin();
-            scene->each_component<PBR_SkeletalComponent_ForwardCull>([this](PBR_SkeletalComponent_ForwardCull* component) {
-                ecs::EntityID entity_id = component->entity_id;
-                skeletal_forward_renderer.render(
-                        entity_id,
-                        *scene->get_component<Transform>(entity_id),
-                        *scene->get_component<DrawableElements>(entity_id),
-                        *scene->get_component<Material>(entity_id)
-                );
-            });
-        }
+        forward_face_cull_render();
+        // render not face-culled objects
+        forward_default_render();
 
         pbr_forward_renderer.unbind();
     }
 
+    void PBR_Pipeline::forward_face_cull_render() {
+        glEnable(GL_CULL_FACE);
+        // render static objects
+        pbr_forward_renderer.begin();
+        scene->each_component<PBR_Component_ForwardCull>([this](PBR_Component_ForwardCull* component) {
+            ecs::EntityID entity_id = component->entity_id;
+            pbr_forward_renderer.render(
+                    entity_id,
+                    *scene->get_component<Transform>(entity_id),
+                    *scene->get_component<DrawableElements>(entity_id),
+                    *scene->get_component<Material>(entity_id)
+            );
+        });
+        // render dynamic objects
+        skeletal_forward_renderer.begin();
+        scene->each_component<PBR_SkeletalComponent_ForwardCull>([this](PBR_SkeletalComponent_ForwardCull* component) {
+            ecs::EntityID entity_id = component->entity_id;
+            skeletal_forward_renderer.render(
+                    entity_id,
+                    *scene->get_component<Transform>(entity_id),
+                    *scene->get_component<DrawableElements>(entity_id),
+                    *scene->get_component<Material>(entity_id)
+            );
+        });
+    }
+
+    void PBR_Pipeline::forward_default_render() {
+        glDisable(GL_CULL_FACE);
+        // render environment
+        env_renderer.render();
+
+        outline_renderer.end();
+
+        // render static objects
+        pbr_forward_renderer.begin();
+        scene->each_component<PBR_Component_Forward>([this](PBR_Component_Forward* component) {
+            ecs::EntityID entity_id = component->entity_id;
+            pbr_forward_renderer.render(
+                    entity_id,
+                    *scene->get_component<Transform>(entity_id),
+                    *scene->get_component<DrawableElements>(entity_id),
+                    *scene->get_component<Material>(entity_id)
+            );
+        });
+
+        // render dynamic objects
+        skeletal_forward_renderer.begin();
+        scene->each_component<PBR_SkeletalComponent_Forward>([this](PBR_SkeletalComponent_Forward* component) {
+            ecs::EntityID entity_id = component->entity_id;
+            skeletal_forward_renderer.render(
+                    entity_id,
+                    *scene->get_component<Transform>(entity_id),
+                    *scene->get_component<DrawableElements>(entity_id),
+                    *scene->get_component<Material>(entity_id)
+            );
+        });
+
+        // render outline objects
+        outline_renderer.begin();
+        scene->each_component<Outline>([this](Outline* component) {
+            ecs::EntityID entity_id = component->entity_id;
+            outline_renderer.render(
+                    *component,
+                    *scene->get_component<Transform>(entity_id),
+                    *scene->get_component<DrawableElements>(entity_id)
+            );
+        });
+        outline_renderer.end();
+
+        // render transparent objects
+        transparent_renderer.begin();
+        scene->each_component<PBR_Component_Transparent>([this](PBR_Component_Transparent* component) {
+            ecs::EntityID entity_id = component->entity_id;
+            transparent_renderer.render(
+                    entity_id,
+                    *scene->get_component<Transform>(entity_id),
+                    *scene->get_component<DrawableElements>(entity_id),
+                    *scene->get_component<Material>(entity_id)
+            );
+        });
+        transparent_renderer.end();
+    }
+
     void PBR_Pipeline::deferred_rendering() {
-        pbr_deferred_renderer.bind();
+        pbr_deferred_renderer->bind();
 
         // render not face-culled objects
         glDisable(GL_CULL_FACE);
         {
             // static objects
-            pbr_deferred_renderer.begin();
+            pbr_deferred_renderer->begin();
             scene->each_component<PBR_Component_Deferred>([this](PBR_Component_Deferred* component) {
                 ecs::EntityID entity_id = component->entity_id;
-                pbr_deferred_renderer.render(
+                pbr_deferred_renderer->render(
                         entity_id,
                         *scene->get_component<Transform>(entity_id),
                         *scene->get_component<DrawableElements>(entity_id),
@@ -684,10 +655,10 @@ namespace gl {
         glEnable(GL_CULL_FACE);
         {
             // static objects
-            pbr_deferred_renderer.begin();
+            pbr_deferred_renderer->begin();
             scene->each_component<PBR_Component_DeferredCull>([this](PBR_Component_DeferredCull* component) {
                 ecs::EntityID entity_id = component->entity_id;
-                pbr_deferred_renderer.render(
+                pbr_deferred_renderer->render(
                         entity_id,
                         *scene->get_component<Transform>(entity_id),
                         *scene->get_component<DrawableElements>(entity_id),
@@ -707,7 +678,7 @@ namespace gl {
             });
         }
 
-        pbr_deferred_renderer.unbind();
+        pbr_deferred_renderer->unbind();
     }
 
     void PBR_Pipeline::render() {
@@ -722,14 +693,14 @@ namespace gl {
         deferred_rendering();
         pbr_forward_renderer.blit_color_depth(
                 resolution.x, resolution.y,
-                pbr_deferred_renderer.get_light_fbo().id,
-                pbr_deferred_renderer.get_geometry_fbo().id
+                pbr_deferred_renderer->get_light_fbo().id,
+                pbr_deferred_renderer->get_geometry_fbo().id
         );
         forward_rendering();
         pbr_forward_renderer.blit_entity_id(
             resolution.x,
             resolution.y,
-            pbr_deferred_renderer.get_geometry_fbo().id,
+            pbr_deferred_renderer->get_geometry_fbo().id,
             5
         );
 

@@ -112,8 +112,8 @@ namespace gl {
     void Geometry<T>::init_drawable(DrawableElements &drawable) {
         drawable.vao.init();
         drawable.vao.bind();
-        drawable.vbo.init(vertices, T::format, GL_DYNAMIC_DRAW);
-        drawable.ibo.init(indices.indices, drawable.strips * drawable.vertices_per_strip, GL_DYNAMIC_DRAW);
+        drawable.vbo.init(vertices, T::format, BufferAllocType::DYNAMIC);
+        drawable.ibo.init(indices.indices, drawable.strips * drawable.vertices_per_strip, BufferAllocType::DYNAMIC);
     }
 
     template<typename T>

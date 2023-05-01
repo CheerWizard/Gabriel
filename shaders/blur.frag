@@ -5,7 +5,7 @@ out vec3 out_color;
 in vec2 l_uv;
 
 uniform float offset;
-uniform sampler2D screen;
+uniform sampler2D scene;
 
 void main() {
 
@@ -29,7 +29,7 @@ void main() {
 
     vec3 samples[9];
     for (int i = 0; i < 9; i++) {
-        samples[i] = vec3(texture(screen, l_uv + offsets[i]));
+        samples[i] = vec3(texture(scene, l_uv + offsets[i]));
     }
 
     vec3 blur = vec3(0);

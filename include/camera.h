@@ -8,6 +8,8 @@
 #include <window.h>
 #include <keycodes.h>
 
+#include <collisions.h>
+
 #include <glm/glm.hpp>
 #include <gtc/matrix_transform.hpp>
 
@@ -46,9 +48,10 @@ namespace gl {
         float vertical_sensitivity = 0.30f;
         float fov = 45;
         float max_fov = 45;
-        float aspect = 1.3;
         float z_near = 0.1f;
         float z_far = 100.0f;
+        int screen_width = 800;
+        int screen_height = 600;
 
         bool enable_look = true;
         bool enable_zoom = true;
@@ -59,8 +62,10 @@ namespace gl {
         KEY key_move_backward = KEY::S;
         KEY key_move_right = KEY::D;
 
-        void init(u32 binding, float aspect_ratio);
-        glm::mat4 init_view();
+        void init(u32 binding, int screen_width, int screen_height);
+
+        glm::mat4 view();
+        void update_view();
 
         void free();
 
@@ -72,13 +77,18 @@ namespace gl {
 
         void resize(int w, int h);
 
-        void update_view();
-
+        glm::mat4 perspective();
         void update_perspective();
 
         void update();
 
-        glm::mat4 perspective();
+        inline float aspect_ratio() const {
+            return (float) screen_width / (float) screen_height;
+        }
+
+        RayCollider shoot_ray(double x, double y);
+        ViewRay raycast_view(double x, double y);
+        WorldRay raycast_world(double x, double y);
 
     private:
         UniformBuffer ubo;

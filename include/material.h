@@ -13,7 +13,7 @@ namespace gl {
         constexpr static float diamond = 2.42f;
     };
 
-    struct Material : ecs::Component {
+    component(Material) {
         static const int slots = 6;
         // base color
         glm::vec4 color = { 1, 1, 1, 1 };

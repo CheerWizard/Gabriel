@@ -45,6 +45,8 @@ namespace ecs {
         template<typename T>
         void for_each(const std::function<void(T*)>& iterate_function);
 
+        void free(ComponentID component_id);
+
     private:
         std::vector<u8> components;
     };
@@ -121,6 +123,10 @@ namespace ecs {
 
     struct Scene final {
 
+        ~Scene() {
+            free();
+        }
+
         EntityID create_entity();
 
         void add_entity(EntityID entity_id);
@@ -147,10 +153,12 @@ namespace ecs {
         template<typename T>
         void each_component(const std::function<void(T*)>& iterate_function);
 
-    private:
         template<typename T>
-        ComponentID get_component_id();
+        size_t component_size();
 
+        void free();
+
+    private:
         template<typename T>
         void invalidate_component_addresses();
 
@@ -162,37 +170,30 @@ namespace ecs {
     };
 
     template<typename T>
-    ComponentID Scene::get_component_id() {
-        return typeid(T).hash_code();
-    }
-
-    template<typename T>
     void Scene::reserve_components(size_t capacity) {
-        ComponentID cid = get_component_id<T>();
-        component_table[cid] = {};
-        component_table[cid].reserve<T>(capacity);
+        component_table[T::ID] = {};
+        component_table[T::ID].reserve<T>(capacity);
     }
 
     template<typename T, typename... Args>
     T* Scene::add_component(EntityID entity_id, Args&&... args) {
-        ComponentID cid = get_component_id<T>();
-
-        T* component = (T*) component_addresses[entity_id][cid];
+        ComponentID cid = T::ID;
+        T* component = (T*) component_addresses[entity_id][T::ID];
         // update component if it already exists
         if (component) {
-            component_table[cid].update<T>(component, std::forward<Args>(args)...);
+            component_table[T::ID].update<T>(component, std::forward<Args>(args)...);
         }
         // add new component if none exists
         else {
             // reallocate more memory if capacity exceeds
-            auto& component_vector = component_table[cid];
+            auto& component_vector = component_table[T::ID];
             if (!component_vector.has_capacity()) {
                 component_vector.reserve<T>(component_vector.get_size<T>() * 2 + 1);
                 // because component storage memory changed, we need to invalidate all addresses that use it
                 invalidate_component_addresses<T>();
             }
             component = component_vector.emplace<T>(std::forward<Args>(args)...);
-            component_addresses[entity_id][cid] = component;
+            component_addresses[entity_id][T::ID] = component;
         }
 
         component->entity_id = entity_id;
@@ -202,41 +203,41 @@ namespace ecs {
 
     template<typename T>
     void Scene::remove_component(EntityID entity_id) {
-        ComponentID cid = get_component_id<T>();
-        ComponentAddress component_address = component_addresses[entity_id][cid];
+        ComponentAddress component_address = component_addresses[entity_id][T::ID];
         if (component_address == null) {
             print_err("Scene::remove_component(): component for entity " << entity_id << "does not exist");
             return;
         }
         // remove component from storage
-        component_table[cid].erase<T>(entity_id);
-        component_addresses[entity_id][cid] = null;
+        component_table[T::ID].erase<T>(entity_id);
+        component_addresses[entity_id][T::ID] = null;
     }
 
     template<typename T>
     T* Scene::get_component(EntityID entity_id) {
-        ComponentID cid = get_component_id<T>();
-        return (T*) component_addresses[entity_id][cid];
+        return (T*) component_addresses[entity_id][T::ID];
     }
 
     template<typename T>
     ComponentVector& Scene::get_components() {
-        ComponentID cid = get_component_id<T>();
-        return component_table[cid];
+        return component_table[T::ID];
     }
 
     template<typename T>
     void Scene::each_component(const std::function<void(T*)>& iterate_function) {
-        ComponentID cid = get_component_id<T>();
-        component_table[cid].for_each<T>(iterate_function);
+        component_table[T::ID].for_each<T>(iterate_function);
     }
 
     template<typename T>
     void Scene::invalidate_component_addresses() {
-        ComponentID cid = get_component_id<T>();
         for (EntityID entity_id : entities) {
-            component_addresses[entity_id][cid] = component_table[cid].get<T>(entity_id);
+            component_addresses[entity_id][T::ID] = component_table[T::ID].get<T>(entity_id);
         }
+    }
+
+    template<typename T>
+    size_t Scene::component_size() {
+        return component_table[T::ID].get_size();
     }
 
 }

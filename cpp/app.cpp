@@ -1,335 +1,132 @@
 #include <app.h>
 
-#include <window.h>
-#include <ui.h>
-
-#include <camera.h>
-#include <light.h>
-#include <model_loader.h>
-#include <shadow.h>
-#include <math_functions.h>
-#include <sphere.h>
-#include <ssao.h>
-#include <pbr.h>
-#include <screen.h>
-#include <hdr.h>
-#include <blur.h>
-#include <bloom.h>
-#include <skeletal_animation.h>
-#include <entity_picker.h>
-#include <terrain.h>
-
 namespace gl {
 
-    static bool running = true;
-    static float dt = 6;
-    static float begin_time = 0;
+    App::App() {
+        init_window();
+        init_pipeline();
+        init_camera();
+        init_light();
+        init_scene();
+        init_text();
+    }
 
-    static ecs::Scene scene;
+    App::~App() {
+        free();
+    }
 
-    static Camera camera;
+    void App::run() {
+        while (running) {
+            begin_time = glfwGetTime();
+            running = Window::is_open();
 
-    static LightPresent point_light_present;
+            Window::poll();
 
-    static Terrain terrain = {
-            &scene,
-            { 0, -6, 4 },
-            { 0, 0, 0 },
-            { 1, 1, 1 },
-            32
-    };
+            simulate();
 
-    static io::Model backpack_model;
-    static PBR_Entity backpack = {
-            &scene,
-            { -3, 1.5, 5 },
-            { -90, 0, 0 },
-            { 1, 1, 1 }
-    };
+            render();
 
-    static int enable_hdr = true;
-    static int enable_blur = false;
-    static int enable_bloom = true;
+#ifdef UI
+            render_ui();
+#endif
 
-    static SSAO_Pass ssao_pass;
-    static int enable_ssao = true;
+            Window::swap();
 
-    static PBR_Pipeline pbr_pipeline;
+            delta_time = ((float)glfwGetTime() - begin_time) * 1000;
 
-    static HDR_Renderer hdr_renderer;
-
-    static Bloom bloom;
-
-    static Animator human_animator;
-    static io::SkeletalModel human_model;
-    static PBR_Entity human = {
-            &scene,
-            { 0, 0, 0 },
-            { 0, 0, 0 },
-            { 1, 1, 1 }
-    };
-
-    static SphereTBN rock_sphere_geometry = { 128, 128 };
-    static PBR_Entity rock_sphere = {
-            &scene,
-            { 0, 1.5, 0 },
-            { 0, 0, 0 },
-            { 1, 1, 1 }
-    };
-
-    static PBR_Entity wood_sphere = {
-            &scene,
-            { 0, 1.5, 4 },
-            { 0, 0, 0 },
-            { 1, 1, 1 }
-    };
-
-    static PBR_Entity metal_sphere = {
-            &scene,
-            { 0, 1.5, 8 },
-            { 0, 0, 0 },
-            { 1, 1, 1 }
-    };
-
-    static int print_limiter = 100;
-
-    static void print_dt() {
-        print_limiter++;
-        if (print_limiter > 100) {
-            print_limiter = 0;
-            print("dt: " << dt << " ms" << " FPS: " << 1000 / dt);
+            print_dt();
         }
     }
 
-    static void window_error(int error, const char* msg) {
-        print_err("window_error(): error=" << error << ", msg=" << msg);
+    void App::init_window() {
+        Window::init({ 0, 0, 800, 600, "Educational Project" });
+
+        EventRegistry::window_error = [this](int code, const char* msg) { window_error(code, msg); };
+        EventRegistry::window_close = [this]() { window_close(); };
+        EventRegistry::window_resized = [this](int w, int h) { window_resized(w, h); };
+        EventRegistry::window_positioned = [this](int x, int y) { window_positioned(x, y); };
+        EventRegistry::framebuffer_resized = [this](int w, int h) { framebuffer_resized(w, h); };
+        EventRegistry::key_press = [this](int key) { key_press(key); };
+        EventRegistry::key_release = [this](int key) { key_release(key); };
+        EventRegistry::mouse_press = [this](int mouse) { mouse_press(mouse); };
+        EventRegistry::mouse_release = [this](int mouse) { mouse_release(mouse); };
+        EventRegistry::mouse_cursor = [this](double x, double y) { mouse_cursor(x, y); };
+        EventRegistry::mouse_scroll = [this](double x, double y) { mouse_scroll(x, y); };
+
+        EventRegistry::set_callbacks();
     }
 
-    static void window_close() {
-        print("window_close()");
-    }
+    void App::init_scene() {
+        backpack = {
+                &scene,
+                { -3, 1.5, 5 },
+                { -90, 0, 0 },
+                { 1, 1, 1 }
+        };
 
-    static void window_resized(int w, int h) {
-        print("window_resized(): width=" << w << ", height=" << h);
-    }
+        terrain = {
+                &scene,
+                { 0, -15, 4 },
+                { 0, 0, 0 },
+                { 1, 1, 1 },
+                1024
+        };
 
-    static void window_positioned(int x, int y) {
-        print("window_positioned(): x=" << x << ", y=" << y);
-    }
+        human = {
+                &scene,
+                { 0, 0, 0 },
+                { 0, 0, 0 },
+                { 1, 1, 1 }
+        };
 
-    static void framebuffer_resized(int w, int h) {
-        print("framebuffer_resized(): width=" << w << ", height=" << h);
+        rock_sphere = {
+                &scene,
+                { 0, 1.5, 0 },
+                { 0, 0, 0 },
+                { 1, 1, 1 }
+        };
 
-        camera.resize(w, h);
-        hdr_renderer.resize(w, h);
-        pbr_pipeline.resize(w, h);
-        bloom.resize(w, h);
-        Blur::resize(w, h);
-        SSAO::resize(w, h);
-        ssao_pass.resolution = { w, h };
-    }
+        wood_sphere = {
+                &scene,
+                { 0, 1.5, 4 },
+                { 0, 0, 0 },
+                { 1, 1, 1 }
+        };
 
-    static void geometry_debug_enabled() {
-        terrain.add_component<PolygonVisual>();
-        rock_sphere.add_component<PolygonVisual>();
-        wood_sphere.add_component<PolygonVisual>();
-        metal_sphere.add_component<PolygonVisual>();
-        backpack.add_component<PolygonVisual>();
+        metal_sphere = {
+                &scene,
+                { 0, 1.5, 8 },
+                { 0, 0, 0 },
+                { 1, 1, 1 }
+        };
 
-        terrain.add_component<NormalVisual>();
-        rock_sphere.add_component<NormalVisual>();
-        wood_sphere.add_component<NormalVisual>();
-        metal_sphere.add_component<NormalVisual>();
-        backpack.add_component<NormalVisual>();
-    }
+        entity_control = new EntityControl(&scene, &camera);
 
-    static void geometry_debug_disabled() {
-        terrain.remove_component<PolygonVisual>();
-        rock_sphere.remove_component<PolygonVisual>();
-        wood_sphere.remove_component<PolygonVisual>();
-        metal_sphere.remove_component<PolygonVisual>();
-        backpack.remove_component<PolygonVisual>();
-
-        terrain.remove_component<NormalVisual>();
-        rock_sphere.remove_component<NormalVisual>();
-        wood_sphere.remove_component<NormalVisual>();
-        metal_sphere.remove_component<NormalVisual>();
-        backpack.remove_component<NormalVisual>();
-    }
-
-    static int enable_normal_mapping = true;
-    static int enable_parallax_mapping = true;
-    static int enable_geometry_debug = false;
-
-    static void key_press(int key) {
-        print("key_press(): " << key);
-
-        if (key == KEY::Esc)
-            win::close();
-
-        if (key == KEY::N)
-            enable_normal_mapping = !enable_normal_mapping;
-
-        if (key == KEY::P) {
-            enable_geometry_debug = !enable_geometry_debug;
-            if (enable_geometry_debug)
-                geometry_debug_enabled();
-            else
-                geometry_debug_disabled();
-        }
-
-        if (key == KEY::B)
-            enable_blur = !enable_blur;
-
-        if (key == KEY::H)
-            enable_hdr = !enable_hdr;
-
-        if (key == KEY::O)
-            enable_ssao = !enable_ssao;
-
-        if (key == KEY::F) {
-            win::toggle_window_mode();
-        }
-
-        if (key == KEY::E) {
-            rock_sphere.add_component<Outline>();
-        }
-
-        if (key == KEY::R) {
-            rock_sphere.remove_component<Outline>();
-        }
-    }
-
-    static void key_release(int key) {
-        print("key_release()");
-    }
-
-    static void mouse_press(int button) {
-        print("mouse_press()");
-        if (button == GLFW_MOUSE_BUTTON_LEFT) {
-            win::Cursor mouse_cursor = win::mouse_cursor();
-            static PBR_Pixel pixel;
-            pbr_pipeline.read_pixel(pixel, (int) mouse_cursor.x, (int) mouse_cursor.y);
-            print("Read pixel from [x,y] = [" << mouse_cursor.x << "," << mouse_cursor.y << "]");
-            EntityPicker entity_picker(&scene, pixel.entity_id);
-        }
-    }
-
-    static void mouse_release(int button) {
-        print("mouse_release()");
-    }
-
-    static void mouse_cursor(double x, double y) {
-        camera.look(x, y);
-    }
-
-    static void mouse_scroll(double x, double y) {
-        camera.zoom(x, y);
-    }
-
-    static void init_scene() {
-        pbr_pipeline.scene = &scene;
-
-        terrain.add_component<PBR_Component_Deferred>();
-        terrain.add_component<Pickable>();
+        terrain.add_component<PBR_Component_Forward>();
+        terrain.add_component<Selectable>();
+        terrain.add_component<Draggable>();
         terrain.init();
 
-        rock_sphere.add_component<PBR_Component_Deferred>();
-        rock_sphere.add_component<Pickable>();
+        rock_sphere.add_component<PBR_Component_ForwardCull>();
+        rock_sphere.add_component<Selectable>(entity_selected);
+        rock_sphere.add_component<Draggable>(entity_dragged);
+        rock_sphere.add_component<SphereCollider>(rock_sphere.transform()->translation, 3.0f);
 
-        wood_sphere.add_component<PBR_Component_Deferred>();
-        wood_sphere.add_component<Pickable>();
+        wood_sphere.add_component<PBR_Component_ForwardCull>();
+        wood_sphere.add_component<Selectable>(entity_selected);
+        wood_sphere.add_component<Draggable>(entity_dragged);
 
-        metal_sphere.add_component<PBR_Component_Deferred>();
-        metal_sphere.add_component<Pickable>();
+        metal_sphere.add_component<PBR_Component_ForwardCull>();
+        metal_sphere.add_component<Selectable>(entity_selected);
+        metal_sphere.add_component<Draggable>(entity_dragged);
 
-        backpack.add_component<PBR_Component_Deferred>();
-        backpack.add_component<Pickable>();
+        backpack.add_component<PBR_Component_ForwardCull>();
+        backpack.add_component<Selectable>(entity_selected);
+        backpack.add_component<Draggable>(entity_dragged);
 
-        human.add_component<PBR_SkeletalComponent_Deferred>();
-        human.add_component<Pickable>();
-    }
-
-    static void init() {
-        win::init({ 0, 0, 800, 600, "Educational Project", win::win_flags::sync });
-
-        win::event_registry::window_error = window_error;
-        win::event_registry::window_close = window_close;
-        win::event_registry::window_resized = window_resized;
-        win::event_registry::window_positioned = window_positioned;
-        win::event_registry::framebuffer_resized = framebuffer_resized;
-        win::event_registry::key_press = key_press;
-        win::event_registry::key_release = key_release;
-        win::event_registry::mouse_press = mouse_press;
-        win::event_registry::mouse_release = mouse_release;
-        win::event_registry::mouse_cursor = mouse_cursor;
-        win::event_registry::mouse_scroll = mouse_scroll;
-
-        win::event_registry::set_callbacks();
-
-        // setup screen
-        Screen::init();
-
-        init_scene();
-
-        // setup environment
-        pbr_pipeline.env.resolution = { 2048, 2048 };
-        pbr_pipeline.env.prefilter_resolution = { 2048, 2048 };
-        pbr_pipeline.env.init();
-        // setup sunlight
-        static const float sunlight_intensity = 0.05;
-        static const glm::vec3 sunlight_rgb = glm::vec3(237, 213, 158) * sunlight_intensity;
-        pbr_pipeline.sunlight.color = { sunlight_rgb, 1 };
-        pbr_pipeline.sunlight.direction = { 1, 1, 1, 0 };
-        // setup lights
-        pbr_pipeline.point_lights[0].position = { -4, 2, 0, 1 };
-        pbr_pipeline.point_lights[0].color = { 0, 0, 0, 1 };
-        pbr_pipeline.point_lights[1].position = { 4, 3, 0, 1 };
-        pbr_pipeline.point_lights[1].color = { 0, 0, 0, 1 };
-        pbr_pipeline.point_lights[2].position = { -4, 4, 8, 1 };
-        pbr_pipeline.point_lights[2].color = { 0, 0, 0, 1 };
-        pbr_pipeline.point_lights[3].position = { 4, 5, 8, 1 };
-        pbr_pipeline.point_lights[3].color = { 0, 0, 0, 1 };
-        // setup flashlight
-        pbr_pipeline.flashlight.position = { camera.position, 0 };
-        pbr_pipeline.flashlight.direction = { camera.front, 0 };
-        pbr_pipeline.flashlight.color = { 0, 0, 0, 1 };
-
-        // setup HDR
-        hdr_renderer.init(win::props().width, win::props().height);
-        hdr_renderer.set_exposure(1);
-
-        Image shiny_image = ImageReader::read("images/lens_dirt/lens_dirt.png");
-        hdr_renderer.shiny.init();
-        hdr_renderer.shiny.load(shiny_image);
-        shiny_image.free();
-
-        // setup PBR
-        pbr_pipeline.init(win::props().width, win::props().height);
-        pbr_pipeline.init_hdr_env("images/hdr/Arches_E_PineTree_3k.hdr", true);
-        pbr_pipeline.generate_env();
-
-        // setup Blur
-        Blur::init(win::props().width, win::props().height);
-
-        // setup Bloom
-        bloom.resolution = { win::props().width, win::props().height };
-        bloom.bloom_strength = 0.04;
-        bloom.init();
-
-        // setup SSAO
-        SSAO::init(win::props().width, win::props().height);
-        ssao_pass.resolution = { win::props().width, win::props().height };
-        ssao_pass.init();
-        pbr_pipeline.set_ssao_pass(&ssao_pass);
-
-        // setup main camera
-        camera.init(0, win::get_aspect_ratio());
-        camera.max_pitch = 180;
-        camera.position = { -5, 2, 10 };
-
-        // setup light presentation
-        point_light_present.init();
+        human.add_component<PBR_SkeletalComponent_ForwardCull>();
+        human.add_component<Selectable>(entity_selected);
+        human.add_component<Draggable>(entity_dragged);
 
         // setup 3D model
         backpack_model.generate("models/backpack/backpack.obj");
@@ -368,7 +165,7 @@ namespace gl {
         // setup horizontal plane
         terrain.material()->init(
                 false,
-                "images/bumpy-rockface1-bl/albedo.png",
+                null,
                 "images/bumpy-rockface1-bl/normal.png",
                 null,
                 "images/bumpy-rockface1-bl/metallic.png",
@@ -416,14 +213,33 @@ namespace gl {
                 rock_sphere.add_component<DisplacementTBN>();
                 auto* rock_sphere_displacement = rock_sphere.get_component<DisplacementTBN>();
                 rock_sphere_displacement->set_origin_vertices(&rock_sphere_geometry.vertices);
-                rock_sphere_displacement->scale = 0.125f;
+                rock_sphere_displacement->scale = 1.0f;
                 rock_sphere_displacement->map = HeightMap(rock_height_map);
                 rock_sphere_displacement->displace(*rock_sphere.get_component<DrawableElements>());
 
                 rock_height_map.free();
 
                 // displace terrain
-                terrain.displace_with(MidPointFormation(terrain.size(), terrain.size(), 1, 0, 10), 1);
+                Image terrain_height_map = ImageReader::read("images/terrain/earth_heightmap.png");
+                terrain_height_map.resize(terrain.size(), terrain.size());
+
+                terrain.displace_with(HeightMap(terrain_height_map), 200);
+                image_mixer.displacement_map = &terrain.displacement()->map;
+                image_mixer.add_image({ -100, -50, 0 }, "images/terrain/rock_tile.png");
+                image_mixer.add_image({ 0, 10, 20 }, "images/terrain/sand_tile.jpg");
+                image_mixer.add_image({ 20, 45, 70 }, "images/terrain/grass_tile.png");
+                image_mixer.add_image({ 70, 77, 85 }, "images/terrain/rock_tile.png");
+                image_mixer.add_image({ 85, 90, 100 }, "images/terrain/snow_tile.png");
+                image_mixer.mix(terrain.size(), terrain.size());
+                ImageWriter::write("images/terrain/mixed_image.png", image_mixer.mixed_image);
+
+                terrain_height_map.free();
+
+                ImageParams params;
+                params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+                terrain.material()->albedo.init();
+                terrain.material()->albedo.load(image_mixer.mixed_image, params);
+                terrain.material()->enable_albedo = terrain.material()->albedo.id != invalid_image_buffer;
             }
 
             wood_sphere.material()->init(
@@ -488,21 +304,86 @@ namespace gl {
 //            pbr_light_shader.use();
 //            direct_shadow.update_depth_map(pbr_light_shader);
 //        }
-
-        Screen::src = pbr_pipeline.render_target();
-        pbr_pipeline.update_sunlight();
-        pbr_pipeline.update_pointlights();
-        pbr_pipeline.update_flashlight();
     }
 
-    static void free() {
+    void App::init_pipeline() {
+        screen_renderer = new ScreenRenderer();
+
+        ui_pipeline = new UI_Pipeline(&scene);
+
+        debug_control_pipeline = new DebugControlPipeline(&scene);
+
+        pbr_pipeline = new PBR_Pipeline(&scene, Window::get_width(), Window::get_height());
+
+        hdr_renderer = new HdrRenderer(Window::get_width(), Window::get_height());
+        Image shiny_image = ImageReader::read("images/lens_dirt/lens_dirt.png");
+        ImageBuffer shiny_buffer;
+        shiny_buffer.init();
+        shiny_buffer.load(shiny_image);
+        shiny_image.free();
+        hdr_renderer->get_params().shiny_buffer = shiny_buffer;
+        hdr_renderer->get_params().exposure.value = 2.0f;
+        hdr_renderer->update_exposure();
+
+        blur_renderer = new BlurRenderer(Window::get_width(), Window::get_height());
+
+        bloom_renderer = new BloomRenderer(Window::get_width(), Window::get_height());
+    }
+
+    void App::init_camera() {
+        camera.z_far = 1000.0f;
+        camera.max_pitch = 180;
+        camera.position = { -5, 2, 10 };
+        camera.init(0, Window::get_width(), Window::get_height());
+    }
+
+    void App::init_light() {
+        // setup light presentation
+        point_light_present.init();
+        // setup environment
+        pbr_pipeline->env.resolution = { 2048, 2048 };
+        pbr_pipeline->env.prefilter_resolution = { 2048, 2048 };
+        pbr_pipeline->env.init();
+        pbr_pipeline->init_hdr_env("images/hdr/Arches_E_PineTree_3k.hdr", true);
+        pbr_pipeline->generate_env();
+        // setup sunlight
+        static const float sunlight_intensity = 0.05;
+        static const glm::vec3 sunlight_rgb = glm::vec3(237, 213, 158) * sunlight_intensity;
+        pbr_pipeline->sunlight.color = { sunlight_rgb, 1 };
+        pbr_pipeline->sunlight.direction = { 1, 1, 1, 0 };
+        // setup lights
+        pbr_pipeline->point_lights[0].position = { -4, 2, 0, 1 };
+        pbr_pipeline->point_lights[0].color = { 0, 0, 0, 1 };
+        pbr_pipeline->point_lights[1].position = { 4, 3, 0, 1 };
+        pbr_pipeline->point_lights[1].color = { 0, 0, 0, 1 };
+        pbr_pipeline->point_lights[2].position = { -4, 4, 8, 1 };
+        pbr_pipeline->point_lights[2].color = { 0, 0, 0, 1 };
+        pbr_pipeline->point_lights[3].position = { 4, 5, 8, 1 };
+        pbr_pipeline->point_lights[3].color = { 0, 0, 0, 1 };
+        // setup flashlight
+        pbr_pipeline->flashlight.position = { camera.position, 0 };
+        pbr_pipeline->flashlight.direction = { camera.front, 0 };
+        pbr_pipeline->flashlight.color = { 0, 0, 0, 1 };
+        // update light buffers
+        pbr_pipeline->update_sunlight();
+        pbr_pipeline->update_pointlights();
+        pbr_pipeline->update_flashlight();
+    }
+
+    void App::free() {
+        FontAtlas::free();
+
         terrain.free();
 
-        pbr_pipeline.env.free();
+        delete screen_renderer;
 
-        pbr_pipeline.free();
-        Screen::free();
-        hdr_renderer.free();
+        delete pbr_pipeline;
+        delete ui_pipeline;
+        delete debug_control_pipeline;
+
+        delete hdr_renderer;
+        delete blur_renderer;
+        delete bloom_renderer;
 
         wood_sphere.material()->free();
         wood_sphere.drawable()->free();
@@ -512,13 +393,6 @@ namespace gl {
 
         rock_sphere.material()->free();
         rock_sphere.drawable()->free();
-
-        Blur::free();
-
-        bloom.free();
-
-        SSAO::free();
-        ssao_pass.free();
 
         point_light_present.free();
 
@@ -530,20 +404,22 @@ namespace gl {
         human.drawable()->free();
         human_model.free();
 
+        delete entity_control;
+
         camera.free();
 
-        win::free();
+        Window::free();
     }
 
-    static void simulate() {
+    void App::simulate() {
         float t = begin_time;
 
-        camera.move(dt);
-        pbr_pipeline.set_camera_pos(camera.position);
+        camera.move(delta_time);
+        pbr_pipeline->set_camera_pos(camera.position);
 
         // bind flashlight to camera
-        pbr_pipeline.flashlight.position = { camera.position, 0 };
-        pbr_pipeline.flashlight.direction = { camera.front, 0 };
+        pbr_pipeline->flashlight.position = { camera.position, 0 };
+        pbr_pipeline->flashlight.direction = { camera.front, 0 };
 
         // rotate object each frame
         float f = 0.05f;
@@ -565,147 +441,265 @@ namespace gl {
         }
     }
 
-    static void render_screen_ui() {
+    void App::print_dt() {
+        print_limiter++;
+        if (print_limiter > 100) {
+            print_limiter = 0;
+            print("dt: " << delta_time << " ms" << " FPS: " << 1000 / delta_time);
+        }
+    }
+
+    void App::window_error(int error, const char* msg) {
+        print_err("window_error(): error=" << error << ", msg=" << msg);
+    }
+
+    void App::window_close() {
+        print("window_close()");
+    }
+
+    void App::window_resized(int w, int h) {
+        print("window_resized(): width=" << w << ", height=" << h);
+    }
+
+    void App::window_positioned(int x, int y) {
+        print("window_positioned(): x=" << x << ", y=" << y);
+    }
+
+    void App::framebuffer_resized(int w, int h) {
+        print("framebuffer_resized(): width=" << w << ", height=" << h);
+
+        camera.resize(w, h);
+        pbr_pipeline->resize(w, h);
+        ui_pipeline->resize(w, h);
+        debug_control_pipeline->resize(w, h);
+        hdr_renderer->resize(w, h);
+        bloom_renderer->resize(w, h);
+        blur_renderer->resize(w, h);
+    }
+
+    void App::key_press(int key) {
+        print("key_press(): " << key);
+
+        if (key == KEY::Esc)
+            Window::close();
+
+        if (key == KEY::N)
+            enable_normal_mapping = !enable_normal_mapping;
+
+        if (key == KEY::B)
+            enable_blur = !enable_blur;
+
+        if (key == KEY::H)
+            enable_hdr = !enable_hdr;
+
+        if (key == KEY::O)
+            enable_ssao = !enable_ssao;
+
+        if (key == KEY::F) {
+            Window::toggle_window_mode();
+        }
+
+        if (key == KEY::E) {
+            rock_sphere.add_component<Outline>();
+        }
+
+        if (key == KEY::R) {
+            rock_sphere.remove_component<Outline>();
+        }
+
+        if (key == KEY::C) {
+            camera.enable_look = !camera.enable_look;
+        }
+    }
+
+    void App::key_release(int key) {
+        print("key_release()");
+    }
+
+    void App::mouse_press(int button) {
+        print("mouse_press()");
+        if (button == GLFW_MOUSE_BUTTON_LEFT) {
+            Cursor mouse_cursor = Window::mouse_cursor();
+            static PBR_Pixel pixel;
+            pbr_pipeline->read_pixel(pixel, (int) mouse_cursor.x, (int) mouse_cursor.y);
+            print("Read pixel from [x,y] = [" << mouse_cursor.x << "," << mouse_cursor.y << "]");
+            entity_control->select(mouse_cursor.x, mouse_cursor.y);
+        }
+    }
+
+    void App::mouse_release(int button) {
+        print("mouse_release()");
+    }
+
+    void App::mouse_cursor(double x, double y) {
+        camera.look(x, y);
+        entity_control->drag(x, y);
+    }
+
+    void App::mouse_scroll(double x, double y) {
+        camera.zoom(x, y);
+    }
+
+    void App::entity_selected(ecs::Entity entity, double x, double y) {
+        print("entity_selected: [" << x << "," << y << "]");
+        auto& selected = entity.get_component<Selectable>()->enable;
+        selected = !selected;
+        if (selected) {
+            entity.add_component<PolygonVisual>();
+            entity.add_component<NormalVisual>();
+        } else {
+            entity.remove_component<PolygonVisual>();
+            entity.remove_component<NormalVisual>();
+        }
+    }
+
+    void App::entity_dragged(ecs::Entity entity, double x, double y) {
+        print("entity_dragged: [" << x << "," << y << "]");
+    }
+
+    void App::entity_hovered(ecs::Entity entity, double x, double y) {
+        print("entity_hovered: [" << x << "," << y << "]");
+        entity.get_component<Material>()->color = { 5, 5, 5, 1 };
+    }
+
+    void App::render_screen_ui() {
         ui::theme_selector("Theme");
         ui::checkbox("HDR", &enable_hdr);
-        ui::slider("Gamma", &Screen::gamma, 1.2, 3.2, 0.1);
-        ui::slider("Exposure", &hdr_renderer.exposure, 0, 5.0, 0.01);
+        ui::slider("Gamma", &screen_renderer->get_params().gamma.value, 1.2, 3.2, 0.1);
+        ui::slider("Exposure", &hdr_renderer->get_params().exposure.value, 0, 5.0, 0.01);
         ui::checkbox("Normal Mapping", &enable_normal_mapping);
         ui::checkbox("Parallax Mapping", &enable_parallax_mapping);
         ui::checkbox("Blur", &enable_blur);
-        ui::checkbox("Bloom", &enable_bloom);
-        ui::checkbox("SSAO", &enable_ssao);
+        ui::checkbox("BloomRenderer", &enable_bloom);
+        ui::checkbox("SsaoRenderer", &enable_ssao);
 
-        ui::slider("Sunlight X", &pbr_pipeline.sunlight.direction.x, -100, 100, 1);
-        ui::slider("Sunlight Y", &pbr_pipeline.sunlight.direction.y, -100, 100, 1);
-        ui::slider("Sunlight Z", &pbr_pipeline.sunlight.direction.z, -100, 100, 1);
-        ui::color_picker("Sunlight Color", pbr_pipeline.sunlight.color);
+        ui::slider("Sunlight X", &pbr_pipeline->sunlight.direction.x, -100, 100, 1);
+        ui::slider("Sunlight Y", &pbr_pipeline->sunlight.direction.y, -100, 100, 1);
+        ui::slider("Sunlight Z", &pbr_pipeline->sunlight.direction.z, -100, 100, 1);
+        ui::color_picker("Sunlight Color", pbr_pipeline->sunlight.color);
 
-        ui::slider("PointLight_1 X", &pbr_pipeline.point_lights[0].position.x, -25, 25, 1);
-        ui::slider("PointLight_1 Y", &pbr_pipeline.point_lights[0].position.y, -25, 25, 1);
-        ui::slider("PointLight_1 Z", &pbr_pipeline.point_lights[0].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_1 Color", pbr_pipeline.point_lights[0].color);
+        ui::slider("PointLight_1 X", &pbr_pipeline->point_lights[0].position.x, -25, 25, 1);
+        ui::slider("PointLight_1 Y", &pbr_pipeline->point_lights[0].position.y, -25, 25, 1);
+        ui::slider("PointLight_1 Z", &pbr_pipeline->point_lights[0].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_1 Color", pbr_pipeline->point_lights[0].color);
 
-        ui::slider("PointLight_2 X", &pbr_pipeline.point_lights[1].position.x, -25, 25, 1);
-        ui::slider("PointLight_2 Y", &pbr_pipeline.point_lights[1].position.y, -25, 25, 1);
-        ui::slider("PointLight_2 Z", &pbr_pipeline.point_lights[1].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_2 Color", pbr_pipeline.point_lights[1].color);
+        ui::slider("PointLight_2 X", &pbr_pipeline->point_lights[1].position.x, -25, 25, 1);
+        ui::slider("PointLight_2 Y", &pbr_pipeline->point_lights[1].position.y, -25, 25, 1);
+        ui::slider("PointLight_2 Z", &pbr_pipeline->point_lights[1].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_2 Color", pbr_pipeline->point_lights[1].color);
 
-        ui::slider("PointLight_3 X", &pbr_pipeline.point_lights[2].position.x, -25, 25, 1);
-        ui::slider("PointLight_3 Y", &pbr_pipeline.point_lights[2].position.y, -25, 25, 1);
-        ui::slider("PointLight_3 Z", &pbr_pipeline.point_lights[2].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_3 Color", pbr_pipeline.point_lights[2].color);
+        ui::slider("PointLight_3 X", &pbr_pipeline->point_lights[2].position.x, -25, 25, 1);
+        ui::slider("PointLight_3 Y", &pbr_pipeline->point_lights[2].position.y, -25, 25, 1);
+        ui::slider("PointLight_3 Z", &pbr_pipeline->point_lights[2].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_3 Color", pbr_pipeline->point_lights[2].color);
 
-        ui::slider("PointLight_4 X", &pbr_pipeline.point_lights[3].position.x, -25, 25, 1);
-        ui::slider("PointLight_4 Y", &pbr_pipeline.point_lights[3].position.y, -25, 25, 1);
-        ui::slider("PointLight_4 Z", &pbr_pipeline.point_lights[3].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_4 Color", pbr_pipeline.point_lights[3].color);
+        ui::slider("PointLight_4 X", &pbr_pipeline->point_lights[3].position.x, -25, 25, 1);
+        ui::slider("PointLight_4 Y", &pbr_pipeline->point_lights[3].position.y, -25, 25, 1);
+        ui::slider("PointLight_4 Z", &pbr_pipeline->point_lights[3].position.z, -25, 25, 1);
+        ui::color_picker("PointLight_4 Color", pbr_pipeline->point_lights[3].color);
     }
 
-    static void render_ui() {
+    void App::render_ui() {
         ui::begin();
-        ui::window("Screen", render_screen_ui);
+        ui::window("Screen", [this]() { render_screen_ui(); });
         ui::end();
     }
 
-    static void postfx_rendering() {
+    void App::render_postfx() {
         // Bloom effect
         if (enable_bloom) {
-            bloom.src = Screen::src;
-            bloom.render();
-            Screen::src = bloom.render_target;
+            bloom_renderer->get_hdr_buffer() = screen_renderer->get_params().scene_buffer;
+            bloom_renderer->render();
+            screen_renderer->get_params().scene_buffer = bloom_renderer->get_render_target();
         }
         // HDR effect
         if (enable_hdr) {
-            hdr_renderer.src = Screen::src;
-            hdr_renderer.render();
-            Screen::src = hdr_renderer.render_target;
+            hdr_renderer->get_params().scene_buffer = screen_renderer->get_params().scene_buffer;
+            hdr_renderer->render();
+            screen_renderer->get_params().scene_buffer = hdr_renderer->get_render_target();
         }
         // Blur effect
         if (enable_blur) {
-            Blur::src = Screen::src;
-            Blur::render();
-            Screen::src = Blur::render_target;
+            blur_renderer->get_params().scene_buffer = screen_renderer->get_params().scene_buffer;
+            blur_renderer->render();
+            screen_renderer->get_params().scene_buffer = blur_renderer->get_render_target();
         }
     }
 
-    static void debug_screen_update() {
-        if (win::is_key_press(KEY::D1)) {
-            Screen::src = pbr_pipeline.render_target();
+    void App::render_debug_screen() {
+        if (Window::is_key_press(KEY::D1)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_render_target();
         }
 
-        else if (win::is_key_press(KEY::D2)) {
-            Screen::src = pbr_pipeline.gbuffer().position;
+        else if (Window::is_key_press(KEY::D2)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_gbuffer().position;
         }
 
-        else if (win::is_key_press(KEY::D3)) {
-            Screen::src = pbr_pipeline.gbuffer().normal;
+        else if (Window::is_key_press(KEY::D3)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_gbuffer().normal;
         }
 
-        else if (win::is_key_press(KEY::D4)) {
-            Screen::src = pbr_pipeline.gbuffer().albedo;
+        else if (Window::is_key_press(KEY::D4)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_gbuffer().albedo;
         }
 
-        else if (win::is_key_press(KEY::D5)) {
-            Screen::src = pbr_pipeline.gbuffer().pbr_params;
+        else if (Window::is_key_press(KEY::D5)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_gbuffer().pbr_params;
         }
 
-        else if (win::is_key_press(KEY::D6)) {
-            Screen::src = pbr_pipeline.gbuffer().shadow_proj_coords;
+        else if (Window::is_key_press(KEY::D6)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_gbuffer().shadow_proj_coords;
         }
 
-        else if (win::is_key_press(KEY::D7)) {
-            Screen::src = SSAO::render_target;
+        else if (Window::is_key_press(KEY::D8)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->env.hdr;
         }
 
-        else if (win::is_key_press(KEY::D8)) {
-            Screen::src = pbr_pipeline.env.hdr;
+        else if (Window::is_key_press(KEY::D9)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_transparent_buffer().revealage;
         }
 
-        else if (win::is_key_press(KEY::D9)) {
-            Screen::src = pbr_pipeline.transparent_buffer().revealage;
+        else if (Window::is_key_press(KEY::D0)) {
+            screen_renderer->get_params().ui_buffer = ui_pipeline->get_render_target();
         }
 
-        else if (win::is_key_press(KEY::D0)) {
+        else if (Window::is_key_press(KEY::P)) {
+            screen_renderer->get_params().debug_control_buffer = debug_control_pipeline->get_render_target();
+        }
+
+        else if (Window::is_key_press(KEY::T)) {
+            screen_renderer->get_params().scene_buffer = font_roboto_regular->buffer;
         }
     }
 
-    static void render() {
-        pbr_pipeline.render();
-        Screen::src = pbr_pipeline.render_target();
-        postfx_rendering();
-        debug_screen_update();
-        Screen::render();
-    }
+    void App::render() {
+        pbr_pipeline->render();
+        screen_renderer->get_params().scene_buffer = pbr_pipeline->get_render_target();
 
-    App::App() {
-        init();
-    }
+        ui_pipeline->render();
+        screen_renderer->get_params().ui_buffer = ui_pipeline->get_render_target();
 
-    App::~App() {
-        free();
-    }
-
-    void App::run() {
-        while (running) {
-            begin_time = glfwGetTime();
-            running = win::is_open();
-
-            win::poll();
-
-            simulate();
-
-            render();
-
-#ifdef UI
-            render_ui();
+#ifdef DEBUG
+        debug_control_pipeline->render();
+        screen_renderer->get_params().debug_control_buffer = debug_control_pipeline->get_render_target();
 #endif
 
-            win::swap();
+        render_postfx();
 
-            dt = ((float)glfwGetTime() - begin_time) * 1000;
+        render_debug_screen();
 
-            print_dt();
-        }
+        screen_renderer->render();
+    }
+
+    void App::init_text() {
+        FontAtlas::init();
+
+        font_roboto_regular = FontAtlas::load("fonts/Roboto-Regular.ttf", 40);
+        font_roboto_regular->save_bmp("fonts/Roboto-Regular.bmp");
+        font_roboto_regular->save_widths("fonts/Roboto-Regular.widths");
+
+        text_label = &scene;
+        text_label.add_component<Text3d>(font_roboto_regular, "Hello World!");
+        text_label.get_component<Text3d>()->transform.translation = { 0, 5, 4 };
     }
 }

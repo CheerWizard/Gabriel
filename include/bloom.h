@@ -1,46 +1,86 @@
 #pragma once
 
 #include <frame.h>
-#include <buffers.h>
 #include <draw.h>
 #include <shader.h>
 
 namespace gl {
 
-    struct Bloom final {
-        ImageBuffer render_target;
-        ImageBuffer src;
-
-        glm::ivec2 resolution;
-        int mip_levels = 6;
-        float filter_radius = 0.005f;
-        float bloom_strength = 0.04f;
+    struct BloomUpsampleShader : Shader {
+        UniformF filter_radius = { "filter_radius", 0.005f };
 
         void init();
-        void free();
 
-        void render();
+        void update_filter_radius();
+    };
+
+    struct BloomDownsampleShader : Shader {
+        UniformV2I resolution = { "resolution", { 800, 600 } };
+        UniformI mip_level = { "mip_level", 1 };
+
+        void init(const glm::ivec2& resolution);
+
+        void update_resolution();
+    };
+
+    struct BloomMixShader : Shader {
+        UniformF bloom_strength = { "bloom_strength", 0.04f };
+        const ImageSampler hdr_sampler = { "hdr", 0 };
+        ImageBuffer hdr_buffer;
+        const ImageSampler bloom_sampler = { "bloom", 1 };
+        ImageBuffer bloom_buffer;
+
+        void init();
+        void update();
+        void update_bloom_strength();
+    };
+
+    struct BloomRenderer final {
+        int mip_levels = 6;
+
+        BloomRenderer(int width, int height);
+        ~BloomRenderer();
+
+        inline const ImageBuffer& get_render_target() {
+            return render_target;
+        }
+
+        inline ImageBuffer& get_hdr_buffer() {
+            return mix_shader.hdr_buffer;
+        }
+
+        inline ImageBuffer& get_bloom_buffer() {
+            return mix_shader.bloom_buffer;
+        }
+
+        inline float& get_filter_radius() {
+            return upsample_shader.filter_radius.value;
+        }
+
+        inline float& get_bloom_strength() {
+            return mix_shader.bloom_strength.value;
+        }
 
         void resize(int w, int h);
+
+        void render();
 
     private:
         void init_mix_color();
         void init_mips();
-
-        void set_resolution(const glm::ivec2& resolution);
-        void set_filter_radius(float filter_radius);
-        void set_bloom_strength(float bloom_strength);
 
         void render_downsample();
         void render_upsample();
         void render_mix();
 
     private:
+        glm::ivec2 resolution;
+        ImageBuffer render_target;
         FrameBuffer fbo;
-        VertexArray vao;
-        Shader downsample_shader;
-        Shader upsample_shader;
-        Shader mix_shader;
+        BloomDownsampleShader downsample_shader;
+        BloomUpsampleShader upsample_shader;
+        BloomMixShader mix_shader;
+        DrawableQuad drawable;
         std::vector<ColorAttachment> mips;
         ColorAttachment mix_color;
     };

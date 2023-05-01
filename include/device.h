@@ -1,15 +1,18 @@
 #pragma once
 
 #include <debugger.h>
+#include <viewport.h>
 
 namespace gl {
 
-    struct device final {
-        static int max_attrs_allowed;
-        static float max_anisotropy_samples;
-    };
+    struct Device final {
+        static int MAX_ATTRS_ALLOWED;
+        static float MAX_ANISOTROPY_SAMPLES;
+        static int MAX_WORKGROUP_COUNT[3];
+        static int MAX_WORKGROUP_SIZE[3];
+        static int MAX_WORKGROUP_INVOCATIONS;
 
-    void init(int viewport_width, int viewport_height);
-    void resize(int w, int h);
+        static void init(int viewport_width, int viewport_height);
+    };
 
 }

@@ -1,24 +1,48 @@
 #pragma once
 
-#include <buffers.h>
 #include <shader.h>
+#include <draw.h>
 
 namespace gl {
 
-    struct Screen final {
-        static ImageBuffer src;
-        static float gamma;
+    struct ScreenParams final {
+        const ImageSampler scene_sampler = { "scene", 0 };
+        ImageBuffer scene_buffer;
 
-        static void init();
-        static void free();
+        const ImageSampler ui_sampler = { "ui", 1 };
+        ImageBuffer ui_buffer;
 
-        static void set_gamma(float gamma);
+        const ImageSampler debug_control_sampler = { "debug_control", 2 };
+        ImageBuffer debug_control_buffer;
 
-        static void render();
+        UniformF gamma = { "gamma", 2.2f };
+    };
+
+    struct ScreenShader : Shader {
+        ScreenParams params;
+
+        void init();
+        void update();
+
+        void update_gamma();
+    };
+
+    struct ScreenRenderer final {
+
+        ScreenRenderer();
+        ~ScreenRenderer();
+
+        inline ScreenParams& get_params() {
+            return shader.params;
+        }
+
+        void update_gamma();
+
+        void render();
 
     private:
-        static Shader shader;
-        static VertexArray vao;
+        ScreenShader shader;
+        DrawableQuad drawable;
     };
 
 }

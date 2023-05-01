@@ -268,7 +268,7 @@ void main()
     float ao = pbr_param.b;
     vec3 Lo = vec3(0);
 
-    // SSAO
+    // SsaoRenderer
     if (enable_ssao) {
         ao *= texture(ssao, l_uv).r;
     }
@@ -302,7 +302,7 @@ void main()
     vec3 prefiltered_color = textureLod(envlight.prefilter, R, roughness * envlight.prefilter_levels).rgb;
     // BRDF convolution
     vec2 brdf = texture(envlight.brdf_convolution, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefiltered_color * (brdf.x + brdf.y) * F;
+    vec3 specular = prefiltered_color * F;
 
     // ambient part
     vec3 ambient = (kD * diffuse + specular) * ao;

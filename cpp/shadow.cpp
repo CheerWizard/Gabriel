@@ -15,10 +15,9 @@ namespace gl {
     }
 
     void DirectShadowRenderer::init(int w, int h) {
-        shader.init(
-            "shaders/direct_shadow.vert",
-            "shaders/direct_shadow.frag"
-        );
+        shader.add_vertex_stage("shaders/direct_shadow.vert");
+        shader.add_fragment_stage("shaders/direct_shadow.frag");
+        shader.complete();
 
         fbo.depth.image = { w, h };
         fbo.depth.image.pixel_type = PixelType::FLOAT;
@@ -87,11 +86,10 @@ namespace gl {
     }
 
     void PointShadowRenderer::init(int w, int h) {
-        shader.init(
-            "shaders/point_shadow.vert",
-            "shaders/point_shadow.frag",
-            "shaders/point_shadow.geom"
-        );
+        shader.add_vertex_stage("shaders/point_shadow.vert");
+        shader.add_fragment_stage("shaders/point_shadow.frag");
+        shader.add_geometry_stage("shaders/point_shadow.geom");
+        shader.complete();
 
         fbo.depth.buffer.type = GL_TEXTURE_CUBE_MAP;
         fbo.depth.image = { w, h };

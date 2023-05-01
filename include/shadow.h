@@ -10,7 +10,7 @@
 
 namespace gl {
 
-    struct DirectShadow : ecs::Component {
+    component(DirectShadow) {
         glm::vec3 direction;
         glm::mat4 light_space;
 
@@ -36,7 +36,7 @@ namespace gl {
         Shader shader;
     };
 
-    struct PointShadow : ecs::Component {
+    component(PointShadow) {
         int width = 1024;
         int height = 1024;
         glm::vec3 position;

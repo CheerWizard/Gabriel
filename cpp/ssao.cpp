@@ -5,25 +5,53 @@
 
 namespace gl {
 
-    Shader SSAO::shader;
-    Shader SSAO::blur_shader;
-    FrameBuffer SSAO::fbo;
-    FrameBuffer SSAO::blur_fbo;
-    VertexArray SSAO::vao;
-    ImageBuffer SSAO::render_target;
+    void SsaoShader::init(int width, int height) {
+        add_vertex_stage("shaders/fullscreen_quad.vert");
+        add_fragment_stage("shaders/ssao.frag");
+        complete();
+        params.resolution.value = { width, height };
+        params.init();
+    }
 
-    void SSAO::init(int width, int height) {
-        // SSAO quad
-        vao.init();
-        // SSAO shaders
-        shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/ssao.frag"
-        );
-        blur_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/ssao_blur.frag"
-        );
+    void SsaoShader::update() {
+        bind_sampler(params.positions_sampler, params.positions);
+        bind_sampler(params.normals_sampler, params.normals);
+        bind_sampler(params.noise_sampler, params.noise);
+
+        set_uniform(params.resolution);
+        set_uniform(params.noise_size);
+
+        set_uniform_array(params.samples);
+
+        params.samples_size.value = (int) params.samples.size();
+        set_uniform(params.samples_size);
+        set_uniform(params.sample_radius);
+        set_uniform(params.sample_bias);
+
+        set_uniform(params.occlusion_power);
+    }
+
+    void SsaoShader::resize(int width, int height) {
+        params.resolution.value = { width, height };
+    }
+
+    void SsaoBlurShader::init() {
+        add_vertex_stage("shaders/fullscreen_quad.vert");
+        add_fragment_stage("shaders/ssao_blur.frag");
+        complete();
+    }
+
+    void SsaoBlurShader::update(const ImageBuffer &ssao_image) {
+        ssao_image.activate(0);
+        ssao_image.bind();
+    }
+
+    SsaoRenderer::SsaoRenderer(int width, int height) {
+        ssao_shader.init(width, height);
+        blur_shader.init();
+
+        drawable.init();
+
         // SSAO frame
         ColorAttachment color = { 0, width, height };
         color.image.internal_format = GL_RED;
@@ -39,7 +67,7 @@ namespace gl {
         fbo.init_colors();
         fbo.attach_colors();
         fbo.complete();
-        // SSAO Blur frame
+        // Blur frame
         ColorAttachment blur_color = { 0, width, height };
         blur_color.image.internal_format = GL_RED;
         blur_color.image.pixel_format = GL_RED;
@@ -55,59 +83,47 @@ namespace gl {
         blur_fbo.attach_colors();
         blur_fbo.complete();
 
+        ssao_image = fbo.colors[0].buffer;
         render_target = blur_fbo.colors[0].buffer;
     }
 
-    void SSAO::free() {
-        vao.free();
-        shader.free();
-        blur_shader.free();
+    SsaoRenderer::~SsaoRenderer() {
         fbo.free();
+        ssao_shader.free();
+        ssao_shader.params.free();
         blur_fbo.free();
+        blur_shader.free();
+        drawable.free();
     }
 
-    void SSAO::render(SSAO_Pass &pass) {
+    void SsaoRenderer::render() {
         // Occlusion part
         fbo.bind();
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
-        shader.use();
+        ssao_shader.use();
+        ssao_shader.update();
 
-        shader.bind_sampler("v_positions", 0, pass.positions);
-        shader.bind_sampler("v_normals", 1, pass.normals);
-        shader.bind_sampler("noise", 2, pass.noise);
-
-        shader.set_uniform_args("resolution", pass.resolution);
-        shader.set_uniform_args("noise_size", pass.noise_size);
-        int samples_size = (int) pass.samples.size();
-        shader.set_uniform_args("samples_size", samples_size);
-        shader.set_uniform_args("sample_radius", pass.sample_radius);
-        shader.set_uniform_args("sample_bias", pass.sample_bias);
-        shader.set_uniform_args("occlusion_power", pass.occlusion_power);
-
-        UniformArrayV3F samples = { "samples", pass.samples };
-        shader.set_uniform_array(samples);
-
-        vao.draw_quad();
+        drawable.draw();
 
         // Blur part
         blur_fbo.bind();
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         blur_shader.use();
+        blur_shader.update(ssao_image);
 
-        blur_shader.bind_sampler({ "ssao", 0 }, fbo.colors[0].buffer);
-
-        vao.draw_quad();
+        drawable.draw();
     }
 
-    void SSAO::resize(int w, int h) {
+    void SsaoRenderer::resize(int w, int h) {
         fbo.resize(w, h);
         blur_fbo.resize(w, h);
+        ssao_shader.resize(w, h);
     }
 
-    void SSAO_Pass::init() {
-        // SSAO kernels
+    void SsaoParams::init() {
+        // setup kernels
         std::uniform_real_distribution<float> random_floats(0.0, 1.0);
         std::default_random_engine generator;
         int samples_size = (int) samples.size();
@@ -124,16 +140,16 @@ namespace gl {
             sample *= scale;
             samples[i] = sample;
         }
-        // SSAO noise
-        std::vector<glm::vec3> noises(noise_size * noise_size);
-        for (u32 i = 0; i < noise_size * noise_size; i++) {
+        // setup noise
+        std::vector<glm::vec3> noises(noise_size.value * noise_size.value);
+        for (u32 i = 0; i < noise_size.value * noise_size.value; i++) {
             noises[i] = {
                     random_floats(generator) * 2.0 - 1.0,
                     random_floats(generator) * 2.0 - 1.0,
                     0
             };
         }
-        // SSAO noise texture
+        // setup noise texture
         ImageParams noise_params;
         noise_params.min_filter = GL_NEAREST;
         noise_params.mag_filter = GL_NEAREST;
@@ -141,11 +157,11 @@ namespace gl {
         noise_params.t = GL_REPEAT;
         noise_params.r = GL_REPEAT;
         noise.init();
-        Image noise_image = { noise_size, noise_size, 3, GL_RGBA32F, GL_RGB, PixelType::FLOAT, &noises[0] };
+        Image noise_image = { noise_size.value, noise_size.value, 3, GL_RGBA32F, GL_RGB, PixelType::FLOAT, &noises[0] };
         noise.load(noise_image, noise_params);
     }
 
-    void SSAO_Pass::free() {
+    void SsaoParams::free() {
         noise.free();
     }
 

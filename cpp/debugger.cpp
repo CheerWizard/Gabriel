@@ -1,5 +1,7 @@
 #include <debugger.h>
 
+#include <debug_break.h>
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
@@ -60,7 +62,7 @@ namespace gl {
         print(ss.str());
 
         if (type == GL_DEBUG_TYPE_ERROR) {
-            __debugbreak();
+            debug_break();
         }
     }
 

@@ -2,32 +2,56 @@
 
 #include <frame.h>
 #include <shader.h>
-#include <buffers.h>
+#include <draw.h>
 
 namespace gl {
 
-    struct HDR_Renderer final {
-        ImageBuffer render_target;
-        ImageBuffer src;
-        ImageBuffer shiny;
+    struct HdrParams final {
+        UniformF exposure = { "exposure", 1.0f };
+        UniformF shiny_strength = { "shiny_strength", 7.5f };
 
-        float exposure = 1.0f;
-        float shiny_strength = 7.5f;
+        const ImageSampler scene_sampler = { "scene", 0 };
+        ImageBuffer scene_buffer;
 
-        void init(int w, int h);
-        void free();
+        const ImageSampler shiny_sampler = { "shiny", 1 };
+        ImageBuffer shiny_buffer;
+    };
 
-        void set_exposure(float exposure);
-        void set_shiny_strength(float shiny_strength);
+    struct HdrShader : Shader {
+        HdrParams params;
+
+        void init();
+        void update();
+
+        void update_exposure();
+        void update_shiny_strength();
+    };
+
+    struct HdrRenderer final {
+
+        HdrRenderer(int w, int h);
+        ~HdrRenderer();
+
+        inline const ImageBuffer& get_render_target() {
+            return render_target;
+        }
+
+        inline HdrParams& get_params() {
+            return shader.params;
+        }
 
         void resize(int w, int h);
 
         void render();
 
+        void update_exposure();
+        void update_shiny_strength();
+
     private:
-        Shader shader;
+        ImageBuffer render_target;
         FrameBuffer fbo;
-        VertexArray vao;
+        HdrShader shader;
+        DrawableQuad drawable;
     };
 
 }

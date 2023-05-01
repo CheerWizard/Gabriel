@@ -14,6 +14,15 @@ namespace ecs {
 
         inline EntityID get_id() const { return id; }
 
+        inline void set_id(EntityID id) { this->id = id; }
+
+        inline void set_scene(Scene* scene) { this->scene = scene; }
+
+        inline const Scene* get_scene() const { return scene; }
+
+        inline bool invalid() const { return id == InvalidEntity; }
+        inline bool valid() const { return id != InvalidEntity; }
+
         template<typename T>
         T* get_component();
 
@@ -22,6 +31,12 @@ namespace ecs {
 
         template<typename T>
         void remove_component();
+
+        template<typename T>
+        bool valid_component();
+
+        template<typename T>
+        bool invalid_component();
 
     protected:
         EntityID id = InvalidEntity;
@@ -41,6 +56,16 @@ namespace ecs {
     template<typename T>
     void Entity::remove_component() {
         scene->remove_component<T>(id);
+    }
+
+    template<typename T>
+    bool Entity::valid_component() {
+        return get_component<T>() != null;
+    }
+
+    template<typename T>
+    bool Entity::invalid_component() {
+        return get_component<T>() == null;
     }
 
 }

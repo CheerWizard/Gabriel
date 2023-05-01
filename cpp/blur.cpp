@@ -4,18 +4,25 @@
 
 namespace gl {
 
-    Shader Blur::shader;
-    FrameBuffer Blur::fbo;
-    VertexArray Blur::vao;
-    float Blur::offset = 1.0 / 300.0;
-    ImageBuffer Blur::src;
-    ImageBuffer Blur::render_target;
+    void BlurShader::init() {
+        add_vertex_stage("shaders/fullscreen_quad.vert");
+        add_fragment_stage("shaders/blur.frag");
+        complete();
+        update_offset();
+    }
 
-    void Blur::init(int w, int h) {
-        shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/blur.frag"
-        );
+    void BlurShader::update() {
+        params.scene_buffer.activate(0);
+        params.scene_buffer.bind();
+    }
+
+    void BlurShader::update_offset() {
+        use();
+        set_uniform(params.offset);
+    }
+
+    BlurRenderer::BlurRenderer(int w, int h) {
+        shader.init();
 
         fbo.init();
         ColorAttachment color = { 0, w, h };
@@ -27,34 +34,32 @@ namespace gl {
         fbo.attach_colors();
         fbo.complete();
 
-        shader.use();
-        shader.set_uniform_args("offset", offset);
+        drawable.init();
 
-        vao.init();
+        render_target = fbo.colors[0].buffer;
     }
 
-    void Blur::free() {
-        shader.free();
+    BlurRenderer::~BlurRenderer() {
         fbo.free();
-        vao.free();
+        shader.free();
+        drawable.free();
     }
 
-    void Blur::resize(int w, int h) {
+    void BlurRenderer::resize(int w, int h) {
         fbo.resize(w, h);
     }
 
-    void Blur::render() {
+    void BlurRenderer::render() {
         fbo.bind();
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         shader.use();
+        shader.update();
+        drawable.draw();
+    }
 
-        src.activate(0);
-        src.bind();
-
-        vao.draw_quad();
-
-        render_target = fbo.colors[0].buffer;
+    void BlurRenderer::update_offset() {
+        shader.update_offset();
     }
 
 }

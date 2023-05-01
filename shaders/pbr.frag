@@ -406,7 +406,7 @@ void main()
     vec3 prefiltered_color = textureLod(envlight.prefilter, R, roughness * envlight.prefilter_levels).rgb;
     // BRDF convolution
     vec2 brdf = texture(envlight.brdf_convolution, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefiltered_color * (brdf.x + brdf.y) * F;
+    vec3 specular = prefiltered_color * F;
 
     // PBR Ambient part
     vec3 ambient = (kD * diffuse + specular) * ao;

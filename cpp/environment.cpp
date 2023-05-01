@@ -45,26 +45,25 @@ namespace gl {
     }
 
     void EnvRenderer::init(int w, int h) {
-        hdr_to_cubemap_shader.init(
-                "shaders/hdr_to_cubemap.vert",
-                "shaders/hdr_to_cubemap.frag"
-        );
-        hdr_irradiance_shader.init(
-                "shaders/hdr_irradiance.vert",
-                "shaders/hdr_irradiance.frag"
-        );
-        hdr_prefilter_convolution_shader.init(
-                "shaders/hdr_prefilter_convolution.vert",
-                "shaders/hdr_prefilter_convolution.frag"
-        );
-        brdf_convolution_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/brdf_convolution.frag"
-        );
-        env_shader.init(
-                "shaders/cubemap.vert",
-                "shaders/hdr_cubemap.frag"
-        );
+        hdr_to_cubemap_shader.add_vertex_stage("shaders/hdr_to_cubemap.vert");
+        hdr_to_cubemap_shader.add_fragment_stage("shaders/hdr_to_cubemap.frag");
+        hdr_to_cubemap_shader.complete();
+
+        hdr_irradiance_shader.add_vertex_stage("shaders/hdr_irradiance.vert");
+        hdr_irradiance_shader.add_fragment_stage("shaders/hdr_irradiance.frag");
+        hdr_irradiance_shader.complete();
+
+        hdr_prefilter_convolution_shader.add_vertex_stage("shaders/hdr_prefilter_convolution.vert");
+        hdr_prefilter_convolution_shader.add_fragment_stage("shaders/hdr_prefilter_convolution.frag");
+        hdr_prefilter_convolution_shader.complete();
+
+        brdf_convolution_shader.add_vertex_stage("shaders/fullscreen_quad.vert");
+        brdf_convolution_shader.add_fragment_stage("shaders/brdf_convolution.frag");
+        brdf_convolution_shader.complete();
+
+        env_shader.add_vertex_stage("shaders/cubemap.vert");
+        env_shader.add_fragment_stage("shaders/hdr_cubemap.frag");
+        env_shader.complete();
 
         fbo.rbo = { w, h };
         fbo.rbo.format = GL_DEPTH_COMPONENT24;
@@ -73,7 +72,7 @@ namespace gl {
 
         CubeDefault().init(env_cube);
 
-        brdf_vao.init();
+        quad_drawable.init();
     }
 
     void EnvRenderer::free() {
@@ -83,7 +82,7 @@ namespace gl {
         brdf_convolution_shader.free();
         env_shader.free();
         env_cube.free();
-        brdf_vao.free();
+        quad_drawable.free();
     }
 
     void EnvRenderer::generate_env() {
@@ -156,7 +155,7 @@ namespace gl {
 
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         brdf_convolution_shader.use();
-        brdf_vao.draw_quad();
+        quad_drawable.draw();
 
         FrameBuffer::unbind();
     }

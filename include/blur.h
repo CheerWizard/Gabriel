@@ -1,27 +1,49 @@
 #pragma once
 
 #include <shader.h>
-#include <buffers.h>
+#include <draw.h>
 #include <frame.h>
 
 namespace gl {
 
-    struct Blur final {
-        static ImageBuffer src;
-        static ImageBuffer render_target;
-        static float offset;
+    struct BlurParams final {
+        ImageBuffer scene_buffer;
+        UniformF offset = { "offset", 1.0f / 300.0f };
+    };
 
-        static void init(int w, int h);
-        static void free();
+    struct BlurShader : Shader {
+        BlurParams params;
 
-        static void resize(int w, int h);
+        void init();
+        void update();
 
-        static void render();
+        void update_offset();
+    };
+
+    struct BlurRenderer final {
+
+        BlurRenderer(int w, int h);
+        ~BlurRenderer();
+
+        inline const ImageBuffer& get_render_target() {
+            return render_target;
+        }
+
+        inline BlurParams& get_params() {
+            return shader.params;
+        }
+
+        void resize(int w, int h);
+
+        void update_offset();
+
+        void render();
 
     private:
-        static Shader shader;
-        static FrameBuffer fbo;
-        static VertexArray vao;
+        ImageBuffer render_target;
+        FrameBuffer fbo;
+        BlurShader shader;
+        DrawableQuad drawable;
     };
 
 }

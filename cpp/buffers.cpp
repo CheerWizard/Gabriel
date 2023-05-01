@@ -14,11 +14,6 @@ namespace gl {
         glBindVertexArray(id);
     }
 
-    void VertexArray::draw_quad() const {
-        glBindVertexArray(id);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
-
     void VertexBuffer::init() {
         glGenBuffers(1, &id);
     }
@@ -46,14 +41,21 @@ namespace gl {
         }
     }
 
-    void IndexBuffer::init(u32 *indices, u32 index_count, int alloc_type) {
+    void IndexBuffer::init(u32 index_count, BufferAllocType alloc_type) {
+        glGenBuffers(1, &id);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * index_count, null, alloc_type);
+    }
+
+    void IndexBuffer::init(u32* indices, u32 index_count, BufferAllocType alloc_type) {
         glGenBuffers(1, &id);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * index_count, indices, alloc_type);
     }
 
-    void IndexBuffer::init(const u32 *indices, u32 index_count, int alloc_type) {
+    void IndexBuffer::init(const u32* indices, u32 index_count, BufferAllocType alloc_type) {
         glGenBuffers(1, &id);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);

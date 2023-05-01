@@ -17,12 +17,13 @@ namespace gl {
         return glm::perspective(glm::radians(fov_degree), aspect_ratio, zNear, zFar);
     }
 
-    glm::mat4 Camera::init_view() {
+    glm::mat4 Camera::view() {
         return glm::lookAt(position, position + front, up);
     }
 
-    void Camera::init(u32 binding, float aspect_ratio) {
-        aspect = win::get_aspect_ratio();
+    void Camera::init(u32 binding, int screen_width, int screen_height) {
+        this->screen_width = screen_width;
+        this->screen_height = screen_height;
         ubo.init(binding, 2 * sizeof(glm::mat4));
         update();
     }
@@ -70,18 +71,19 @@ namespace gl {
     }
 
     void Camera::resize(int w, int h) {
-        aspect = (float)w / (float)h;
+        screen_width = w;
+        screen_height = h;
         update_perspective();
     }
 
     void Camera::update_view() {
-        glm::mat4 view = init_view();
-        ubo.update({ sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view) });
+        glm::mat4 view_mat = view();
+        ubo.update({ sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view_mat) });
     }
 
     void Camera::update_perspective() {
-        glm::mat4 perspective = PerspectiveMat({fov, aspect, z_near, z_far}).init();
-        ubo.update({ 0, sizeof(glm::mat4), glm::value_ptr(perspective) });
+        glm::mat4 perspective_mat = PerspectiveMat({fov, aspect_ratio(), z_near, z_far}).init();
+        ubo.update({ 0, sizeof(glm::mat4), glm::value_ptr(perspective_mat) });
     }
 
     void Camera::update() {
@@ -90,7 +92,7 @@ namespace gl {
     }
 
     glm::mat4 Camera::perspective() {
-        return PerspectiveMat({ fov, aspect, z_near, z_far }).init();
+        return PerspectiveMat({ fov, aspect_ratio(), z_near, z_far }).init();
     }
 
     void Camera::move(float dt) {
@@ -98,23 +100,45 @@ namespace gl {
 
         float camera_speed = move_speed / dt;
 
-        if (win::is_key_press(key_move_forward)) {
+        if (Window::is_key_press(key_move_forward)) {
             position += camera_speed * front;
         }
 
-        else if (win::is_key_press(key_move_left)) {
+        else if (Window::is_key_press(key_move_left)) {
             position -= glm::normalize(glm::cross(front, up)) * camera_speed;
         }
 
-        else if (win::is_key_press(key_move_backward)) {
+        else if (Window::is_key_press(key_move_backward)) {
             position -= camera_speed * front;
         }
 
-        else if (win::is_key_press(key_move_right)) {
+        else if (Window::is_key_press(key_move_right)) {
             position += glm::normalize(glm::cross(front, up)) * camera_speed;
         }
 
         update_view();
+    }
+
+    RayCollider Camera::shoot_ray(double x, double y) {
+        return { position, raycast_world(x, y).vec3() };
+    }
+
+    ViewRay Camera::raycast_view(double x, double y) {
+        // mouse Screen -> NDC
+        ScreenRay mouse_screen_ray((float) x, (float) y, -1.0f, 1.0f);
+        NDCRay mouse_ndc_ray = mouse_screen_ray.ndc_space(screen_width, screen_height);
+        // mouse NDC -> Clip
+        // ignore inverse perspective division, since mouse NDC ray is a vector without depth length
+        ClipRay mouse_clip_ray(mouse_ndc_ray.x(), mouse_ndc_ray.y(), -1, 1);
+        // mouse Clip -> View
+        // z=-1 - forward; w=0 - vector
+        ViewRay mouse_view_ray = mouse_clip_ray.view_space(perspective());
+        mouse_view_ray = { mouse_view_ray.x(), mouse_view_ray.y(), -1, 0 };
+        return mouse_view_ray;
+    }
+
+    WorldRay Camera::raycast_world(double x, double y) {
+        return raycast_view(x, y).world_space(view());
     }
 
 }

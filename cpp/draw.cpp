@@ -43,4 +43,17 @@ namespace gl {
         }
     }
 
+    void DrawableQuad::init() {
+        vao.init();
+    }
+
+    void DrawableQuad::free() {
+        vao.free();
+    }
+
+    void DrawableQuad::draw() const {
+        vao.bind();
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
 }

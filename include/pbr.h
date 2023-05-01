@@ -11,8 +11,6 @@
 #include <skeletal_renderer.h>
 #include <environment.h>
 #include <transparency.h>
-#include <polygon_visual.h>
-#include <normal_visual.h>
 
 namespace gl {
 
@@ -20,17 +18,17 @@ namespace gl {
         ecs::EntityID entity_id = ecs::InvalidEntity;
     };
 
-    struct PBR_Component_Forward : ecs::Component {};
-    struct PBR_Component_Deferred : ecs::Component {};
-    struct PBR_Component_ForwardCull : ecs::Component {};
-    struct PBR_Component_DeferredCull : ecs::Component {};
+    component(PBR_Component_Forward) {};
+    component(PBR_Component_Deferred) {};
+    component(PBR_Component_ForwardCull) {};
+    component(PBR_Component_DeferredCull) {};
 
-    struct PBR_SkeletalComponent_Forward : ecs::Component {};
-    struct PBR_SkeletalComponent_Deferred : ecs::Component {};
-    struct PBR_SkeletalComponent_ForwardCull : ecs::Component {};
-    struct PBR_SkeletalComponent_DeferredCull : ecs::Component {};
+    component(PBR_SkeletalComponent_Forward) {};
+    component(PBR_SkeletalComponent_Deferred) {};
+    component(PBR_SkeletalComponent_ForwardCull) {};
+    component(PBR_SkeletalComponent_DeferredCull) {};
 
-    struct PBR_Component_Transparent : ecs::Component {};
+    component(PBR_Component_Transparent) {};
 
     struct PBR_Entity : ecs::Entity {
 
@@ -114,17 +112,16 @@ namespace gl {
         PBR_GBuffer gbuffer;
         int samples = 1;
         bool enable_ssao = true;
-        SSAO_Pass* ssao_pass;
         ImageBuffer direct_shadow_map;
         ImageBuffer point_shadow_map;
         float far_plane = 25;
+        SsaoRenderer* ssao_renderer;
 
         inline FrameBuffer& get_geometry_fbo() { return geometry_fbo; }
         inline FrameBuffer& get_light_fbo() { return light_fbo; }
 
-        void init(int w, int h);
-
-        void free();
+        PBR_DeferredRenderer(int w, int h);
+        ~PBR_DeferredRenderer();
 
         void resize(int w, int h);
 
@@ -144,7 +141,7 @@ namespace gl {
         void update(Environment* env);
 
     private:
-        VertexArray vao;
+        DrawableQuad drawable;
         Shader geometry_shader;
         FrameBuffer geometry_fbo;
         FrameBuffer geometry_msaa_fbo;
@@ -164,29 +161,28 @@ namespace gl {
     };
 
     struct PBR_Pipeline final {
-        ecs::Scene* scene = null;
+        ecs::Scene* scene;
         Environment env;
         DirectLight sunlight;
         std::array<PointLight, 4> point_lights;
         SpotLight flashlight;
 
-        inline ImageBuffer& render_target() {
+        PBR_Pipeline(ecs::Scene* scene, int w, int h);
+        ~PBR_Pipeline();
+
+        inline const ImageBuffer& get_render_target() const {
             return pbr_forward_renderer.render_target;
         }
 
-        inline PBR_GBuffer& gbuffer() {
-            return pbr_deferred_renderer.gbuffer;
+        inline const PBR_GBuffer& get_gbuffer() const {
+            return pbr_deferred_renderer->gbuffer;
         }
 
-        inline TransparentBuffer& transparent_buffer() {
+        inline const TransparentBuffer& get_transparent_buffer() const {
             return transparent_renderer.transparent_buffer;
         }
 
-        void init(int w, int h);
-        void free();
-
         void set_samples(int samples);
-        void set_ssao_pass(SSAO_Pass* ssao_pass);
 
         void init_hdr_env(const char* filepath, bool flip_uv);
         void generate_env();
@@ -205,13 +201,15 @@ namespace gl {
 
     private:
         void forward_rendering();
+        void forward_default_render();
+        void forward_face_cull_render();
         void deferred_rendering();
 
     private:
         glm::ivec2 resolution;
 
         PBR_ForwardRenderer pbr_forward_renderer;
-        PBR_DeferredRenderer pbr_deferred_renderer;
+        PBR_DeferredRenderer* pbr_deferred_renderer;
 
         PBR_Skeletal_ForwardRenderer skeletal_forward_renderer;
         PBR_Skeletal_DeferredRenderer skeletal_deferred_renderer;
@@ -228,9 +226,6 @@ namespace gl {
         UniformBuffer sunlight_ubo;
         UniformBuffer lights_ubo;
         UniformBuffer flashlight_ubo;
-
-        PolygonVisualRenderer polygon_visual_renderer;
-        NormalVisualRenderer normal_visual_renderer;
     };
 
 }

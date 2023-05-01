@@ -193,6 +193,11 @@ namespace gl {
         }
     }
 
+    void ColorAttachment::resize(int w, int h) {
+        image.resize(w, h);
+        buffer.store(image);
+    }
+
     void DepthAttachment::init() {
         image.internal_format = GL_DEPTH_COMPONENT;
         image.pixel_format = GL_DEPTH_COMPONENT;

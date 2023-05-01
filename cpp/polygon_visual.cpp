@@ -3,10 +3,9 @@
 namespace gl {
 
     void PolygonVisualRenderer::init() {
-        shader.init(
-                "shaders/polygon_visual.vert",
-                "shaders/polygon_visual.frag"
-        );
+        shader.add_vertex_stage("shaders/polygon_visual.vert");
+        shader.add_fragment_stage("shaders/polygon_visual.frag");
+        shader.complete();
     }
 
     void PolygonVisualRenderer::free() {

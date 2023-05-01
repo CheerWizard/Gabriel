@@ -16,6 +16,12 @@
 
 namespace gl {
 
+    enum AccessMode : u32 {
+        READ_ONLY = GL_READ_ONLY,
+        WRITE_ONLY = GL_WRITE_ONLY,
+        READ_WRITE = GL_READ_WRITE
+    };
+
     enum PixelType : u32 {
         U8 = GL_UNSIGNED_BYTE,
         U16 = GL_UNSIGNED_SHORT,
@@ -24,18 +30,24 @@ namespace gl {
         U32 = GL_UNSIGNED_INT
     };
 
-    struct Image final {
-        int width, height, channels, internal_format, pixel_format;
+    struct Image {
+        int width, height;
+        int channels;
+        int internal_format, pixel_format;
         PixelType pixel_type = PixelType::U8;
         void* pixels = null;
         int samples = 1;
         bool srgb = false;
+
+        void init();
 
         void free();
 
         void resize(int w, int h);
 
         glm::vec4 get_color(int x, int y);
+
+        void set_format();
     };
 
     struct ImageFace final {
@@ -51,8 +63,37 @@ namespace gl {
         static std::array<Image, 6> read(const std::array<ImageFace, 6> &faces);
     };
 
+    struct Bitmap : Image {
+        int padded_size = 0;
+
+        void init_bmp();
+    };
+
+    struct BitmapFileHeader final {
+        short type;
+        int size;
+        short reserved1;
+        short reserved2;
+        int offset;
+    };
+
+    struct BitmapHeaderInfo final {
+        int header_size;
+        int width;
+        int height;
+        short planes;
+        short bits_per_pixel;
+        int compression;
+        int image_size;
+        int x_pixels_per_meter;
+        int y_pixels_per_meter;
+        int colors_used;
+        int important_colors_used;
+    };
+
     struct ImageWriter final {
         static void write(const char* filepath, const Image& image);
+        static bool write(const char* filepath, const Bitmap& bitmap);
     };
 
     struct ImageParams final {
@@ -63,6 +104,7 @@ namespace gl {
         int min_filter = GL_LINEAR;
         int mag_filter = GL_LINEAR;
         float lod_bias = -0.4f;
+        float base_level = 0;
     };
 
     struct ImageSampler final {
@@ -72,7 +114,7 @@ namespace gl {
 
 #define invalid_image_buffer 0
 
-    struct ImageBuffer {
+    struct ImageBuffer final {
         u32 id = invalid_image_buffer;
         u32 type = GL_TEXTURE_2D;
 
@@ -101,6 +143,10 @@ namespace gl {
         void load(const Image &image, const ImageParams& params = {}) const;
         void load_cubemap(const Image &image, const ImageParams& params = {}) const;
         void load_cubemap(const std::array<Image, 6> &images, const ImageParams& params = {}) const;
+
+        void bind_image(int slot, AccessMode access, int internal_format);
+
+        static void set_byte_alignment(int alignment);
     };
 
 }

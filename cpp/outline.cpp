@@ -3,10 +3,9 @@
 namespace gl {
 
     void OutlineRenderer::init() {
-        shader.init(
-            "shaders/outline.vert",
-            "shaders/outline.frag"
-        );
+        shader.add_vertex_stage("shaders/outline.vert");
+        shader.add_fragment_stage("shaders/outline.frag");
+        shader.complete();
     }
 
     void OutlineRenderer::free() {

@@ -5348,7 +5348,7 @@ static int stbi__bmp_test_raw(stbi__context *s)
    int sz;
    if (stbi__get8(s) != 'B') return 0;
    if (stbi__get8(s) != 'M') return 0;
-   stbi__get32le(s); // discard filesize
+   stbi__get32le(s); // discard size
    stbi__get16le(s); // discard reserved
    stbi__get16le(s); // discard reserved
    stbi__get32le(s); // discard data offset
@@ -5448,7 +5448,7 @@ static void *stbi__bmp_parse_header(stbi__context *s, stbi__bmp_data *info)
 {
    int hsz;
    if (stbi__get8(s) != 'B' || stbi__get8(s) != 'M') return stbi__errpuc("not BMP", "Corrupt BMP");
-   stbi__get32le(s); // discard filesize
+   stbi__get32le(s); // discard size
    stbi__get16le(s); // discard reserved
    stbi__get16le(s); // discard reserved
    info->offset = stbi__get32le(s);
@@ -6194,7 +6194,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
    if (!stbi__mad3sizes_valid(4, w, h, 0))
       return stbi__errpuc("too large", "Corrupt PSD");
 
-   // Create the render_target image.
+   // Create the get_render_target image.
 
    if (!compression && bitdepth == 16 && bpc == 16) {
       out = (stbi_uc *) stbi__malloc_mad3(8, w, h, 0);

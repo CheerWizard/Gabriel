@@ -30,6 +30,8 @@ namespace gl {
         void free();
 
         void attach() const;
+
+        void resize(int w, int h);
     };
 
     struct DepthAttachment final {

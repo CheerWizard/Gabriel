@@ -11,7 +11,7 @@ namespace gl {
             const char* roughness_path,
             const char* ao_path
     ) {
-        gl::ImageParams params;
+        ImageParams params;
         params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
         if (albedo_path) {

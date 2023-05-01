@@ -29,7 +29,8 @@ namespace gl {
     };
 
     namespace attr {
-        static constexpr Attr pos = { 0, vec3 };
+        static constexpr Attr pos3 = { 0, vec3 };
+        static constexpr Attr pos2 = { 0, vec2 };
         static constexpr Attr uv = { 1, vec2 };
         static constexpr Attr normal = { 2, vec3 };
         static constexpr Attr tangent = { 3, vec3 };
@@ -48,6 +49,12 @@ namespace gl {
     struct VertexDefault final {
         decl_vertex
         glm::fvec3 pos = { 0, 0, 0 };
+    };
+
+    struct Vertex2dUV final {
+        decl_vertex
+        glm::fvec2 pos = { 0, 0 };
+        glm::fvec2 uv = { 0, 0 };
     };
 
     struct VertexUV final {

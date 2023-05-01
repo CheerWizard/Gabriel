@@ -35,15 +35,7 @@ namespace gl {
 
         image.pixel_type = pixel_type;
         image.srgb = srgb;
-
-        int channels = image.channels;
-        image.pixel_format = pixel_formats[channels - 1];
-
-        if (srgb) {
-            image.internal_format = internal_formats_srgb[channels - 3];
-        } else {
-            image.internal_format = internal_formats[channels - 1];
-        }
+        image.set_format();
 
         return image;
     }
@@ -59,11 +51,18 @@ namespace gl {
         return images;
     }
 
+    void Image::init() {
+        pixels = malloc(width * height * channels);
+    }
+
     void Image::free() {
         stbi_image_free(pixels);
     }
 
     void Image::resize(int w, int h) {
+        if (width == w || height == h)
+            return;
+
         void* resized_data;
 
         if (pixel_type == PixelType::U8) {
@@ -116,6 +115,15 @@ namespace gl {
         return { r, g, b, a };
     }
 
+    void Image::set_format() {
+        pixel_format = pixel_formats[channels - 1];
+        if (srgb) {
+            internal_format = internal_formats_srgb[channels - 3];
+        } else {
+            internal_format = internal_formats[channels - 1];
+        }
+    }
+
     void ImageBuffer::init() {
         glGenTextures(1, &id);
     }
@@ -156,7 +164,8 @@ namespace gl {
         glGenerateMipmap(texture_type);
         glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, params.min_filter);
         glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, params.lod_bias);
-        glTexParameterf(texture_type, GL_TEXTURE_MAX_ANISOTROPY_EXT, device::max_anisotropy_samples);
+        glTexParameterf(texture_type, GL_TEXTURE_BASE_LEVEL, params.base_level);
+        glTexParameterf(texture_type, GL_TEXTURE_MAX_ANISOTROPY_EXT, Device::MAX_ANISOTROPY_SAMPLES);
     }
 
     void ImageBuffer::update_params(const ImageParams &params) const {
@@ -170,7 +179,8 @@ namespace gl {
         ) {
             glGenerateMipmap(texture_type);
             glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, params.lod_bias);
-            glTexParameterf(texture_type, GL_TEXTURE_MAX_ANISOTROPY_EXT, device::max_anisotropy_samples);
+            glTexParameterf(texture_type, GL_TEXTURE_BASE_LEVEL, params.base_level);
+            glTexParameterf(texture_type, GL_TEXTURE_MAX_ANISOTROPY_EXT, Device::MAX_ANISOTROPY_SAMPLES);
         }
 
         glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.border_color));
@@ -269,7 +279,93 @@ namespace gl {
         update_params(params);
     }
 
+    void ImageBuffer::set_byte_alignment(int alignment) {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+    }
+
+    void ImageBuffer::bind_image(int slot, AccessMode access, int internal_format) {
+        ImageBuffer::bind_activate(type, id, slot);
+        glBindImageTexture(slot, id, 0, GL_FALSE, 0, access, internal_format);
+    }
+
     void ImageWriter::write(const char* filepath, const Image &image) {
         stbi_write_png(filepath, image.width, image.height, image.channels, image.pixels, image.width * image.channels);
+    }
+
+    bool ImageWriter::write(const char* filepath, const Bitmap& bitmap) {
+        u8* bitmap_buffer = (u8*) bitmap.pixels;
+        int buffer_size = bitmap.padded_size;
+        int width = bitmap.width;
+        int height = bitmap.height;
+
+        BitmapFileHeader bmfh;
+        bmfh.type = 0x4d42; // 0x4d42 = 'BM'
+        bmfh.size = 14 + sizeof(BitmapHeaderInfo) + buffer_size;
+        bmfh.reserved1 = 0; // not used
+        bmfh.reserved2 = 0; // not used
+        bmfh.offset = 54;
+
+        BitmapHeaderInfo bmih;
+        bmih.header_size = sizeof(BitmapHeaderInfo);
+        bmih.width = width;
+        bmih.height = height;
+        bmih.planes = 1;
+        bmih.bits_per_pixel = 24;
+        bmih.compression = 0;
+        bmih.image_size = 0;
+        bmih.x_pixels_per_meter = 0;
+        bmih.y_pixels_per_meter = 0;
+        bmih.colors_used = 0;
+        bmih.important_colors_used = 0;
+
+        FILE* file;
+        file = fopen(filepath, "wb");
+        if (!file) {
+            print_err("Failed to write to " << filepath);
+            return false;
+        }
+
+        // write file header
+        fwrite(&bmfh.type, sizeof(short), 1, file);
+        fwrite(&bmfh.size, sizeof(int), 1, file);
+        fwrite(&bmfh.reserved1, sizeof(short), 1, file);
+        fwrite(&bmfh.reserved2, sizeof(short), 1, file);
+        fwrite(&bmfh.offset, sizeof(int), 1, file);
+
+        // write info header
+        fwrite(&bmih, sizeof(BitmapHeaderInfo), 1, file);
+
+        // write data
+        fwrite(bitmap_buffer, sizeof(u8), buffer_size, file);
+
+        fclose(file);
+
+        return true;
+    }
+
+    void Bitmap::init_bmp() {
+        int rowSize = ((24 * width + 31) / 32) * 4;
+        int padding = 0;
+        while ((width * 3 + padding) % 4 != 0) padding++;
+
+        u8* buffer = (u8*) pixels;
+        padded_size = rowSize * height;
+        u8* bitmap_buffer = (u8*) malloc(padded_size);
+
+        for (int y = 0; y < height; ++y ) {
+            for (int x = 0; x < width; ++x) {
+                // position in buffer
+                int pos = y * width * 4 + x * 4;
+                // position in padded bitmap buffer
+                int newPos = (height - y - 1) * (width * 3 + padding) + x * 3;
+                bitmap_buffer[newPos + 0] = buffer[pos + 2]; // swap r and b
+                bitmap_buffer[newPos + 1] = buffer[pos + 1]; // g stays
+                bitmap_buffer[newPos + 2] = buffer[pos + 0]; // swap b and r
+            }
+        }
+
+        free();
+
+        pixels = bitmap_buffer;
     }
 }

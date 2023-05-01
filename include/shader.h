@@ -5,14 +5,28 @@
 
 namespace gl {
 
-    struct Shader final {
+    struct ShaderReader final {
+        static std::string read(const std::string& path, std::string include_identifier = "#include");
+    private:
+        static void get_filepath(const std::string& full_path, std::string& path_without_filename);
+    };
+
+    struct ShaderStage final {
         u32 id;
 
-        void init(
-                const char* vertex_filepath,
-                const char* fragment_filepath,
-                const char* geometry_filepath = null
-        );
+        ShaderStage(u32 type, const char* filepath);
+    };
+
+    struct Shader {
+        u32 id;
+
+        void add_vertex_stage(const char* filepath);
+        void add_fragment_stage(const char* filepath);
+        void add_geometry_stage(const char* filepath);
+        void add_tess_control_stage(const char* filepath);
+        void add_tess_eval_stage(const char* filepath);
+
+        void complete();
 
         void use();
         static void stop();
@@ -88,6 +102,12 @@ namespace gl {
 
         template<typename T>
         void set_uniform_struct_args(const char *struct_name, const char *field_name, T &field_value);
+
+    protected:
+        void add_stage(u32 type, const char* filepath);
+
+    protected:
+        std::vector<u32> stages;
     };
 
     template<typename T>
@@ -152,5 +172,12 @@ namespace gl {
     void Shader::set_uniform_struct(const char *struct_name, const char *field_name, T &field_value, u32 i) {
         set_uniform(get_uniform_struct_array_location(struct_name, field_name, i), field_value);
     }
+
+    struct ComputeShader : Shader {
+
+        void init(const char* filepath);
+        void dispatch(u32 x = 1, u32 y = 1, u32 z = 1);
+
+    };
 
 }

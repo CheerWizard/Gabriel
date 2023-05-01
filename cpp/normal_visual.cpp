@@ -3,11 +3,10 @@
 namespace gl {
 
     void NormalVisualRenderer::init() {
-        shader.init(
-                "shaders/normal_visual.vert",
-                "shaders/normal_visual.frag",
-                "shaders/normal_visual.geom"
-        );
+        shader.add_vertex_stage("shaders/normal_visual.vert");
+        shader.add_fragment_stage("shaders/normal_visual.frag");
+        shader.add_geometry_stage("shaders/normal_visual.geom");
+        shader.complete();
     }
 
     void NormalVisualRenderer::free() {

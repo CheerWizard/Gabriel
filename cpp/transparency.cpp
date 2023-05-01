@@ -4,10 +4,9 @@ namespace gl {
 
     void TransparentRenderer::init(Shader& shader, int w, int h) {
         this->shader = shader;
-        composite_shader.init(
-                "shaders/fullscreen_quad.vert",
-                "shaders/oit_composite.frag"
-        );
+        composite_shader.add_vertex_stage("shaders/fullscreen_quad.vert");
+        composite_shader.add_fragment_stage("shaders/oit_composite.frag");
+        composite_shader.complete();
 
         // setup accumulation
         ColorAttachment scene_accum = { 0, w, h };
@@ -43,7 +42,7 @@ namespace gl {
         composite_fbo.attach_render_buffer();
         composite_fbo.complete();
 
-        vao.init();
+        drawable.init();
 
         render_target = composite_fbo.colors[0].buffer;
         transparent_buffer = {
@@ -56,7 +55,7 @@ namespace gl {
         composite_shader.free();
         fbo.free();
         composite_fbo.free();
-        vao.free();
+        drawable.free();
     }
 
     void TransparentRenderer::resize(int w, int h) {
@@ -86,7 +85,7 @@ namespace gl {
         composite_shader.use();
         composite_shader.bind_sampler("accum", 0, fbo.colors[0].buffer);
         composite_shader.bind_sampler("reveal", 1, fbo.colors[1].buffer);
-        vao.draw_quad();
+        drawable.draw();
 
         glDepthMask(GL_TRUE);
         glDepthFunc(GL_LESS);

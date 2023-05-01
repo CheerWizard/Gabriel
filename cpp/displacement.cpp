@@ -3,24 +3,35 @@
 
 namespace gl {
 
-    void DisplacementImageMixer::add_image(const char* filepath, bool flip_uv, PixelType pixel_type) {
-        images.emplace_back(ImageReader::read(filepath, flip_uv, pixel_type));
+    void DisplacementImageMixer::add_image(const DisplacementRange& range, const char* filepath, bool flip_uv, PixelType pixel_type) {
+        displacement_images.emplace_back(ImageReader::read(filepath, flip_uv, pixel_type), range);
     }
 
-    void DisplacementImageMixer::mix(float min_height, float max_height) {
+    void DisplacementImageMixer::mix(int width, int height) {
         if (!displacement_map) {
             print_err("Displacement map is NULL!");
             return;
         }
 
-        int width = mixed_image.width;
-        int height = mixed_image.height;
-        int channels = mixed_image.channels;
-        float displacement_map_ratio = (float) displacement_map->rows / (float) height;
+        if (displacement_images.empty()) {
+            print_err("Displacement images are empty!");
+            return;
+        }
+
+        mixed_image.width = width;
+        mixed_image.height = height;
+        mixed_image.channels = 4;
         mixed_image.pixel_type = PixelType::U8;
-        mixed_image.pixels = malloc(width * height * channels);
+        mixed_image.srgb = false;
+        mixed_image.free();
+        mixed_image.init();
+        mixed_image.set_format();
+
         u8* pixels = (u8*) mixed_image.pixels;
-        size_t image_size = images.size();
+        size_t image_size = displacement_images.size();
+        float displacement_map_ratio = (float) displacement_map->rows / (float) height;
+
+//        resize_images(width, height);
 
         for (int y = 0 ; y < height ; y++) {
             for (int x = 0 ; x < width ; x++) {
@@ -33,7 +44,7 @@ namespace gl {
                 float blue = 0;
 
                 for (int i = 0 ; i < image_size ; i++) {
-                    auto& image = images[i];
+                    auto& image = displacement_images[i].image;
                     glm::vec4 color = image.get_color(x, y);
                     float blend_factor = region_percent(i, interpolated_height);
 
@@ -43,20 +54,51 @@ namespace gl {
                 }
 
                 if (red >= 255.0f || green >= 255.0f || blue >= 255.0f) {
-                    print_err("RGB out of bounds!");
+                    print_err("RGB color out of bounds!");
                     return;
                 }
 
                 pixels[0] = (u8) red;
                 pixels[1] = (u8) green;
                 pixels[2] = (u8) blue;
-                pixels += 3;
+                pixels[3] = 255;
+                pixels += 4;
             }
         }
     }
 
+    void DisplacementImageMixer::resize_images(int width, int height) {
+        for (auto& displacement_image : displacement_images) {
+            displacement_image.image.resize(width, height);
+        }
+    }
+
     float DisplacementImageMixer::region_percent(int tile, float height) {
-        return 0;
+        float percent = 0.0f;
+        auto& range = displacement_images[tile].range;
+
+        if (height < range.min || height > range.max) {
+            percent = 0.0f;
+        }
+        else if (height < range.median) {
+            float nom = height - range.min;
+            float denom = range.median - range.min;
+            percent = nom / denom;
+        }
+        else if (height >= range.median) {
+            float nom = range.max - height;
+            float denom = range.max - range.median;
+            percent = nom / denom;
+        }
+        else {
+            print_err("Not able to get height " << height << " percent for tile " << tile);
+        }
+
+        if (percent < 0.0f || percent > 1.0f) {
+            print_err("Invalid percent " << percent);
+        }
+
+        return percent;
     }
 
     HeightMap::HeightMap(const Image &image) : DisplacementMap(image.height, image.width) {
@@ -68,7 +110,16 @@ namespace gl {
                 // retrieve texel for (i, j) uv
                 u8* texel = pixels + (j + columns * i) * channels;
                 // raw height at coordinate
-                get(i, j) = (float) texel[0] / 255.0f;
+                float h = (float) texel[0] / 255.0f;
+
+                if (min > h) {
+                    min = h;
+                }
+                else if (max < h) {
+                    max = h;
+                }
+
+                get(i, j) = h;
             }
         }
     }
@@ -76,6 +127,8 @@ namespace gl {
     FaultFormation::FaultFormation(int columns, int rows, int iterations, float min_height, float max_height, float filter)
     : DisplacementMap(rows, columns) {
         float delta_height = max_height - min_height;
+        min = min_height;
+        max = max_height;
 
         for (int i = 0 ; i < iterations ; i++) {
             float iteration_ratio = ((float) i / (float) iterations);
@@ -113,7 +166,7 @@ namespace gl {
             }
         }
 
-        normalize(min_height, max_height);
+        normalize();
         apply_fir_filter(filter);
     }
 
@@ -151,6 +204,9 @@ namespace gl {
     MidPointFormation::MidPointFormation(int rows, int columns, float roughness, float min_height, float max_height)
     : DisplacementMap(rows, columns) {
 
+        min = min_height;
+        max = max_height;
+
         int rect_size = 1;
         if (rows == 1) {
             rect_size = 2;
@@ -170,7 +226,7 @@ namespace gl {
             current_height *= height_reduce;
         }
 
-        normalize(min_height, max_height);
+        normalize();
     }
 
     void MidPointFormation::diamond_step(int rect_size, float height) {
@@ -234,41 +290,37 @@ namespace gl {
         }
     }
 
-    void DisplacementMap::get_min_max(float &min, float &max) {
-        max = min = map[0];
+    void DisplacementMap::normalize() {
+        float min_height = map[0];
+        float max_height = map[0];
 
         for (int i = 1 ; i < rows * columns ; i++) {
 
-            if (map[i] < min) {
-                min = map[i];
+            if (map[i] < min_height) {
+                min_height = map[i];
             }
 
-            if (map[i] > max) {
-                max = map[i];
+            if (map[i] > max_height) {
+                max_height = map[i];
             }
 
         }
-    }
 
-    void DisplacementMap::normalize(float min_range, float max_range) {
-        float min, max;
-        get_min_max(min, max);
-
-        if (max <= min)
+        if (max_height <= min_height)
             return;
 
-        float min_max_delta = max - min;
-        float min_max_range = max_range - min_range;
+        float min_max_delta = max_height - min_height;
+        float min_max_range = max - min;
 
         for (int i = 0 ; i < rows * columns; i++) {
-            map[i] = ((map[i] - min) / min_max_delta) * min_max_range + min_range;
+            map[i] = ((map[i] - min_height) / min_max_delta) * min_max_range + min;
         }
     }
 
     float DisplacementMap::get_interpolated_height(float x, float y) {
         float height = get((int)x, (int)y);
 
-        if (((int) x + 1 >= rows) || ((int)y + 1 >= columns)) {
+        if (((int) x + 1 >= rows) || ((int) y + 1 >= columns)) {
             return height;
         }
 
