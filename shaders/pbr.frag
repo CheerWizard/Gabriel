@@ -246,7 +246,6 @@ vec3 lambert(vec3 kd, vec3 albedo)
 
 vec3 pbr(vec3 L, vec3 light_color, float radiance_factor, vec3 albedo, float metallic, float roughness)
 {
-
     vec3 H = normalize(V + L);
     vec3 radiance = light_color * radiance_factor;
 
@@ -410,9 +409,9 @@ void main()
     vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
 
     // PBR Ambient part
-    vec3 ambient = (kD * diffuse + specular) * ao;
+    vec3 ambient = kD * diffuse + specular;
 
-    out_color = vec4(ambient + Lo, albedo.a);
+    out_color = vec4((ambient + Lo) * ao, albedo.a);
 
     // weigth and blend transparent material
 //    if (out_color.a < 1) {

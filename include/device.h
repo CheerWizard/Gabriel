@@ -3,8 +3,6 @@
 #include <debugger.h>
 #include <viewport.h>
 
-#include <vulkan/vulkan.h>
-
 namespace gl {
 
     struct Device final {
@@ -15,10 +13,6 @@ namespace gl {
         static int MAX_WORKGROUP_INVOCATIONS;
 
         static void init(int viewport_width, int viewport_height);
-
-    private:
-        static VkDevice device;
-        static VkPhysicalDevice physical_device;
     };
 
 }

@@ -138,7 +138,7 @@ namespace gl {
                 "models/backpack/ao.jpg"
         );
         backpack.material()->metallic_factor = 1;
-        backpack.material()->roughness_factor = 1;
+        backpack.material()->roughness_factor = 0.5;
         backpack.material()->ao_factor = 1;
 
         // setup human model
@@ -343,19 +343,17 @@ namespace gl {
         pbr_pipeline->init_hdr_env("images/hdr/Arches_E_PineTree_3k.hdr", true);
         pbr_pipeline->generate_env();
         // setup sunlight
-        static const float sunlight_intensity = 0.02;
-        static const glm::vec3 sunlight_rgb = glm::vec3(237, 213, 158) * sunlight_intensity;
-        pbr_pipeline->sunlight.color = { sunlight_rgb, 1 };
+        pbr_pipeline->sunlight.color = { 244 * 0.1f, 233 * 0.1f, 155 * 0.1f, 1 };
         pbr_pipeline->sunlight.direction = { 1, 1, 1, 0 };
         // setup lights
         pbr_pipeline->point_lights[0].position = { -4, 2, 0, 1 };
-        pbr_pipeline->point_lights[0].color = { 2, 0, 0, 1 };
+        pbr_pipeline->point_lights[0].color = glm::vec4 { 0, 0, 0, 1 };
         pbr_pipeline->point_lights[1].position = { 4, 3, 0, 1 };
-        pbr_pipeline->point_lights[1].color = { 0, 4, 0, 1 };
+        pbr_pipeline->point_lights[1].color = glm::vec4 { 0, 0, 0, 1 };
         pbr_pipeline->point_lights[2].position = { -4, 4, 8, 1 };
-        pbr_pipeline->point_lights[2].color = { 0, 0, 6, 1 };
+        pbr_pipeline->point_lights[2].color = glm::vec4 { 0, 0, 0, 1 };
         pbr_pipeline->point_lights[3].position = { 4, 5, 8, 1 };
-        pbr_pipeline->point_lights[3].color = { 6, 6, 0, 1 };
+        pbr_pipeline->point_lights[3].color = glm::vec4 { 0, 0, 0, 1 };
         // setup flashlight
         pbr_pipeline->flashlight.position = { camera.position, 0 };
         pbr_pipeline->flashlight.direction = { camera.front, 0 };
@@ -426,7 +424,7 @@ namespace gl {
 
         // translate point lights up/down
         for (auto& point_light : pbr_pipeline->point_lights) {
-            point_light.position.y = 20 * sin(t/5) + 20;
+            point_light.position.y = sin(t/5);
         }
         pbr_pipeline->update_pointlights();
 

@@ -271,7 +271,7 @@ void main()
 
     // SSAO
     if (enable_ssao) {
-        ao = texture(ssao, l_uv).r;
+        ao *= texture(ssao, l_uv).r;
     }
 
     // PBR sunlight
@@ -306,7 +306,7 @@ void main()
     vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
 
     // ambient part
-    vec3 ambient = (kD * diffuse + specular) * ao;
+    vec3 ambient = kD * diffuse + specular;
 
-    out_color = vec4(ambient + Lo, albedo.a);
+    out_color = vec4((ambient + Lo) * ao, albedo.a);
 }
