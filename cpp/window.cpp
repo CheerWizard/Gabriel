@@ -1,5 +1,4 @@
 #include <window.h>
-#include <nuklear_ui.h>
 
 #include <unordered_map>
 
@@ -67,25 +66,16 @@ namespace gl {
 
         Device::init(props.width, props.height);
 
-        if (props.flags & win_flags::fullscreen)
+        if (props.flags & WindowFlags::Fullscreen)
             set_full_screen();
         else
             set_windowed();
 
-        glfwSwapInterval(props.flags & win_flags::sync);
-
-#ifdef UI
-        ui::init(window);
-        disable_cursor();
-#endif
+        glfwSwapInterval(props.flags & WindowFlags::Sync);
     }
 
     void Window::free() {
-#ifdef UI
-        ui::free();
-#else
         glfwDestroyWindow(window);
-#endif
         glfwTerminate();
     }
 

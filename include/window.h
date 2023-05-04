@@ -10,17 +10,16 @@
 
 namespace gl {
 
-    enum win_flags : u8 {
-        none = 0,
-        sync = 1,
-        fullscreen = 2
+    enum WindowFlags : u8 {
+        Sync = 1,
+        Fullscreen = 2
     };
 
     struct WindowProps final {
         int x, y;
         int width, height;
         const char* title;
-        u8 flags = win_flags::none;
+        u8 flags = 0;
         int major_version = 4;
         int minor_version = 6;
         int profile_version = GLFW_OPENGL_CORE_PROFILE;

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <image.h>
+#include <viewport.h>
+
 #include <vector>
 
 namespace gl {

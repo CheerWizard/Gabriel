@@ -21,7 +21,7 @@ namespace gl {
                 GL_CLAMP_TO_EDGE,
                 GL_CLAMP_TO_EDGE,
                 GL_CLAMP_TO_EDGE,
-                { 1, 1, 1, 1 },
+                { 0, 0, 0, 1 },
                 GL_LINEAR,
                 GL_LINEAR,
                 -0.4f

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <window.h>
-#include <nuklear_ui.h>
 #include <ui.h>
 #include <debug_control.h>
 
@@ -64,9 +63,6 @@ namespace gl {
 
         void simulate();
 
-        void render_screen_ui();
-        void render_ui();
-
         void render_postfx();
 
         void render_debug_screen();
@@ -78,14 +74,14 @@ namespace gl {
         float delta_time = 6;
         float begin_time = 0;
 
-        int enable_normal_mapping = true;
-        int enable_parallax_mapping = true;
-        int enable_geometry_debug = false;
+        bool enable_normal_mapping = true;
+        bool enable_parallax_mapping = true;
+        bool enable_geometry_debug = false;
 
-        int enable_hdr = true;
-        int enable_blur = false;
-        int enable_bloom = true;
-        int enable_ssao = true;
+        bool enable_hdr = true;
+        bool enable_blur = false;
+        bool enable_bloom = true;
+        bool enable_ssao = true;
 
         ecs::Scene scene;
 
@@ -108,8 +104,6 @@ namespace gl {
         HdrRenderer* hdr_renderer;
 
         BloomRenderer* bloom_renderer;
-
-        SsaoParams ssao_params;
 
         BlurRenderer* blur_renderer;
 

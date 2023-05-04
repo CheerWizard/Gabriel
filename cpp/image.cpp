@@ -319,7 +319,7 @@ namespace gl {
         bmih.important_colors_used = 0;
 
         FILE* file;
-        file = fopen(filepath, "wb");
+        fopen_s(&file, filepath, "wb");
         if (!file) {
             print_err("Failed to write to " << filepath);
             return false;

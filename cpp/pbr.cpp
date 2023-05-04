@@ -359,7 +359,7 @@ namespace gl {
             FrameBuffer::blit(geometry_msaa_fbo.id, w, h, geometry_fbo.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
         }
 
-        // render SsaoRenderer
+        // render SSAO
         if (enable_ssao) {
             ssao_renderer->get_params().positions = gbuffer.view_position;
             ssao_renderer->get_params().normals = gbuffer.view_normal;
@@ -414,7 +414,7 @@ namespace gl {
         light_shader.set_uniform_struct_args("envlight", "prefilter_levels", env->prefilter_levels);
         light_shader.bind_sampler_struct("envlight", "irradiance", 8, env->irradiance);
         light_shader.bind_sampler_struct("envlight", "prefilter", 9, env->prefilter);
-        light_shader.bind_sampler_struct("envlight", "brdf_convolution", 10, env->brdf_convolution);
+        light_shader.bind_sampler_struct("envlight", "brdf_convolution", 11, env->brdf_convolution);
     }
 
     void PBR_ForwardRenderer::blit_color_depth(int w, int h, u32 src_color_fbo, u32 src_depth_fbo) {

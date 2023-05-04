@@ -26,10 +26,6 @@ namespace gl {
 
             render();
 
-#ifdef UI
-            render_ui();
-#endif
-
             Window::swap();
 
             delta_time = ((float)glfwGetTime() - begin_time) * 1000;
@@ -39,7 +35,7 @@ namespace gl {
     }
 
     void App::init_window() {
-        Window::init({ 0, 0, 800, 600, "Educational Project" });
+        Window::init({ 0, 0, 800, 600, "Educational Project", WindowFlags::Sync });
 
         EventRegistry::window_error = [this](int code, const char* msg) { window_error(code, msg); };
         EventRegistry::window_close = [this]() { window_close(); };
@@ -66,10 +62,10 @@ namespace gl {
 
         terrain = {
                 &scene,
-                { 0, -15, 4 },
+                { 0, 0, 4 },
                 { 0, 0, 0 },
                 { 1, 1, 1 },
-                1024
+                16
         };
 
         human = {
@@ -102,29 +98,29 @@ namespace gl {
 
         entity_control = new EntityControl(&scene, &camera);
 
-        terrain.add_component<PBR_Component_Forward>();
+        terrain.add_component<PBR_Component_Deferred>();
         terrain.add_component<Selectable>();
         terrain.add_component<Draggable>();
         terrain.init();
 
-        rock_sphere.add_component<PBR_Component_ForwardCull>();
+        rock_sphere.add_component<PBR_Component_DeferredCull>();
         rock_sphere.add_component<Selectable>(entity_selected);
         rock_sphere.add_component<Draggable>(entity_dragged);
         rock_sphere.add_component<SphereCollider>(rock_sphere.transform()->translation, 3.0f);
 
-        wood_sphere.add_component<PBR_Component_ForwardCull>();
+        wood_sphere.add_component<PBR_Component_DeferredCull>();
         wood_sphere.add_component<Selectable>(entity_selected);
         wood_sphere.add_component<Draggable>(entity_dragged);
 
-        metal_sphere.add_component<PBR_Component_ForwardCull>();
+        metal_sphere.add_component<PBR_Component_DeferredCull>();
         metal_sphere.add_component<Selectable>(entity_selected);
         metal_sphere.add_component<Draggable>(entity_dragged);
 
-        backpack.add_component<PBR_Component_ForwardCull>();
+        backpack.add_component<PBR_Component_DeferredCull>();
         backpack.add_component<Selectable>(entity_selected);
         backpack.add_component<Draggable>(entity_dragged);
 
-        human.add_component<PBR_SkeletalComponent_ForwardCull>();
+        human.add_component<PBR_SkeletalComponent_DeferredCull>();
         human.add_component<Selectable>(entity_selected);
         human.add_component<Draggable>(entity_dragged);
 
@@ -223,13 +219,13 @@ namespace gl {
                 Image terrain_height_map = ImageReader::read("images/terrain/earth_heightmap.png");
                 terrain_height_map.resize(terrain.size(), terrain.size());
 
-                terrain.displace_with(HeightMap(terrain_height_map), 200);
+                terrain.displace_with(MidPointFormation(terrain.size(), terrain.size(), 10, 0, 1), 1);
                 image_mixer.displacement_map = &terrain.displacement()->map;
-                image_mixer.add_image({ -100, -50, 0 }, "images/terrain/rock_tile.png");
-                image_mixer.add_image({ 0, 10, 20 }, "images/terrain/sand_tile.jpg");
-                image_mixer.add_image({ 20, 45, 70 }, "images/terrain/grass_tile.png");
-                image_mixer.add_image({ 70, 77, 85 }, "images/terrain/rock_tile.png");
-                image_mixer.add_image({ 85, 90, 100 }, "images/terrain/snow_tile.png");
+                image_mixer.add_image({ -1.0, -0.5, 0 }, "images/terrain/rock_tile.png");
+                image_mixer.add_image({ 0, 0.1, 0.2 }, "images/terrain/sand_tile.jpg");
+                image_mixer.add_image({ 0.20, 0.45, 0.70 }, "images/terrain/grass_tile.png");
+                image_mixer.add_image({ 0.70, 0.77, 0.85 }, "images/terrain/rock_tile.png");
+                image_mixer.add_image({ 0.85, 0.90, 1.0 }, "images/terrain/snow_tile.png");
                 image_mixer.mix(terrain.size(), terrain.size());
                 ImageWriter::write("images/terrain/mixed_image.png", image_mixer.mixed_image);
 
@@ -341,29 +337,29 @@ namespace gl {
         // setup light presentation
         point_light_present.init();
         // setup environment
-        pbr_pipeline->env.resolution = { 2048, 2048 };
-        pbr_pipeline->env.prefilter_resolution = { 2048, 2048 };
+        pbr_pipeline->env.resolution = { 1024, 1024 };
+        pbr_pipeline->env.prefilter_resolution = { 512, 512 };
         pbr_pipeline->env.init();
         pbr_pipeline->init_hdr_env("images/hdr/Arches_E_PineTree_3k.hdr", true);
         pbr_pipeline->generate_env();
         // setup sunlight
-        static const float sunlight_intensity = 0.05;
+        static const float sunlight_intensity = 0.02;
         static const glm::vec3 sunlight_rgb = glm::vec3(237, 213, 158) * sunlight_intensity;
         pbr_pipeline->sunlight.color = { sunlight_rgb, 1 };
         pbr_pipeline->sunlight.direction = { 1, 1, 1, 0 };
         // setup lights
         pbr_pipeline->point_lights[0].position = { -4, 2, 0, 1 };
-        pbr_pipeline->point_lights[0].color = { 0, 0, 0, 1 };
+        pbr_pipeline->point_lights[0].color = { 2, 0, 0, 1 };
         pbr_pipeline->point_lights[1].position = { 4, 3, 0, 1 };
-        pbr_pipeline->point_lights[1].color = { 0, 0, 0, 1 };
+        pbr_pipeline->point_lights[1].color = { 0, 4, 0, 1 };
         pbr_pipeline->point_lights[2].position = { -4, 4, 8, 1 };
-        pbr_pipeline->point_lights[2].color = { 0, 0, 0, 1 };
+        pbr_pipeline->point_lights[2].color = { 0, 0, 6, 1 };
         pbr_pipeline->point_lights[3].position = { 4, 5, 8, 1 };
-        pbr_pipeline->point_lights[3].color = { 0, 0, 0, 1 };
+        pbr_pipeline->point_lights[3].color = { 6, 6, 0, 1 };
         // setup flashlight
         pbr_pipeline->flashlight.position = { camera.position, 0 };
         pbr_pipeline->flashlight.direction = { camera.front, 0 };
-        pbr_pipeline->flashlight.color = { 0, 0, 0, 1 };
+        pbr_pipeline->flashlight.color = { 0, 0, 0, 0 };
         // update light buffers
         pbr_pipeline->update_sunlight();
         pbr_pipeline->update_pointlights();
@@ -429,9 +425,10 @@ namespace gl {
         human.transform()->rotation.y += f * 4;
 
         // translate point lights up/down
-//        for (auto& point_light : point_lights) {
-//            point_light.position.y = 5 * sin(t/5) + 2;
-//        }
+        for (auto& point_light : pbr_pipeline->point_lights) {
+            point_light.position.y = 20 * sin(t/5) + 20;
+        }
+        pbr_pipeline->update_pointlights();
 
         // skeletal animations
         {
@@ -562,49 +559,6 @@ namespace gl {
         entity.get_component<Material>()->color = { 5, 5, 5, 1 };
     }
 
-    void App::render_screen_ui() {
-        ui::theme_selector("Theme");
-        ui::checkbox("HDR", &enable_hdr);
-        ui::slider("Gamma", &screen_renderer->get_params().gamma.value, 1.2, 3.2, 0.1);
-        ui::slider("Exposure", &hdr_renderer->get_params().exposure.value, 0, 5.0, 0.01);
-        ui::checkbox("Normal Mapping", &enable_normal_mapping);
-        ui::checkbox("Parallax Mapping", &enable_parallax_mapping);
-        ui::checkbox("Blur", &enable_blur);
-        ui::checkbox("BloomRenderer", &enable_bloom);
-        ui::checkbox("SsaoRenderer", &enable_ssao);
-
-        ui::slider("Sunlight X", &pbr_pipeline->sunlight.direction.x, -100, 100, 1);
-        ui::slider("Sunlight Y", &pbr_pipeline->sunlight.direction.y, -100, 100, 1);
-        ui::slider("Sunlight Z", &pbr_pipeline->sunlight.direction.z, -100, 100, 1);
-        ui::color_picker("Sunlight Color", pbr_pipeline->sunlight.color);
-
-        ui::slider("PointLight_1 X", &pbr_pipeline->point_lights[0].position.x, -25, 25, 1);
-        ui::slider("PointLight_1 Y", &pbr_pipeline->point_lights[0].position.y, -25, 25, 1);
-        ui::slider("PointLight_1 Z", &pbr_pipeline->point_lights[0].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_1 Color", pbr_pipeline->point_lights[0].color);
-
-        ui::slider("PointLight_2 X", &pbr_pipeline->point_lights[1].position.x, -25, 25, 1);
-        ui::slider("PointLight_2 Y", &pbr_pipeline->point_lights[1].position.y, -25, 25, 1);
-        ui::slider("PointLight_2 Z", &pbr_pipeline->point_lights[1].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_2 Color", pbr_pipeline->point_lights[1].color);
-
-        ui::slider("PointLight_3 X", &pbr_pipeline->point_lights[2].position.x, -25, 25, 1);
-        ui::slider("PointLight_3 Y", &pbr_pipeline->point_lights[2].position.y, -25, 25, 1);
-        ui::slider("PointLight_3 Z", &pbr_pipeline->point_lights[2].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_3 Color", pbr_pipeline->point_lights[2].color);
-
-        ui::slider("PointLight_4 X", &pbr_pipeline->point_lights[3].position.x, -25, 25, 1);
-        ui::slider("PointLight_4 Y", &pbr_pipeline->point_lights[3].position.y, -25, 25, 1);
-        ui::slider("PointLight_4 Z", &pbr_pipeline->point_lights[3].position.z, -25, 25, 1);
-        ui::color_picker("PointLight_4 Color", pbr_pipeline->point_lights[3].color);
-    }
-
-    void App::render_ui() {
-        ui::begin();
-        ui::window("Screen", [this]() { render_screen_ui(); });
-        ui::end();
-    }
-
     void App::render_postfx() {
         // Bloom effect
         if (enable_bloom) {
@@ -651,8 +605,12 @@ namespace gl {
             screen_renderer->get_params().scene_buffer = pbr_pipeline->get_gbuffer().shadow_proj_coords;
         }
 
+        else if (Window::is_key_press(KEY::D7)) {
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_ssao_buffer();
+        }
+
         else if (Window::is_key_press(KEY::D8)) {
-            screen_renderer->get_params().scene_buffer = pbr_pipeline->env.hdr;
+            screen_renderer->get_params().scene_buffer = pbr_pipeline->env.brdf_convolution;
         }
 
         else if (Window::is_key_press(KEY::D9)) {

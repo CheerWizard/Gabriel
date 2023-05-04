@@ -323,6 +323,7 @@ void main()
     UV = l_uv;
     N = normalize(w_normal);
     V = normalize(camera_pos - w_pos);
+    float NdotV = max(dot(N, V), 0.0);
 
     // parallax mapping
     if (material.enable_parallax) {
@@ -392,7 +393,7 @@ void main()
     // PBR env light
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo.rgb, metallic);
-    vec3 F = fresnel_shlick_rough(max(dot(N, V), 0.0), F0, roughness);
+    vec3 F = fresnel_shlick_rough(NdotV, F0, roughness);
 
     // indirect diffuse part
     vec3 irradiance = texture(envlight.irradiance, N).rgb;
@@ -405,8 +406,8 @@ void main()
     // prefiltering roughness on LOD
     vec3 prefiltered_color = textureLod(envlight.prefilter, R, roughness * envlight.prefilter_levels).rgb;
     // BRDF convolution
-    vec2 brdf = texture(envlight.brdf_convolution, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefiltered_color * F;
+    vec2 brdf = texture(envlight.brdf_convolution, vec2(NdotV, roughness)).rg;
+    vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
 
     // PBR Ambient part
     vec3 ambient = (kD * diffuse + specular) * ao;

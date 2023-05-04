@@ -8,7 +8,6 @@
 namespace gl {
 
     enum EntityControlFlag : u8 {
-        None = 0,
         Select = 1,
         Drag = 2,
         Hover = 4

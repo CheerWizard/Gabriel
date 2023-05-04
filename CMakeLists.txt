@@ -6,14 +6,13 @@ set(CMAKE_CXX_STANDARD 14)
 include(cmake_utils/CMakeLists.txt)
 
 file(GLOB_RECURSE SRC
-        cpp/*.cpp include/*.h
+        cpp/*.cpp
+        include/*.h
         vendor/glad-c/src/glad.c
         vendor/stb/stb_image.h
-        vendor/Nuklear/nuklear.h
-        vendor/Nuklear/demo/glfw_opengl3/nuklear_glfw_gl3.h
 )
 
-add_executable(${PROJECT_NAME} ${SRC} include/font.h cpp/font.cpp include/ui.h cpp/ui.cpp include/ui.h include/debug_break.h include/debug_control.h cpp/debug_control.cpp include/memory_barrier.h cpp/memory_barrier.cpp include/viewport.h cpp/viewport.cpp)
+add_executable(${PROJECT_NAME} ${SRC})
 
 include_directories(
         include
@@ -22,8 +21,6 @@ include_directories(
         vendor/glm/glm
         vendor/stb
         vendor/assimp/include
-        vendor/Nuklear
-        vendor/Nuklear/demo/glfw_opengl3
         vendor/freetype/include
 )
 
@@ -40,4 +37,9 @@ replace_dirs(images images)
 replace_dirs(models models)
 replace_dirs(fonts fonts)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm assimp-vc143-mtd freetype)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        glfw
+        glm
+        assimp-vc143-mtd
+        freetype
+)

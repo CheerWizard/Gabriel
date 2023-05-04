@@ -262,15 +262,16 @@ void main()
     N = w_normals.xyz;
     V = normalize(camera_pos - w_pos);
     R = reflect(-V, N);
+    float NdotV = max(dot(N, V), 0.0);
 
     float metallic = pbr_param.r;
     float roughness = pbr_param.g;
     float ao = pbr_param.b;
     vec3 Lo = vec3(0);
 
-    // SsaoRenderer
+    // SSAO
     if (enable_ssao) {
-        ao *= texture(ssao, l_uv).r;
+        ao = texture(ssao, l_uv).r;
     }
 
     // PBR sunlight
@@ -288,7 +289,7 @@ void main()
     // PBR env light
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo.rgb, metallic);
-    vec3 F = fresnel_shlick_rough(max(dot(N, V), 0.0), F0, roughness);
+    vec3 F = fresnel_shlick_rough(NdotV, F0, roughness);
 
     // indirect diffuse part
     vec3 irradiance = texture(envlight.irradiance, N).rgb;
@@ -301,8 +302,8 @@ void main()
     // prefiltering roughness on LOD
     vec3 prefiltered_color = textureLod(envlight.prefilter, R, roughness * envlight.prefilter_levels).rgb;
     // BRDF convolution
-    vec2 brdf = texture(envlight.brdf_convolution, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefiltered_color * F;
+    vec2 brdf = texture(envlight.brdf_convolution, vec2(NdotV, roughness)).rg;
+    vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
 
     // ambient part
     vec3 ambient = (kD * diffuse + specular) * ao;

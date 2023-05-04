@@ -145,7 +145,7 @@ namespace gl {
         }
 
         // create skybox BRDF convolution map
-        glViewport(0, 0, env->resolution.x, env->resolution.y);
+        Viewport::resize(0, 0, env->resolution.x, env->resolution.y);
 
         fbo.rbo.width = env->resolution.x;
         fbo.rbo.height = env->resolution.y;

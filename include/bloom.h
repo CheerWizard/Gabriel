@@ -24,7 +24,7 @@ namespace gl {
     };
 
     struct BloomMixShader : Shader {
-        UniformF bloom_strength = { "bloom_strength", 0.04f };
+        UniformF bloom_strength = { "bloom_strength", 0.02f };
         const ImageSampler hdr_sampler = { "hdr", 0 };
         ImageBuffer hdr_buffer;
         const ImageSampler bloom_sampler = { "bloom", 1 };

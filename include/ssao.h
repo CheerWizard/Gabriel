@@ -25,7 +25,7 @@ namespace gl {
         UniformF sample_radius  = { "sample_radius", 1 };
         UniformF sample_bias  = { "sample_bias", 0.025f };
 
-        UniformI occlusion_power  = { "occlusion_power", 2 };
+        UniformI occlusion_power  = { "occlusion_power", 4 };
 
         void init();
         void free();

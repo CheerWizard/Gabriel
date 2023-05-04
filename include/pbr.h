@@ -119,6 +119,7 @@ namespace gl {
 
         inline FrameBuffer& get_geometry_fbo() { return geometry_fbo; }
         inline FrameBuffer& get_light_fbo() { return light_fbo; }
+        inline const ImageBuffer& get_ssao_buffer() const { return ssao_renderer->get_render_target(); }
 
         PBR_DeferredRenderer(int w, int h);
         ~PBR_DeferredRenderer();
@@ -180,6 +181,10 @@ namespace gl {
 
         inline const TransparentBuffer& get_transparent_buffer() const {
             return transparent_renderer.transparent_buffer;
+        }
+
+        inline const ImageBuffer& get_ssao_buffer() const {
+            return pbr_deferred_renderer->get_ssao_buffer();
         }
 
         void set_samples(int samples);
