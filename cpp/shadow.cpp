@@ -17,17 +17,19 @@ namespace gl {
     }
 
     void ShadowPipeline::createDirectShadow(int width, int height) {
-        directShadow.fov_degree = 45.0f;
-        directShadow.aspect_ratio = (float) width / (float) height;
+        directShadow.left = -10.0f;
+        directShadow.right = 10.0f;
+        directShadow.bottom = -10.0f;
+        directShadow.top = 10.0f;
         directShadow.zNear = 1.0f;
-        directShadow.zFar = 50.0f;
+        directShadow.zFar = 25.0f;
         directShadow.map.image = { width, height };
         directShadow.map.image.pixel_type = PixelType::FLOAT;
         directShadow.map.params.min_filter = GL_NEAREST;
         directShadow.map.params.mag_filter = GL_NEAREST;
-        directShadow.map.params.s = GL_REPEAT;
-        directShadow.map.params.t = GL_REPEAT;
-        directShadow.map.params.r = GL_REPEAT;
+        directShadow.map.params.s = GL_CLAMP_TO_EDGE;
+        directShadow.map.params.t = GL_CLAMP_TO_EDGE;
+        directShadow.map.params.r = GL_CLAMP_TO_EDGE;
         directShadow.map.params.border_color = { 1, 1, 1, 1 };
         directShadow.map.init();
     }
@@ -42,9 +44,9 @@ namespace gl {
         pointShadow.map.image.pixel_type = PixelType::FLOAT;
         pointShadow.map.params.min_filter = GL_NEAREST;
         pointShadow.map.params.mag_filter = GL_NEAREST;
-        pointShadow.map.params.s = GL_REPEAT;
-        pointShadow.map.params.t = GL_REPEAT;
-        pointShadow.map.params.r = GL_REPEAT;
+        pointShadow.map.params.s = GL_CLAMP_TO_EDGE;
+        pointShadow.map.params.t = GL_CLAMP_TO_EDGE;
+        pointShadow.map.params.r = GL_CLAMP_TO_EDGE;
         pointShadow.map.params.border_color = { 1, 1, 1, 1 };
         pointShadow.map.init();
     }
@@ -85,9 +87,9 @@ namespace gl {
     }
 
     void ShadowPipeline::end() {
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
         glCullFace(GL_BACK);
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_DEPTH_TEST);
     }
 
     void ShadowPipeline::bind(const DepthAttachment& shadowMap) {

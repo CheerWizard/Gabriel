@@ -8,7 +8,7 @@
 
 namespace gl {
 
-    struct DirectShadow : PerspectiveMat {
+    struct DirectShadow : OrthoMat {
         DepthAttachment map;
         std::vector<glm::mat4> lightSpaces;
 

@@ -406,6 +406,12 @@ namespace gl {
         metal_sphere.transform()->rotation.y += f * 4;
         human.transform()->rotation.y += f * 4;
 
+        // translate sunlight
+        float sunlight_translate = 5 * sin(t/5) + 5;
+        sunlight.value().direction.x = sunlight_translate;
+        sunlight.value().direction.z = sunlight_translate;
+        pbr_pipeline->updateSunlight(sunlight.value());
+
         // translate point lights up/down
         std::array<PointLightUniform, 4> pointLightUniforms;
         for (int i = 0 ; i < 4 ; i++) {

@@ -13,6 +13,8 @@ namespace gl {
         static int MAX_WORKGROUP_INVOCATIONS;
 
         static void init(int viewport_width, int viewport_height);
+
+        static void setPolygonOffset(float factor, float units);
     };
 
 }

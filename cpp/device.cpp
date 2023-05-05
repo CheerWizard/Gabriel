@@ -37,10 +37,13 @@ namespace gl {
         glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &Device::MAX_WORKGROUP_INVOCATIONS);
 
         Debugger::init();
+
+        setPolygonOffset(1, 1);
     }
 
-    void resize(int w, int h) {
-        glViewport(0, 0, w, h);
+    void Device::setPolygonOffset(float factor, float units) {
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(factor, units);
     }
 
 }
