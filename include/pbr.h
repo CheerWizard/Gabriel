@@ -11,6 +11,7 @@
 #include <skeletal_renderer.h>
 #include <environment.h>
 #include <transparency.h>
+#include <terrain.h>
 
 namespace gl {
 
@@ -167,6 +168,7 @@ namespace gl {
     struct PBR_Pipeline final {
         ecs::Scene* scene;
         Environment env;
+        Terrain* terrain = null;
 
         PBR_Pipeline(ecs::Scene* scene, int width, int height);
         ~PBR_Pipeline();

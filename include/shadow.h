@@ -14,7 +14,7 @@ namespace gl {
         DirectShadow directShadow;
         PointShadow pointShadow;
 
-        ShadowPipeline(ecs::Scene* scene, int width, int height);
+        ShadowPipeline(ecs::Scene* scene, int width, int height, Camera* camera);
         ~ShadowPipeline();
 
         void resize(int width, int height);
@@ -22,8 +22,8 @@ namespace gl {
         void render();
 
     private:
-        void createDirectShadow(int width, int height);
-        void createPointShadow(int width, int height);
+        void createDirectShadow(int width, int height, Camera* camera);
+        void createPointShadow(int width, int height, Camera* camera);
 
         void begin();
         void end();

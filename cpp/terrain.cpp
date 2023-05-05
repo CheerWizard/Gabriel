@@ -2,25 +2,26 @@
 
 namespace gl {
 
-    void Terrain::init() {
-        plane.init(*drawable());
+    void TerrainBuilder::init() {
+        plane.init(terrain.drawable);
     }
 
-    void Terrain::free() {
+    void TerrainBuilder::free() {
+        Entity::free();
         plane.free();
     }
 
-    void Terrain::displace_with(const DisplacementMap& displacementMap, float scale) {
-        displacement()->set_origin_vertices(&plane.vertices);
-        displacement()->scale = scale;
-        displacement()->map = displacementMap;
-        displacement()->displace(*drawable());
+    void TerrainBuilder::displace_with(const DisplacementMap& displacementMap, float scale) {
+        displacement.set_origin_vertices(&plane.vertices);
+        displacement.scale = scale;
+        displacement.map = displacementMap;
+        displacement.displace(terrain.drawable);
     }
 
-    void Terrain::displace(float scale) {
-        displacement()->set_origin_vertices(&plane.vertices);
-        displacement()->scale = scale;
-        displacement()->displace(*drawable());
+    void TerrainBuilder::displace(float scale) {
+        displacement.set_origin_vertices(&plane.vertices);
+        displacement.scale = scale;
+        displacement.displace(terrain.drawable);
     }
 
 }

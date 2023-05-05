@@ -650,6 +650,18 @@ namespace gl {
         {
             // static objects
             pbr_deferred_renderer->begin();
+            // terrain
+            if (terrain) {
+                glCullFace(GL_FRONT);
+                pbr_deferred_renderer->render(
+                        terrain->entityId,
+                        terrain->transform,
+                        terrain->drawable,
+                        terrain->material
+                );
+                glCullFace(GL_BACK);
+            }
+            // world objects
             scene->each_component<PBR_Component_DeferredCull>([this](PBR_Component_DeferredCull* component) {
                 ecs::EntityID entity_id = component->entity_id;
                 pbr_deferred_renderer->render(
@@ -659,7 +671,7 @@ namespace gl {
                         *scene->get_component<Material>(entity_id)
                 );
             });
-            // skeletal objects
+            // skeletal world objects
             skeletal_deferred_renderer.begin();
             scene->each_component<PBR_SkeletalComponent_DeferredCull>([this](PBR_SkeletalComponent_DeferredCull* component) {
                 ecs::EntityID entity_id = component->entity_id;

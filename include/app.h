@@ -89,7 +89,7 @@ namespace gl {
 
         LightPresent point_light_present;
 
-        Terrain terrain;
+        TerrainBuilder mTerrainBuilder;
 
         DisplacementImageMixer image_mixer;
 

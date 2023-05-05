@@ -4,6 +4,7 @@
 #include <polygon_visual.h>
 #include <normal_visual.h>
 #include <camera.h>
+#include <terrain.h>
 
 namespace gl {
 
@@ -42,6 +43,8 @@ namespace gl {
     };
 
     struct EntityControl final {
+        ecs::Scene* scene;
+        Camera* camera;
         EntityControlFlag flags = Select;
 
         EntityControl(ecs::Scene* scene, Camera* camera)
@@ -52,9 +55,7 @@ namespace gl {
         void hover(double x, double y);
 
     private:
-        ecs::Entity selected_entity;
-        ecs::Scene* scene;
-        Camera* camera;
+        ecs::Entity mSelectedEntity;
     };
 
 }

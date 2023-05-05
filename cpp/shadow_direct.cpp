@@ -3,10 +3,11 @@
 namespace gl {
 
     glm::mat4 DirectShadow::update(const glm::vec3& lightDirection) {
+        glm::vec3 lightPosition = { 0, 0, 0 };
         glm::mat4 lightProjection = init();
         glm::mat4 lightView = ViewMat {
                 lightDirection,
-                glm::vec3(0.0f, 0.0f,  0.0f),
+                lightPosition,
                 glm::vec3(0.0f, 1.0f,  0.0f)
         }.init();
         glm::mat4 lightSpace = lightProjection * lightView;

@@ -3,12 +3,12 @@
 
 namespace gl {
 
-    ShadowPipeline::ShadowPipeline(ecs::Scene *scene, int width, int height) : scene(scene) {
+    ShadowPipeline::ShadowPipeline(ecs::Scene* scene, int width, int height, Camera* camera) : scene(scene) {
         mDirectShadowRenderer = new DirectShadowRenderer();
         mPointShadowRenderer = new PointShadowRenderer();
 
-        createDirectShadow(width, height);
-        createPointShadow(width, height);
+        createDirectShadow(width, height, camera);
+        createPointShadow(width, height, camera);
 
         mFrame.init();
         mFrame.depth = directShadow.map;
@@ -16,7 +16,8 @@ namespace gl {
         mFrame.complete();
     }
 
-    void ShadowPipeline::createDirectShadow(int width, int height) {
+    void ShadowPipeline::createDirectShadow(int width, int height, Camera* camera) {
+        directShadow.camera = camera;
         directShadow.left = -10.0f;
         directShadow.right = 10.0f;
         directShadow.bottom = -10.0f;
@@ -34,7 +35,8 @@ namespace gl {
         directShadow.map.init();
     }
 
-    void ShadowPipeline::createPointShadow(int width, int height) {
+    void ShadowPipeline::createPointShadow(int width, int height, Camera* camera) {
+        pointShadow.camera = camera;
         pointShadow.fov_degree = 90.0f;
         pointShadow.aspect_ratio = (float) width / (float) height;
         pointShadow.zNear = 1.0f;

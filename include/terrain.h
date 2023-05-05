@@ -8,52 +8,44 @@
 
 namespace gl {
 
-    struct Terrain : ecs::Entity {
+    struct Terrain final {
+        ecs::EntityID entityId;
+        Transform transform;
+        DrawableElements drawable;
+        Material material;
+    };
+
+    struct TerrainBuilder : ecs::Entity {
         PlaneTBN plane;
+        DisplacementTBN displacement;
+        Terrain terrain;
 
-        Terrain() = default;
+        TerrainBuilder() : ecs::Entity() {}
 
-        Terrain(ecs::Scene* scene, int size)
-        : Entity(scene) {
+        TerrainBuilder(ecs::Scene* scene, int size)
+        : ecs::Entity(scene) {
+            terrain.entityId = id;
             plane = PlaneTBN(size);
-            add_component<Transform>();
-            add_component<DrawableElements>();
-            add_component<Material>();
-            add_component<DisplacementTBN>();
+            init();
         }
 
-        Terrain(ecs::Scene* scene, const glm::vec3& translation, const glm::vec3& rotation, const glm::vec3& scale, int size)
-        : Entity(scene) {
+        TerrainBuilder(ecs::Scene* scene, const glm::vec3& translation, const glm::vec3& rotation, const glm::vec3& scale, int size)
+        : ecs::Entity(scene) {
+            terrain.entityId = id;
+            terrain.transform = { translation, rotation, scale };
             plane = PlaneTBN(size);
-            add_component<Transform>(translation, rotation, scale);
-            add_component<DrawableElements>();
-            add_component<Material>();
-            add_component<DisplacementTBN>();
-        }
-
-        Transform* transform() {
-            return scene->get_component<Transform>(id);
-        }
-
-        DrawableElements* drawable() {
-            return scene->get_component<DrawableElements>(id);
-        }
-
-        Material* material() {
-            return scene->get_component<Material>(id);
-        }
-
-        DisplacementTBN* displacement() {
-            return scene->get_component<DisplacementTBN>(id);
+            init();
         }
 
         inline int size() const { return plane.size; }
 
-        void init();
-        void free();
+        void free() override;
 
         void displace_with(const DisplacementMap& displacement_map, float scale);
         void displace(float scale);
+
+    private:
+        void init();
     };
 
 }

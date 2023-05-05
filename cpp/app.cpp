@@ -60,7 +60,7 @@ namespace gl {
                 { 1, 1, 1 }
         };
 
-        terrain = {
+        mTerrainBuilder = {
                 &scene,
                 { 0, 0, 4 },
                 { 0, 0, 0 },
@@ -98,10 +98,8 @@ namespace gl {
 
         entity_control = new EntityControl(&scene, &camera);
 
-        terrain.add_component<PBR_Component_Deferred>();
-        terrain.add_component<Selectable>();
-        terrain.add_component<Draggable>();
-        terrain.init();
+        mTerrainBuilder.add_component<Selectable>();
+        mTerrainBuilder.add_component<Draggable>();
 
         rock_sphere.add_component<PBR_Component_DeferredCull>();
         rock_sphere.add_component<Selectable>(entity_selected);
@@ -163,7 +161,7 @@ namespace gl {
         human_animator = Animator(&human_model.animation);
 
         // setup horizontal plane
-        terrain.material()->init(
+        mTerrainBuilder.terrain.material.init(
                 false,
                 null,
                 "images/bumpy-rockface1-bl/normal.png",
@@ -172,10 +170,10 @@ namespace gl {
                 "images/bumpy-rockface1-bl/roughness.png",
                 "images/bumpy-rockface1-bl/ao.png"
         );
-        terrain.material()->color = { 1, 1, 1, 1 };
-        terrain.material()->metallic_factor = 1;
-        terrain.material()->roughness_factor = 1;
-        terrain.material()->ao_factor = 1;
+        mTerrainBuilder.terrain.material.color = { 1, 1, 1, 1 };
+        mTerrainBuilder.terrain.material.metallic_factor = 1;
+        mTerrainBuilder.terrain.material.roughness_factor = 1;
+        mTerrainBuilder.terrain.material.ao_factor = 1;
 
         // setup sphere
         SphereTBN sphere_geometry = { 64, 64 };
@@ -221,25 +219,25 @@ namespace gl {
 
                 // displace terrain
                 Image terrain_height_map = ImageReader::read("images/terrain/earth_heightmap.png");
-                terrain_height_map.resize(terrain.size(), terrain.size());
+                terrain_height_map.resize(mTerrainBuilder.size(), mTerrainBuilder.size());
 
-                terrain.displace_with(MidPointFormation(terrain.size(), terrain.size(), 10, 0, 1), 1);
-                image_mixer.displacement_map = &terrain.displacement()->map;
+                mTerrainBuilder.displace_with(MidPointFormation(mTerrainBuilder.size(), mTerrainBuilder.size(), 10, 0, 1), 1);
+                image_mixer.displacement_map = &mTerrainBuilder.displacement.map;
                 image_mixer.add_image({ -1.0, -0.5, 0 }, "images/terrain/rock_tile.png");
                 image_mixer.add_image({ 0, 0.1, 0.2 }, "images/terrain/sand_tile.jpg");
                 image_mixer.add_image({ 0.20, 0.45, 0.70 }, "images/terrain/grass_tile.png");
                 image_mixer.add_image({ 0.70, 0.77, 0.85 }, "images/terrain/rock_tile.png");
                 image_mixer.add_image({ 0.85, 0.90, 1.0 }, "images/terrain/snow_tile.png");
-                image_mixer.mix(terrain.size(), terrain.size());
+                image_mixer.mix(mTerrainBuilder.size(), mTerrainBuilder.size());
                 ImageWriter::write("images/terrain/mixed_image.png", image_mixer.mixed_image);
 
                 terrain_height_map.free();
 
                 ImageParams params;
                 params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-                terrain.material()->albedo.init();
-                terrain.material()->albedo.load(image_mixer.mixed_image, params);
-                terrain.material()->enable_albedo = terrain.material()->albedo.id != invalid_image_buffer;
+                mTerrainBuilder.terrain.material.albedo.init();
+                mTerrainBuilder.terrain.material.albedo.load(image_mixer.mixed_image, params);
+                mTerrainBuilder.terrain.material.enable_albedo = mTerrainBuilder.terrain.material.albedo.id != invalid_image_buffer;
             }
 
             wood_sphere.material()->init(
@@ -277,11 +275,12 @@ namespace gl {
 
         debug_control_pipeline = new DebugControlPipeline(&scene);
 
-        mShadowPipeline = new ShadowPipeline(&scene, Window::get_width(), Window::get_height());
+        mShadowPipeline = new ShadowPipeline(&scene, Window::get_width(), Window::get_height(), &camera);
 
         pbr_pipeline = new PBR_Pipeline(&scene, Window::get_width(), Window::get_height());
         pbr_pipeline->setDirectShadow(&mShadowPipeline->directShadow);
         pbr_pipeline->setPointShadow(&mShadowPipeline->pointShadow);
+        pbr_pipeline->terrain = &mTerrainBuilder.terrain;
 
         hdr_renderer = new HdrRenderer(Window::get_width(), Window::get_height());
         Image shiny_image = ImageReader::read("images/lens_dirt/lens_dirt.png");
@@ -350,8 +349,6 @@ namespace gl {
     void App::free() {
         FontAtlas::free();
 
-        terrain.free();
-
         delete screen_renderer;
 
         delete pbr_pipeline;
@@ -363,21 +360,28 @@ namespace gl {
         delete blur_renderer;
         delete bloom_renderer;
 
+        mTerrainBuilder.free();
+
+        wood_sphere.free();
         wood_sphere.material()->free();
         wood_sphere.drawable()->free();
 
+        metal_sphere.free();
         metal_sphere.material()->free();
         metal_sphere.drawable()->free();
 
+        rock_sphere.free();
         rock_sphere.material()->free();
         rock_sphere.drawable()->free();
 
         point_light_present.free();
 
+        backpack.free();
         backpack.material()->free();
         backpack.drawable()->free();
         backpack_model.free();
 
+        human.free();
         human.material()->free();
         human.drawable()->free();
         human_model.free();

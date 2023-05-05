@@ -23,6 +23,8 @@ namespace ecs {
         inline bool invalid() const { return id == InvalidEntity; }
         inline bool valid() const { return id != InvalidEntity; }
 
+        virtual void free();
+
         template<typename T>
         T* get_component();
 

@@ -1,14 +1,15 @@
 #pragma once
 
 #include <shader.h>
-#include <matrices.h>
 #include <frame.h>
 #include <transform.h>
 #include <draw.h>
+#include <camera.h>
 
 namespace gl {
 
     struct DirectShadow : OrthoMat {
+        Camera* camera = null;
         DepthAttachment map;
         std::vector<glm::mat4> lightSpaces;
 

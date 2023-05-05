@@ -24,12 +24,12 @@ namespace gl {
 
         if (closest_sphere) {
             ecs::EntityID entity_id = closest_sphere->entity_id;
-            selected_entity.set_scene(scene);
-            selected_entity.set_id(entity_id);
+            mSelectedEntity.set_scene(scene);
+            mSelectedEntity.set_id(entity_id);
 
-            auto* selectable = selected_entity.get_component<Selectable>();
+            auto* selectable = mSelectedEntity.get_component<Selectable>();
             if (selectable && selectable->callback) {
-                selectable->callback(selected_entity, x, y);
+                selectable->callback(mSelectedEntity, x, y);
             }
 
             return true;
@@ -45,7 +45,7 @@ namespace gl {
 
         ViewRay mouse_view_ray = camera->raycast_view(x, y);
         // entity World -> View
-        auto& entity_world_position = selected_entity.get_component<Transform>()->translation;
+        auto& entity_world_position = mSelectedEntity.get_component<Transform>()->translation;
         WorldRay entity_world_ray(entity_world_position.x, entity_world_position.y, entity_world_position.z, 1.0f);
         glm::mat4 camera_view = camera->view();
         ViewRay entity_view_ray = entity_world_ray.view_space(camera_view);
