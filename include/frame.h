@@ -90,7 +90,9 @@ namespace gl {
         void init_with_render_buffer();
         void free();
 
-        void bind();
+        void bind() const;
+        void bindWriting() const;
+        void bindReading() const;
         static void unbind();
 
         void init_colors();

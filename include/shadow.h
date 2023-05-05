@@ -1,68 +1,42 @@
 #pragma once
 
-#include <shader.h>
-#include <buffers.h>
-#include <frame.h>
-#include <transform.h>
-#include <draw.h>
-#include <model_loader.h>
 #include <scene.h>
+#include <shadow_direct.h>
+#include <shadow_point.h>
 
 namespace gl {
 
-    component(DirectShadow) {
-        glm::vec3 direction;
-        glm::mat4 light_space;
+    component(Shadowable) {};
 
-        void update();
-    };
+    struct ShadowPipeline final {
+        ecs::Scene* scene;
 
-    struct DirectShadowRenderer final {
-        ImageBuffer render_target;
+        DirectShadow directShadow;
+        PointShadow pointShadow;
 
-        void init(int w, int h);
-        void free();
+        ShadowPipeline(ecs::Scene* scene, int width, int height);
+        ~ShadowPipeline();
 
-        void resize(int w, int h);
+        void resize(int width, int height);
+
+        void render();
+
+    private:
+        void createDirectShadow(int width, int height);
+        void createPointShadow(int width, int height);
 
         void begin();
         void end();
 
-        void update(DirectShadow& direct_shadow);
-        void render(Transform& transform, DrawableElements& drawable);
+        void bind(const DepthAttachment& shadowMap);
+
+        void renderDirectShadows();
+        void renderPointShadows();
 
     private:
-        FrameBuffer fbo;
-        Shader shader;
-    };
-
-    component(PointShadow) {
-        int width = 1024;
-        int height = 1024;
-        glm::vec3 position;
-        float far_plane = 25;
-        std::vector<glm::mat4> light_spaces;
-
-        void update();
-    };
-
-    struct PointShadowRenderer final {
-        ImageBuffer render_target;
-
-        void init(int w, int h);
-        void free();
-
-        void resize(int w, int h);
-
-        void begin();
-        void end();
-
-        void update(PointShadow& point_shadow);
-        void render(Transform& transform, DrawableElements& drawable);
-
-    private:
-        FrameBuffer fbo;
-        Shader shader;
+        FrameBuffer mFrame;
+        DirectShadowRenderer* mDirectShadowRenderer;
+        PointShadowRenderer* mPointShadowRenderer;
     };
 
 }

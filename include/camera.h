@@ -2,6 +2,8 @@
 
 #include <primitives.h>
 
+#include <matrices.h>
+
 #include <shader.h>
 #include <buffers.h>
 
@@ -10,30 +12,7 @@
 
 #include <collisions.h>
 
-#include <glm/glm.hpp>
-#include <gtc/matrix_transform.hpp>
-
 namespace gl {
-
-    struct OrthoMat final {
-        float left = 0;
-        float right = 0;
-        float bottom = 0;
-        float top = 0;
-        float zNear = 0.1f;
-        float zFar = 100.0f;
-
-        glm::mat4 init();
-    };
-
-    struct PerspectiveMat final {
-        float fov_degree = 45.0f;
-        float aspect_ratio = 1.0f;
-        float zNear = 0.1f;
-        float zFar = 100.0f;
-
-        glm::mat4 init();
-    };
 
     struct Camera final {
         glm::vec3 position = { 0, 0, 10 };
@@ -64,7 +43,7 @@ namespace gl {
 
         void init(u32 binding, int screen_width, int screen_height);
 
-        glm::mat4 view();
+        glm::mat4 view() const;
         void update_view();
 
         void free();
@@ -77,7 +56,7 @@ namespace gl {
 
         void resize(int w, int h);
 
-        glm::mat4 perspective();
+        glm::mat4 perspective() const;
         void update_perspective();
 
         void update();

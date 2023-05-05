@@ -4,6 +4,7 @@
 #include <transform.h>
 #include <camera.h>
 #include <frame.h>
+#include <entity.h>
 
 namespace gl {
 
@@ -23,17 +24,49 @@ namespace gl {
         void update();
     };
 
-    struct PhongLight final {
+    struct PhongLightUniform final {
         glm::vec4 position = { 0, 0, 0, 1 };
         glm::vec4 color = { 1, 1, 1, 1 };
     };
 
-    struct DirectLight final {
+    component(PhongLightComponent) {
+        PhongLightUniform value;
+    };
+
+    struct PhongLight : ecs::Entity {
+
+        PhongLight() : ecs::Entity() {}
+
+        PhongLight(ecs::Scene* scene) : ecs::Entity(scene) {
+            add_component<PhongLightComponent>();
+        }
+
+        PhongLightUniform& value();
+
+    };
+
+    struct DirectLightUniform final {
         glm::vec4 direction = { -2.0f, 4.0f, -1.0f, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
     };
 
-    struct PointLight final {
+    component(DirectLightComponent) {
+        DirectLightUniform value;
+    };
+
+    struct DirectLight : ecs::Entity {
+
+        DirectLight() : ecs::Entity() {}
+
+        DirectLight(ecs::Scene* scene) : ecs::Entity(scene) {
+            add_component<DirectLightComponent>();
+        }
+
+        DirectLightUniform& value();
+
+    };
+
+    struct PointLightUniform final {
         glm::vec4 position = { 0, 0, 0, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
         float constant = 0;
@@ -42,7 +75,23 @@ namespace gl {
         float refraction = 1;
     };
 
-    struct SpotLight final {
+    component(PointLightComponent) {
+        PointLightUniform value;
+    };
+
+    struct PointLight : ecs::Entity {
+
+        PointLight() : ecs::Entity() {}
+
+        PointLight(ecs::Scene* scene) : ecs::Entity(scene) {
+            add_component<PointLightComponent>();
+        }
+
+        PointLightUniform& value();
+
+    };
+
+    struct SpotLightUniform final {
         glm::vec4 position = { 0, 0, 0, 0 };
         glm::vec4 direction = { -0.2f, -1.0f, -0.3f, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
@@ -50,6 +99,22 @@ namespace gl {
         float outer = glm::cos(glm::radians(11.5f));
         float refraction = 1;
         float pad = 0;
+    };
+
+    component(SpotLightComponent) {
+        SpotLightUniform value;
+    };
+
+    struct SpotLight : ecs::Entity {
+
+        SpotLight() : ecs::Entity() {}
+
+        SpotLight(ecs::Scene* scene) : ecs::Entity(scene) {
+            add_component<SpotLightComponent>();
+        }
+
+        SpotLightUniform& value();
+
     };
 
 }

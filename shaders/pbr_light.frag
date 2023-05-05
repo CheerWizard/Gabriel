@@ -218,7 +218,7 @@ vec3 pbr(LightPoint light_point, vec3 albedo, float metallic, float roughness)
     float quadratic = light_point.quadratic;
     float A = attenuation_function(tangent_light_pos, quadratic, linear, constant);
     float light_point_shadow = point_shadow_function(tangent_light_pos);
-    float radiance_factor = A * (1.0);
+    float radiance_factor = A * (1.0 - light_point_shadow);
 
     return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
 }
@@ -235,7 +235,6 @@ vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness)
     float gamma         = light_spot.outer;
     float epsilon       = cutoff - gamma;
     float I             = clamp((theta - gamma) / epsilon, 0.0, 1.0);
-    float spot_shadow = direct_shadow_function(light_dir);
     float radiance_factor = I * (1.0);
 
     return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
@@ -246,7 +245,7 @@ vec3 pbr(LightDirectional light_direct, vec3 albedo, float metallic, float rough
     vec3 light_dir = light_direct.direction;
     vec3 light_color = light_direct.color;
     float light_direct_shadow = direct_shadow_function(light_dir);
-    float radiance_factor = 1.0;
+    float radiance_factor = 1.0 - light_direct_shadow;
     return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);
 }
 
@@ -278,13 +277,13 @@ void main()
     Lo += pbr(sunlight, albedo.rgb, metallic, roughness);
 
     // PBR multiple point lights
-    int light_points_size = light_points.length();
-    for (int i = 0 ; i < light_points_size ; i++) {
-        Lo += pbr(light_points[i], albedo.rgb, metallic, roughness);
-    }
+//    int light_points_size = light_points.length();
+//    for (int i = 0 ; i < light_points_size ; i++) {
+//        Lo += pbr(light_points[i], albedo.rgb, metallic, roughness);
+//    }
 
     // PBR flashlight
-    Lo += pbr(flashlight, albedo.rgb, metallic, roughness);
+//    Lo += pbr(flashlight, albedo.rgb, metallic, roughness);
 
     // PBR env light
     vec3 F0 = vec3(0.04);

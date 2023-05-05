@@ -2,29 +2,45 @@
 
 namespace gl {
 
-    static Shader light_present_shader;
-    static DrawableElements light_present_drawable;
+    static Shader lightPresentShader;
+    static DrawableElements lightPresentDrawable;
 
     void LightPresent::init() {
-        light_present_shader.add_vertex_stage("shaders/light_present.vert");
-        light_present_shader.add_fragment_stage("shaders/light_present.frag");
-        light_present_shader.complete();
+        lightPresentShader.add_vertex_stage("shaders/light_present.vert");
+        lightPresentShader.add_fragment_stage("shaders/light_present.frag");
+        lightPresentShader.complete();
 
-        presentation.init(light_present_drawable);
+        presentation.init(lightPresentDrawable);
     }
 
     void LightPresent::free() {
-        light_present_shader.free();
-        light_present_drawable.free();
+        lightPresentShader.free();
+        lightPresentDrawable.free();
     }
 
     void LightPresent::update() {
-        light_present_shader.use();
-        light_present_shader.set_uniform_args("object_id", id);
-        light_present_shader.set_uniform_args("draw_id", id);
-        light_present_shader.set_uniform_args("color", color);
-        transform.update(light_present_shader);
-        light_present_drawable.draw();
+        lightPresentShader.use();
+        lightPresentShader.set_uniform_args("object_id", id);
+        lightPresentShader.set_uniform_args("draw_id", id);
+        lightPresentShader.set_uniform_args("color", color);
+        transform.update(lightPresentShader);
+        lightPresentDrawable.draw();
+    }
+
+    PhongLightUniform& PhongLight::value() {
+        return get_component<PhongLightComponent>()->value;
+    }
+
+    DirectLightUniform& DirectLight::value() {
+        return get_component<DirectLightComponent>()->value;
+    }
+
+    PointLightUniform& PointLight::value() {
+        return get_component<PointLightComponent>()->value;
+    }
+
+    SpotLightUniform& SpotLight::value() {
+        return get_component<SpotLightComponent>()->value;
     }
 
 }

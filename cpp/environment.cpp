@@ -44,7 +44,7 @@ namespace gl {
         brdf_convolution.free();
     }
 
-    void EnvRenderer::init(int w, int h) {
+    EnvRenderer::EnvRenderer(int width, int height) {
         hdr_to_cubemap_shader.add_vertex_stage("shaders/hdr_to_cubemap.vert");
         hdr_to_cubemap_shader.add_fragment_stage("shaders/hdr_to_cubemap.frag");
         hdr_to_cubemap_shader.complete();
@@ -65,9 +65,10 @@ namespace gl {
         env_shader.add_fragment_stage("shaders/hdr_cubemap.frag");
         env_shader.complete();
 
-        fbo.rbo = { w, h };
+        fbo.rbo = { width, height };
         fbo.rbo.format = GL_DEPTH_COMPONENT24;
         fbo.rbo.type = GL_DEPTH_ATTACHMENT;
+
         fbo.init_with_render_buffer();
 
         CubeDefault().init(env_cube);
@@ -75,7 +76,7 @@ namespace gl {
         quad_drawable.init();
     }
 
-    void EnvRenderer::free() {
+    EnvRenderer::~EnvRenderer() {
         hdr_to_cubemap_shader.free();
         hdr_irradiance_shader.free();
         hdr_prefilter_convolution_shader.free();
@@ -85,44 +86,44 @@ namespace gl {
         quad_drawable.free();
     }
 
-    void EnvRenderer::generate_env() {
+    void EnvRenderer::generate() {
         fbo.bind();
         // create HDR skybox cube map
-        glViewport(0, 0, env->resolution.x, env->resolution.y);
-        fbo.rbo.width = env->resolution.x;
-        fbo.rbo.height = env->resolution.y;
+        glViewport(0, 0, environment->resolution.x, environment->resolution.y);
+        fbo.rbo.width = environment->resolution.x;
+        fbo.rbo.height = environment->resolution.y;
         fbo.rbo.update();
         hdr_to_cubemap_shader.use();
-        hdr_to_cubemap_shader.bind_sampler("sampler", 0, env->hdr);
+        hdr_to_cubemap_shader.bind_sampler("sampler", 0, environment->hdr);
         hdr_to_cubemap_shader.set_uniform_args("perspective", cube_perspective);
         for (int i = 0; i < 6; i++) {
             hdr_to_cubemap_shader.set_uniform_args("view", cube_views[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, env->skybox.id, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment->skybox.id, 0);
             clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             env_cube.draw();
         }
-        env->skybox.generate_mipmaps(env->params);
+        environment->skybox.generate_mipmaps(environment->params);
         // create HDR skybox irradiance map
-        glViewport(0, 0, env->irradiance_resolution.x, env->irradiance_resolution.y);
-        fbo.rbo.width = env->irradiance_resolution.x;
-        fbo.rbo.height = env->irradiance_resolution.y;
+        glViewport(0, 0, environment->irradiance_resolution.x, environment->irradiance_resolution.y);
+        fbo.rbo.width = environment->irradiance_resolution.x;
+        fbo.rbo.height = environment->irradiance_resolution.y;
         fbo.rbo.update();
         hdr_irradiance_shader.use();
-        hdr_irradiance_shader.bind_sampler("sampler", 0, env->skybox);
+        hdr_irradiance_shader.bind_sampler("sampler", 0, environment->skybox);
         hdr_irradiance_shader.set_uniform_args("perspective", cube_perspective);
         for (int i = 0; i < 6; i++) {
             hdr_irradiance_shader.set_uniform_args("view", cube_views[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, env->irradiance.id, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment->irradiance.id, 0);
             clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             env_cube.draw();
         }
         // create HDR skybox prefilter map
         hdr_prefilter_convolution_shader.use();
-        hdr_prefilter_convolution_shader.bind_sampler("sampler", 0, env->skybox);
+        hdr_prefilter_convolution_shader.bind_sampler("sampler", 0, environment->skybox);
         hdr_prefilter_convolution_shader.set_uniform_args("perspective", cube_perspective);
-        int mip_w = env->prefilter_resolution.x * 2;
-        int mip_h = env->prefilter_resolution.y * 2;
-        for (int mip = 0 ; mip < env->prefilter_levels ; mip++) {
+        int mip_w = environment->prefilter_resolution.x * 2;
+        int mip_h = environment->prefilter_resolution.y * 2;
+        for (int mip = 0 ; mip < environment->prefilter_levels ; mip++) {
             // resize framebuffer according to mip size.
             mip_w /= 2;
             mip_h /= 2;
@@ -131,27 +132,27 @@ namespace gl {
             fbo.rbo.height = mip_h;
             fbo.rbo.update();
             // update roughness on each mip
-            float roughness = (float) mip / (float) (env->prefilter_levels - 1);
+            float roughness = (float) mip / (float) (environment->prefilter_levels - 1);
             hdr_prefilter_convolution_shader.set_uniform_args("roughness", roughness);
-            float resolution_float = (float) env->resolution.x;
+            float resolution_float = (float) environment->resolution.x;
             hdr_prefilter_convolution_shader.set_uniform_args("resolution", resolution_float);
             // capture mip texture on each cube face
             for (int i = 0; i < 6; i++) {
                 hdr_prefilter_convolution_shader.set_uniform_args("view", cube_views[i]);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, env->prefilter.id, mip);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment->prefilter.id, mip);
                 clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 env_cube.draw();
             }
         }
 
         // create skybox BRDF convolution map
-        Viewport::resize(0, 0, env->resolution.x, env->resolution.y);
+        Viewport::resize(0, 0, environment->resolution.x, environment->resolution.y);
 
-        fbo.rbo.width = env->resolution.x;
-        fbo.rbo.height = env->resolution.y;
+        fbo.rbo.width = environment->resolution.x;
+        fbo.rbo.height = environment->resolution.y;
         fbo.rbo.update();
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, env->brdf_convolution.id, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, environment->brdf_convolution.id, 0);
 
         clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         brdf_convolution_shader.use();
@@ -163,8 +164,8 @@ namespace gl {
     void EnvRenderer::render() {
         glDepthFunc(GL_LEQUAL);
         env_shader.use();
-        env->skybox.activate(0);
-        env->skybox.bind();
+        environment->skybox.activate(0);
+        environment->skybox.bind();
         env_cube.draw();
         glDepthFunc(GL_LESS);
     }

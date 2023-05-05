@@ -57,16 +57,17 @@ namespace gl {
 
     struct PBR_ForwardRenderer final {
         ImageBuffer render_target;
+
         int samples = 1;
-        ImageBuffer direct_shadow_map;
-        ImageBuffer point_shadow_map;
-        float far_plane = 25;
+
+        DirectShadow* directShadow = null;
+        PointShadow* pointShadow = null;
+
+        PBR_ForwardRenderer(int width, int height);
+        ~PBR_ForwardRenderer();
 
         inline Shader& get_shader();
         inline FrameBuffer& get_current_frame();
-
-        void init(int w, int h);
-        void free();
 
         void resize(int w, int h);
 
@@ -90,7 +91,7 @@ namespace gl {
 
     private:
         VertexArray vao;
-        Shader shader;
+        Shader mShader;
         FrameBuffer fbo;
         FrameBuffer msaa_fbo;
         FrameBuffer current_fbo;
@@ -109,16 +110,19 @@ namespace gl {
 
     struct PBR_DeferredRenderer final {
         ImageBuffer render_target;
+
         PBR_GBuffer gbuffer;
+
         int samples = 1;
+
+        DirectShadow* directShadow = null;
+        PointShadow* pointShadow = null;
+
         bool enable_ssao = true;
-        ImageBuffer direct_shadow_map;
-        ImageBuffer point_shadow_map;
-        float far_plane = 25;
         SsaoRenderer* ssao_renderer;
 
-        inline FrameBuffer& get_geometry_fbo() { return geometry_fbo; }
-        inline FrameBuffer& get_light_fbo() { return light_fbo; }
+        inline FrameBuffer& get_geometry_fbo() { return mGeometryFrame; }
+        inline FrameBuffer& get_light_fbo() { return mLightFrame; }
         inline const ImageBuffer& get_ssao_buffer() const { return ssao_renderer->get_render_target(); }
 
         PBR_DeferredRenderer(int w, int h);
@@ -137,18 +141,17 @@ namespace gl {
         void begin();
 
         void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material);
-        void render(ecs::EntityID entity_id, Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& light_space);
 
         void update(Environment* env);
 
     private:
-        DrawableQuad drawable;
-        Shader geometry_shader;
-        FrameBuffer geometry_fbo;
-        FrameBuffer geometry_msaa_fbo;
-        FrameBuffer current_geometry_fbo;
-        Shader light_shader;
-        FrameBuffer light_fbo;
+        DrawableQuad mDrawable;
+        Shader mGeometryShader;
+        FrameBuffer mGeometryFrame;
+        FrameBuffer mGeometryMsaaFrame;
+        FrameBuffer mCurrentGeometryFrame;
+        Shader mLightShader;
+        FrameBuffer mLightFrame;
     };
 
     struct PBR_Skeletal_ForwardRenderer : SkeletalRenderer {
@@ -164,15 +167,12 @@ namespace gl {
     struct PBR_Pipeline final {
         ecs::Scene* scene;
         Environment env;
-        DirectLight sunlight;
-        std::array<PointLight, 4> point_lights;
-        SpotLight flashlight;
 
-        PBR_Pipeline(ecs::Scene* scene, int w, int h);
+        PBR_Pipeline(ecs::Scene* scene, int width, int height);
         ~PBR_Pipeline();
 
         inline const ImageBuffer& get_render_target() const {
-            return pbr_forward_renderer.render_target;
+            return pbr_forward_renderer->render_target;
         }
 
         inline const PBR_GBuffer& get_gbuffer() const {
@@ -187,12 +187,22 @@ namespace gl {
             return pbr_deferred_renderer->get_ssao_buffer();
         }
 
+        inline void setDirectShadow(DirectShadow* directShadow) {
+            pbr_forward_renderer->directShadow = directShadow;
+            pbr_deferred_renderer->directShadow = directShadow;
+        }
+
+        inline void setPointShadow(PointShadow* pointShadow) {
+            pbr_forward_renderer->pointShadow = pointShadow;
+            pbr_deferred_renderer->pointShadow = pointShadow;
+        }
+
         void set_samples(int samples);
 
         void init_hdr_env(const char* filepath, bool flip_uv);
         void generate_env();
 
-        void resize(int w, int h);
+        void resize(int width, int height);
 
         void set_camera_pos(glm::vec3& camera_pos);
 
@@ -200,9 +210,9 @@ namespace gl {
 
         void render();
 
-        void update_flashlight();
-        void update_sunlight();
-        void update_pointlights();
+        void updateSunlight(DirectLightUniform& sunlight);
+        void updatePointLights(std::array<PointLightUniform, 4>& pointLights);
+        void updateFlashlight(SpotLightUniform& flashlight);
 
     private:
         void forward_rendering();
@@ -213,7 +223,7 @@ namespace gl {
     private:
         glm::ivec2 resolution;
 
-        PBR_ForwardRenderer pbr_forward_renderer;
+        PBR_ForwardRenderer* pbr_forward_renderer;
         PBR_DeferredRenderer* pbr_deferred_renderer;
 
         PBR_Skeletal_ForwardRenderer skeletal_forward_renderer;
@@ -221,12 +231,9 @@ namespace gl {
 
         TransparentRenderer transparent_renderer;
 
-        DirectShadowRenderer direct_shadow_renderer;
-        PointShadowRenderer point_shadow_renderer;
-
         OutlineRenderer outline_renderer;
 
-        EnvRenderer env_renderer;
+        EnvRenderer* env_renderer;
 
         UniformBuffer sunlight_ubo;
         UniformBuffer lights_ubo;

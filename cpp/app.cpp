@@ -107,18 +107,22 @@ namespace gl {
         rock_sphere.add_component<Selectable>(entity_selected);
         rock_sphere.add_component<Draggable>(entity_dragged);
         rock_sphere.add_component<SphereCollider>(rock_sphere.transform()->translation, 3.0f);
+        rock_sphere.add_component<Shadowable>();
 
         wood_sphere.add_component<PBR_Component_DeferredCull>();
         wood_sphere.add_component<Selectable>(entity_selected);
         wood_sphere.add_component<Draggable>(entity_dragged);
+        wood_sphere.add_component<Shadowable>();
 
         metal_sphere.add_component<PBR_Component_DeferredCull>();
         metal_sphere.add_component<Selectable>(entity_selected);
         metal_sphere.add_component<Draggable>(entity_dragged);
+        metal_sphere.add_component<Shadowable>();
 
         backpack.add_component<PBR_Component_DeferredCull>();
         backpack.add_component<Selectable>(entity_selected);
         backpack.add_component<Draggable>(entity_dragged);
+        backpack.add_component<Shadowable>();
 
         human.add_component<PBR_SkeletalComponent_DeferredCull>();
         human.add_component<Selectable>(entity_selected);
@@ -264,42 +268,6 @@ namespace gl {
             metal_sphere.material()->roughness_factor = 1;
             metal_sphere.material()->ao_factor = 1;
         }
-
-        // render_deferred Shadow pass
-//        {
-//            // render_deferred direct shadow
-//            direct_shadow.begin();
-//            {
-//                direct_shadow.direction = sunlight.direction;
-//                direct_shadow.update();
-//            }
-//            direct_shadow.end();
-//            // render_deferred point shadow
-//            point_shadow.begin();
-//            {
-//                for (auto& point_light : point_lights) {
-//                    point_shadow.position = point_light.position;
-//                    for (auto& sphere_transform : sphere_transforms) {
-//                        point_shadow.draw(sphere_transform, sphere_shadow);
-//                    }
-//                }
-//            }
-//            point_shadow.end();
-//        }
-
-        // upload shadow maps
-//        {
-//            pbr_shader.use();
-//            direct_shadow.update_light_space(pbr_shader);
-//            direct_shadow.update_depth_map(pbr_shader);
-//            point_shadow.update(pbr_shader);
-//
-//            pbr_material_shader.use();
-//            direct_shadow.update_light_space(pbr_material_shader);
-//
-//            pbr_light_shader.use();
-//            direct_shadow.update_depth_map(pbr_light_shader);
-//        }
     }
 
     void App::init_pipeline() {
@@ -309,7 +277,11 @@ namespace gl {
 
         debug_control_pipeline = new DebugControlPipeline(&scene);
 
+        mShadowPipeline = new ShadowPipeline(&scene, Window::get_width(), Window::get_height());
+
         pbr_pipeline = new PBR_Pipeline(&scene, Window::get_width(), Window::get_height());
+        pbr_pipeline->setDirectShadow(&mShadowPipeline->directShadow);
+        pbr_pipeline->setPointShadow(&mShadowPipeline->pointShadow);
 
         hdr_renderer = new HdrRenderer(Window::get_width(), Window::get_height());
         Image shiny_image = ImageReader::read("images/lens_dirt/lens_dirt.png");
@@ -343,25 +315,36 @@ namespace gl {
         pbr_pipeline->init_hdr_env("images/hdr/Arches_E_PineTree_3k.hdr", true);
         pbr_pipeline->generate_env();
         // setup sunlight
-        pbr_pipeline->sunlight.color = { 244 * 0.1f, 233 * 0.1f, 155 * 0.1f, 1 };
-        pbr_pipeline->sunlight.direction = { 1, 1, 1, 0 };
-        // setup lights
-        pbr_pipeline->point_lights[0].position = { -4, 2, 0, 1 };
-        pbr_pipeline->point_lights[0].color = glm::vec4 { 0, 0, 0, 1 };
-        pbr_pipeline->point_lights[1].position = { 4, 3, 0, 1 };
-        pbr_pipeline->point_lights[1].color = glm::vec4 { 0, 0, 0, 1 };
-        pbr_pipeline->point_lights[2].position = { -4, 4, 8, 1 };
-        pbr_pipeline->point_lights[2].color = glm::vec4 { 0, 0, 0, 1 };
-        pbr_pipeline->point_lights[3].position = { 4, 5, 8, 1 };
-        pbr_pipeline->point_lights[3].color = glm::vec4 { 0, 0, 0, 1 };
+        sunlight = &scene;
+        sunlight.value().color = { 244 * 0.1f, 233 * 0.1f, 155 * 0.1f, 1 };
+        sunlight.value().direction = { 5, 5, 5, 0 };
+        // setup point lights
+        for (auto& pointLight : pointLights) {
+            pointLight = &scene;
+        }
+        pointLights[0].value().position = { -4, 2, 0, 1 };
+        pointLights[0].value().color = glm::vec4 { 0, 0, 0, 1 };
+        pointLights[1].value().position = { 4, 3, 0, 1 };
+        pointLights[1].value().color = glm::vec4 { 0, 0, 0, 1 };
+        pointLights[2].value().position = { -4, 4, 8, 1 };
+        pointLights[2].value().color = glm::vec4 { 0, 0, 0, 1 };
+        pointLights[3].value().position = { 4, 5, 8, 1 };
+        pointLights[3].value().color = glm::vec4 { 0, 0, 0, 1 };
         // setup flashlight
-        pbr_pipeline->flashlight.position = { camera.position, 0 };
-        pbr_pipeline->flashlight.direction = { camera.front, 0 };
-        pbr_pipeline->flashlight.color = { 0, 0, 0, 0 };
+        flashlight = &scene;
+        flashlight.value().position = { camera.position, 0 };
+        flashlight.value().direction = { camera.front, 0 };
+        flashlight.value().color = { 0, 0, 0, 0 };
         // update light buffers
-        pbr_pipeline->update_sunlight();
-        pbr_pipeline->update_pointlights();
-        pbr_pipeline->update_flashlight();
+        pbr_pipeline->updateSunlight(sunlight.value());
+        std::array<PointLightUniform, 4> pointLightUniforms = {
+                pointLights[0].value(),
+                pointLights[1].value(),
+                pointLights[2].value(),
+                pointLights[3].value()
+        };
+        pbr_pipeline->updatePointLights(pointLightUniforms);
+        pbr_pipeline->updateFlashlight(flashlight.value());
     }
 
     void App::free() {
@@ -374,6 +357,7 @@ namespace gl {
         delete pbr_pipeline;
         delete ui_pipeline;
         delete debug_control_pipeline;
+        delete mShadowPipeline;
 
         delete hdr_renderer;
         delete blur_renderer;
@@ -412,8 +396,8 @@ namespace gl {
         pbr_pipeline->set_camera_pos(camera.position);
 
         // bind flashlight to camera
-        pbr_pipeline->flashlight.position = { camera.position, 0 };
-        pbr_pipeline->flashlight.direction = { camera.front, 0 };
+        flashlight.value().position = { camera.position, 0 };
+        flashlight.value().direction = { camera.front, 0 };
 
         // rotate object each frame
         float f = 0.05f;
@@ -423,10 +407,13 @@ namespace gl {
         human.transform()->rotation.y += f * 4;
 
         // translate point lights up/down
-        for (auto& point_light : pbr_pipeline->point_lights) {
-            point_light.position.y = sin(t/5);
+        std::array<PointLightUniform, 4> pointLightUniforms;
+        for (int i = 0 ; i < 4 ; i++) {
+            auto& pointLight = pointLights[i];
+            pointLight.value().position.y = sin(t/5);
+            pointLightUniforms[i] = pointLight.value();
         }
-        pbr_pipeline->update_pointlights();
+        pbr_pipeline->updatePointLights(pointLightUniforms);
 
         // skeletal animations
         {
@@ -470,6 +457,7 @@ namespace gl {
         hdr_renderer->resize(w, h);
         bloom_renderer->resize(w, h);
         blur_renderer->resize(w, h);
+        mShadowPipeline->resize(w, h);
     }
 
     void App::key_press(int key) {
@@ -600,7 +588,7 @@ namespace gl {
         }
 
         else if (Window::is_key_press(KEY::D6)) {
-            screen_renderer->get_params().scene_buffer = pbr_pipeline->get_gbuffer().shadow_proj_coords;
+            screen_renderer->get_params().scene_buffer = mShadowPipeline->directShadow.map.buffer;
         }
 
         else if (Window::is_key_press(KEY::D7)) {
@@ -629,6 +617,8 @@ namespace gl {
     }
 
     void App::render() {
+        mShadowPipeline->render();
+
         pbr_pipeline->render();
         screen_renderer->get_params().scene_buffer = pbr_pipeline->get_render_target();
 

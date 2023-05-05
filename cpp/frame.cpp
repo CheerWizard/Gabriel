@@ -63,8 +63,16 @@ namespace gl {
         unbind();
     }
 
-    void FrameBuffer::bind() {
+    void FrameBuffer::bind() const {
         glBindFramebuffer(GL_FRAMEBUFFER, id);
+    }
+
+    void FrameBuffer::bindWriting() const {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, id);
+    }
+
+    void FrameBuffer::bindReading() const {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, id);
     }
 
     void FrameBuffer::unbind() {

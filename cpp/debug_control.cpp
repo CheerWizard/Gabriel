@@ -47,10 +47,10 @@ namespace gl {
 
         // render visual polygons
         polygon_visual_renderer.begin();
-        scene->each_component<PolygonVisual>([this](PolygonVisual* polygon_visual) {
-            ecs::EntityID entity_id = polygon_visual->entity_id;
+        scene->each_component<PolygonVisual>([this](PolygonVisual* polygonVisual) {
+            ecs::EntityID entity_id = polygonVisual->entity_id;
             polygon_visual_renderer.render(
-                    *polygon_visual,
+                    *polygonVisual,
                     *scene->get_component<Transform>(entity_id),
                     *scene->get_component<DrawableElements>(entity_id)
             );
@@ -59,10 +59,10 @@ namespace gl {
 
         // render visual normals
         normal_visual_renderer.begin();
-        scene->each_component<NormalVisual>([this](NormalVisual* normal_visual) {
-            ecs::EntityID entity_id = normal_visual->entity_id;
+        scene->each_component<NormalVisual>([this](NormalVisual* normalVisual) {
+            ecs::EntityID entity_id = normalVisual->entity_id;
             normal_visual_renderer.render(
-                    *normal_visual,
+                    *normalVisual,
                     *scene->get_component<Transform>(entity_id),
                     *scene->get_component<DrawableElements>(entity_id)
             );

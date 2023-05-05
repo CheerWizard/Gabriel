@@ -100,6 +100,7 @@ namespace gl {
         PBR_Pipeline* pbr_pipeline;
         UI_Pipeline* ui_pipeline;
         DebugControlPipeline* debug_control_pipeline;
+        ShadowPipeline* mShadowPipeline;
 
         HdrRenderer* hdr_renderer;
 
@@ -124,6 +125,10 @@ namespace gl {
 
         ecs::Entity text_label;
         Font* font_roboto_regular = null;
+
+        DirectLight sunlight;
+        std::array<PointLight, 4> pointLights;
+        SpotLight flashlight;
     };
 
 }

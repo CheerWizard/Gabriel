@@ -32,12 +32,12 @@ namespace gl {
     };
 
     struct EnvRenderer final {
-        Environment* env;
+        Environment* environment;
 
-        void init(int w, int h);
-        void free();
+        EnvRenderer(int width, int height);
+        ~EnvRenderer();
 
-        void generate_env();
+        void generate();
 
         void render();
 

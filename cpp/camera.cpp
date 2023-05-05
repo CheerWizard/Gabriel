@@ -9,18 +9,6 @@ namespace gl {
     static float last_cursor_y = 300;
     static bool first_camera_look = true;
 
-    glm::mat4 OrthoMat::init() {
-        return glm::ortho(left, right, bottom, top, zNear, zFar);
-    }
-
-    glm::mat4 PerspectiveMat::init() {
-        return glm::perspective(glm::radians(fov_degree), aspect_ratio, zNear, zFar);
-    }
-
-    glm::mat4 Camera::view() {
-        return glm::lookAt(position, position + front, up);
-    }
-
     void Camera::init(u32 binding, int screen_width, int screen_height) {
         this->screen_width = screen_width;
         this->screen_height = screen_height;
@@ -76,22 +64,26 @@ namespace gl {
         update_perspective();
     }
 
-    void Camera::update_view() {
-        glm::mat4 view_mat = view();
-        ubo.update({ sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view_mat) });
-    }
-
-    void Camera::update_perspective() {
-        glm::mat4 perspective_mat = PerspectiveMat({fov, aspect_ratio(), z_near, z_far}).init();
-        ubo.update({ 0, sizeof(glm::mat4), glm::value_ptr(perspective_mat) });
-    }
-
     void Camera::update() {
         update_perspective();
         update_view();
     }
 
-    glm::mat4 Camera::perspective() {
+    void Camera::update_perspective() {
+        glm::mat4 perspective_mat = perspective();
+        ubo.update({ 0, sizeof(glm::mat4), glm::value_ptr(perspective_mat) });
+    }
+
+    void Camera::update_view() {
+        glm::mat4 view_mat = view();
+        ubo.update({ sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view_mat) });
+    }
+
+    glm::mat4 Camera::view() const {
+        return ViewMat { position, position + front, up }.init();
+    }
+
+    glm::mat4 Camera::perspective() const {
         return PerspectiveMat({ fov, aspect_ratio(), z_near, z_far }).init();
     }
 

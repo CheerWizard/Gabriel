@@ -37,11 +37,11 @@ namespace gl {
     }
 
     NDCRay ClipRay::ndc_space() {
-        return { vector.x * vector.w, vector.y * vector.w, vector.z * vector.w, vector.w };
+        return { vector.x / vector.w, vector.y / vector.w, vector.z / vector.w, vector.w };
     }
 
     ClipRay NDCRay::clip_space() {
-        return { vector.x / vector.w, vector.y / vector.w, vector.z / vector.w, vector.w };
+        return { vector.x * vector.w, vector.y * vector.w, vector.z * vector.w, vector.w };
     }
 
     ScreenRay NDCRay::screen_space(int width, int height) {

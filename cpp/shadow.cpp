@@ -1,151 +1,142 @@
 #include <shadow.h>
-#include <frame.h>
+#include <light.h>
 
 namespace gl {
 
-    void DirectShadow::update() {
-        float near_plane = 1.0f, far_plane = 7.5f;
-        glm::mat4 light_projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        glm::mat4 light_view = glm::lookAt(
-                direction,
-                glm::vec3( 0.0f, 0.0f,  0.0f),
-                glm::vec3( 0.0f, 1.0f,  0.0f)
-        );
-        light_space = light_projection * light_view;
+    ShadowPipeline::ShadowPipeline(ecs::Scene *scene, int width, int height) : scene(scene) {
+        mDirectShadowRenderer = new DirectShadowRenderer();
+        mPointShadowRenderer = new PointShadowRenderer();
+
+        createDirectShadow(width, height);
+        createPointShadow(width, height);
+
+        mFrame.init();
+        mFrame.depth = directShadow.map;
+        mFrame.attach_depth();
+        mFrame.complete();
     }
 
-    void DirectShadowRenderer::init(int w, int h) {
-        shader.add_vertex_stage("shaders/direct_shadow.vert");
-        shader.add_fragment_stage("shaders/direct_shadow.frag");
-        shader.complete();
-
-        fbo.depth.image = { w, h };
-        fbo.depth.image.pixel_type = PixelType::FLOAT;
-        fbo.depth.params.min_filter = GL_NEAREST;
-        fbo.depth.params.mag_filter = GL_NEAREST;
-        fbo.depth.params.s = GL_CLAMP_TO_EDGE;
-        fbo.depth.params.t = GL_CLAMP_TO_EDGE;
-        fbo.depth.params.r = GL_CLAMP_TO_EDGE;
-        fbo.depth.params.border_color = { 1, 1, 1, 1 };
-        fbo.depth.init();
-        fbo.init();
-        fbo.attach_depth();
-        fbo.complete();
-
-        render_target = fbo.depth.buffer;
+    void ShadowPipeline::createDirectShadow(int width, int height) {
+        directShadow.fov_degree = 45.0f;
+        directShadow.aspect_ratio = (float) width / (float) height;
+        directShadow.zNear = 1.0f;
+        directShadow.zFar = 50.0f;
+        directShadow.map.image = { width, height };
+        directShadow.map.image.pixel_type = PixelType::FLOAT;
+        directShadow.map.params.min_filter = GL_NEAREST;
+        directShadow.map.params.mag_filter = GL_NEAREST;
+        directShadow.map.params.s = GL_REPEAT;
+        directShadow.map.params.t = GL_REPEAT;
+        directShadow.map.params.r = GL_REPEAT;
+        directShadow.map.params.border_color = { 1, 1, 1, 1 };
+        directShadow.map.init();
     }
 
-    void DirectShadowRenderer::free() {
-        shader.free();
-        fbo.free();
+    void ShadowPipeline::createPointShadow(int width, int height) {
+        pointShadow.fov_degree = 90.0f;
+        pointShadow.aspect_ratio = (float) width / (float) height;
+        pointShadow.zNear = 1.0f;
+        pointShadow.zFar = 25.0f;
+        pointShadow.map.buffer.type = GL_TEXTURE_CUBE_MAP;
+        pointShadow.map.image = { width, height };
+        pointShadow.map.image.pixel_type = PixelType::FLOAT;
+        pointShadow.map.params.min_filter = GL_NEAREST;
+        pointShadow.map.params.mag_filter = GL_NEAREST;
+        pointShadow.map.params.s = GL_REPEAT;
+        pointShadow.map.params.t = GL_REPEAT;
+        pointShadow.map.params.r = GL_REPEAT;
+        pointShadow.map.params.border_color = { 1, 1, 1, 1 };
+        pointShadow.map.init();
     }
 
-    void DirectShadowRenderer::resize(int w, int h) {
-        fbo.resize(w, h);
+    ShadowPipeline::~ShadowPipeline() {
+        mFrame.free();
+        delete mDirectShadowRenderer;
+        delete mPointShadowRenderer;
     }
 
-    void DirectShadowRenderer::begin() {
-        glViewport(0, 0, fbo.depth.image.width, fbo.depth.image.height);
-        fbo.bind();
-        glClear(GL_DEPTH_BUFFER_BIT);
+    void ShadowPipeline::resize(int width, int height) {
+        mFrame.resize(width, height);
+
+        directShadow.map.image.width = width;
+        directShadow.map.image.height = height;
+
+        pointShadow.map.image.width = width;
+        pointShadow.map.image.height = height;
+    }
+
+    void ShadowPipeline::render() {
+        begin();
+
+        bind(directShadow.map);
+        renderDirectShadows();
+
+//        bind(pointShadow.map);
+//        renderPointShadows();
+
+        end();
+    }
+
+    void ShadowPipeline::begin() {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
-        shader.use();
+        mFrame.bindWriting();
     }
 
-    void DirectShadowRenderer::end() {
-        Shader::stop();
+    void ShadowPipeline::end() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         glCullFace(GL_BACK);
     }
 
-    void DirectShadowRenderer::update(DirectShadow& direct_shadow) {
-        direct_shadow.update();
-        shader.use();
-        shader.set_uniform_args("direct_light_space", direct_shadow.light_space);
-    }
-
-    void DirectShadowRenderer::render(Transform& transform, DrawableElements& drawable) {
-        transform.update(shader);
-        drawable.draw();
-    }
-
-    void PointShadow::update() {
-        float aspect = (float) width / (float) height;
-        glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 1.0f, far_plane);
-        light_spaces = {
-                projection * glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
-                projection * glm::lookAt(position, position + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
-                projection * glm::lookAt(position, position + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)),
-                projection * glm::lookAt(position, position + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0)),
-                projection * glm::lookAt(position, position + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)),
-                projection * glm::lookAt(position, position + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0))
-        };
-    }
-
-    void PointShadowRenderer::init(int w, int h) {
-        shader.add_vertex_stage("shaders/point_shadow.vert");
-        shader.add_fragment_stage("shaders/point_shadow.frag");
-        shader.add_geometry_stage("shaders/point_shadow.geom");
-        shader.complete();
-
-        fbo.depth.buffer.type = GL_TEXTURE_CUBE_MAP;
-        fbo.depth.image = { w, h };
-        fbo.depth.image.pixel_type = PixelType::FLOAT;
-        fbo.depth.params.min_filter = GL_NEAREST;
-        fbo.depth.params.mag_filter = GL_NEAREST;
-        fbo.depth.params.s = GL_CLAMP_TO_EDGE;
-        fbo.depth.params.t = GL_CLAMP_TO_EDGE;
-        fbo.depth.params.r = GL_CLAMP_TO_EDGE;
-        fbo.depth.params.border_color = { 1, 1, 1, 1 };
-        fbo.depth.init();
-        fbo.init();
-        fbo.attach_depth();
-        fbo.complete();
-
-        render_target = fbo.depth.buffer;
-    }
-
-    void PointShadowRenderer::free() {
-        shader.free();
-        fbo.free();
-    }
-
-    void PointShadowRenderer::resize(int w, int h) {
-        fbo.resize(w, h);
-    }
-
-    void PointShadowRenderer::begin() {
-        glViewport(0, 0, fbo.depth.image.width, fbo.depth.image.height);
-        fbo.bind();
+    void ShadowPipeline::bind(const DepthAttachment& shadowMap) {
+        mFrame.depth = shadowMap;
+        mFrame.attach_depth();
+        Viewport::resize(0, 0, shadowMap.image.width, shadowMap.image.height);
         glClear(GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        shader.use();
     }
 
-    void PointShadowRenderer::end() {
-        Shader::stop();
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
+    void ShadowPipeline::renderDirectShadows() {
+        directShadow.lightSpaces.clear();
+
+        scene->each_component<DirectLightComponent>([this](DirectLightComponent* directLightComponent) {
+            glm::vec3 lightDirection = directLightComponent->value.direction;
+
+            mDirectShadowRenderer->begin();
+
+            scene->each_component<Shadowable>([this, &lightDirection](Shadowable* shadowable) {
+                ecs::EntityID entityId = shadowable->entity_id;
+                mDirectShadowRenderer->render(
+                        *scene->get_component<Transform>(entityId),
+                        *scene->get_component<DrawableElements>(entityId),
+                        directShadow,
+                        lightDirection
+                );
+            });
+
+            mDirectShadowRenderer->end();
+        });
     }
 
-    void PointShadowRenderer::update(PointShadow& point_shadow) {
-        point_shadow.update();
-        shader.use();
-        UniformArrayM4F light_spaces = { "light_spaces", point_shadow.light_spaces };
-        shader.set_uniform_array(light_spaces);
-        shader.set_uniform_args("far_plane", point_shadow.far_plane);
-        shader.set_uniform_args("light_pos", point_shadow.position);
-    }
+    void ShadowPipeline::renderPointShadows() {
+        scene->each_component<PointLightComponent>([this](PointLightComponent* pointLightComponent) {
+            glm::vec3 lightPosition = pointLightComponent->value.position;
 
-    void PointShadowRenderer::render(Transform& transform, DrawableElements& drawable) {
-        transform.update(shader);
-        drawable.draw();
+            mPointShadowRenderer->begin();
+
+            scene->each_component<Shadowable>([this, &lightPosition](Shadowable* shadowable) {
+                ecs::EntityID entityId = shadowable->entity_id;
+                mPointShadowRenderer->render(
+                        *scene->get_component<Transform>(entityId),
+                        *scene->get_component<DrawableElements>(entityId),
+                        pointShadow,
+                        lightPosition
+                );
+            });
+
+            mPointShadowRenderer->end();
+        });
     }
 
 }

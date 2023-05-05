@@ -30,6 +30,8 @@ namespace gl {
     private:
         void init_frame(int w, int h);
 
+        void renderNormalVisual(NormalVisual* normalVisual);
+
     private:
         FrameBuffer fbo;
         ImageBuffer render_target;
