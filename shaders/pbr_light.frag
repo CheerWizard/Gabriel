@@ -17,8 +17,8 @@ struct LightPhong {
 };
 
 struct LightDirectional {
-    vec3 direction;
-    vec3 color;
+    vec3 position;
+    vec4 color;
 };
 
 struct LightPoint {
@@ -242,8 +242,8 @@ vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness)
 
 vec3 pbr(LightDirectional light_direct, vec3 albedo, float metallic, float roughness)
 {
-    vec3 light_dir = light_direct.direction;
-    vec3 light_color = light_direct.color;
+    vec3 light_dir = light_direct.position;
+    vec3 light_color = light_direct.color.rgb * light_direct.color.a;
     float light_direct_shadow = direct_shadow_function(light_dir);
     float radiance_factor = 1.0 - light_direct_shadow;
     return pbr(light_dir, light_color, radiance_factor, albedo, metallic, roughness);

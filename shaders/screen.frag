@@ -6,7 +6,7 @@ in vec2 l_uv;
 
 uniform sampler2D scene;
 uniform sampler2D ui;
-uniform sampler2D debug_control;
+uniform sampler2D visuals;
 
 uniform float gamma;
 

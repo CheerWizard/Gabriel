@@ -1,4 +1,4 @@
 debug
 release
-ui-debug
-ui-release
+imgui-debug
+imgui-release
