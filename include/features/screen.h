@@ -13,7 +13,7 @@ namespace gl {
         const ImageSampler uiSampler = { "ui", 1 };
         ImageBuffer uiBuffer;
 
-        const ImageSampler visualsSampler = {"visuals", 2 };
+        const ImageSampler visualsSampler = { "visuals", 2 };
         ImageBuffer visualsBuffer;
 
         UniformF gamma = { "gamma", 2.2f };

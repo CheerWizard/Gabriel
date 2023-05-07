@@ -7,6 +7,7 @@
 namespace gl {
 
     struct ImguiCore final {
+
         ImguiCore(Window* window, const char* shaderLangVersion = "#version 460 core");
         ~ImguiCore();
 

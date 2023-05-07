@@ -1,4 +1,4 @@
-#include <pbr/hdr.h>
+#include <postfx/hdr.h>
 
 namespace gl {
 

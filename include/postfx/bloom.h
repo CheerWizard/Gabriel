@@ -36,6 +36,7 @@ namespace gl {
     };
 
     struct BloomRenderer final {
+        bool isEnabled = false;
         int mipLevels = 6;
 
         BloomRenderer(int width, int height);

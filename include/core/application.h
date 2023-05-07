@@ -21,16 +21,18 @@
 
 #include <geometry/sphere.h>
 
-#include <postfx/ssao.h>
+#include <postfx/hdr.h>
 #include <postfx/blur.h>
 #include <postfx/bloom.h>
+#include <postfx/ssao.h>
 
 #include <pbr/pbr.h>
-#include <pbr/hdr.h>
 
 #include <animation/skeletal_animation.h>
 
 #include <terrain/terrain.h>
+
+#include <imgui/screen_properties.h>
 
 namespace gl {
 
@@ -58,12 +60,12 @@ namespace gl {
     private:
         void initLogger();
         void initWindow();
-        void initImgui();
         void initScene();
         void initApi();
         void initCamera();
         void initLight();
         void initText();
+        void initImgui();
 
         void free();
 
@@ -91,19 +93,9 @@ namespace gl {
         float mDeltaTime = 6;
         float mBeginTime = 0;
 
-        Logger* mLogger = null;
         Window* mWindow = null;
         Device* mDevice = null;
         Debugger* mDebugger = null;
-
-        bool mEnableNormalMapping = true;
-        bool mEnableParallaxMapping = true;
-        bool mEnableGeometryDebug = false;
-
-        bool mEnableHDR = true;
-        bool mEnableBlur = false;
-        bool mEnableBloom = true;
-        bool mEnableSSAO = true;
 
         Scene mScene;
 
@@ -118,17 +110,16 @@ namespace gl {
         Model mBackpackModel;
         PBR_Entity mBackpack;
 
-        ScreenRenderer* mScreenRenderer;
         PBR_Pipeline* mPbrPipeline;
         UI_Pipeline* mUiPipeline;
         VisualsPipeline* mVisualsPipeline;
         ShadowPipeline* mShadowPipeline;
 
+        ScreenRenderer* mScreenRenderer;
         HdrRenderer* mHdrRenderer;
-
         BloomRenderer* mBloomRenderer;
-
         BlurRenderer* mBlurRenderer;
+        SsaoRenderer* mSsaoRenderer;
 
         Animator mHumanAnimator;
         SkeletalModel mHumanModel;

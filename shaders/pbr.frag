@@ -108,6 +108,8 @@ vec3 sample_offset_directions[20] = vec3[]
     vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
+uniform int shadow_filter_size = 9;
+
 uniform Material material;
 
 uniform uint entity_id;
@@ -130,17 +132,19 @@ float direct_shadow_function(vec3 light_dir)
 
     float bias = max(0.05 * (1.0 - dot(N, light_dir)), 0.005);
 
-    float shadow = 0.0;
     vec2 texel_size = 1.0 / textureSize(direct_shadow_sampler, 0);
-    for (int x = -1; x <= 1; ++x)
+    float shadow = 0.0;
+    int halfFilterSize = shadow_filter_size / 2;
+
+    for (int y = -halfFilterSize; y <= -halfFilterSize + shadow_filter_size; y++)
     {
-        for (int y = -1; y <= 1; ++y)
+        for (int x = -halfFilterSize; x <= -halfFilterSize + shadow_filter_size; x++)
         {
             float pcf_depth = texture(direct_shadow_sampler, proj_coords.xy + vec2(x, y) * texel_size).r;
             shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= float(pow(shadow_filter_size, 2));
 
     return shadow;
 }
@@ -380,13 +384,13 @@ void main()
     Lo += pbr(sunlight, albedo.rgb, metallic, roughness);
 
     // PBR multiple point lights
-//    int light_points_size = light_points.length();
-//    for (int i = 0 ; i < light_points_size ; i++) {
-//        Lo += pbr(light_points[i], albedo.rgb, metallic, roughness);
-//    }
+    int light_points_size = light_points.length();
+    for (int i = 0 ; i < light_points_size ; i++) {
+        Lo += pbr(light_points[i], albedo.rgb, metallic, roughness);
+    }
 
     // PBR flashlight
-//    Lo += pbr(flashlight, albedo.rgb, metallic, roughness);
+    Lo += pbr(flashlight, albedo.rgb, metallic, roughness);
 
     // PBR env light
     vec3 F0 = vec3(0.04);

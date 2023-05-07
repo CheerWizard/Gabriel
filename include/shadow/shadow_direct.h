@@ -14,6 +14,7 @@ namespace gl {
         Camera* camera = null;
         DepthAttachment map;
         std::vector<glm::mat4> lightSpaces;
+        int filterSize = 9;
 
         glm::mat4 update(const glm::vec3& lightPos, const glm::vec3& lightDirection);
 

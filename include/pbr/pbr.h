@@ -130,16 +130,12 @@ namespace gl {
         DirectShadow* directShadow = null;
         PointShadow* pointShadow = null;
 
-        bool enableSsao = true;
-        SsaoRenderer* ssaoRenderer;
-
         inline const ImageBuffer& getRenderTarget() const { return mRenderTarget; }
         inline const PBR_GBuffer& getGBuffer() const { return mGBuffer; }
         inline FrameBuffer& getGeometryFbo() { return mGeometryFrame; }
         inline FrameBuffer& getLightFbo() { return mLightFrame; }
-        inline const ImageBuffer& getSsaoBuffer() const { return ssaoRenderer->getRenderTarget(); }
 
-        PBR_DeferredRenderer(int w, int h);
+        PBR_DeferredRenderer(int w, int h, SsaoRenderer* ssaoRenderer);
         ~PBR_DeferredRenderer();
 
         void resize(int w, int h);
@@ -168,6 +164,7 @@ namespace gl {
         FrameBuffer mCurrentGeometryFrame;
         Shader mLightShader;
         FrameBuffer mLightFrame;
+        SsaoRenderer* mSsaoRenderer;
     };
 
     struct PBR_Skeletal_ForwardRenderer : SkeletalRenderer {
@@ -185,7 +182,7 @@ namespace gl {
         Environment env;
         Terrain* terrain = null;
 
-        PBR_Pipeline(Scene* scene, int width, int height);
+        PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer);
         ~PBR_Pipeline();
 
         inline const ImageBuffer& getRenderTarget() const {
@@ -198,10 +195,6 @@ namespace gl {
 
         inline const TransparentBuffer& getTransparentBuffer() const {
             return mTransparentRenderer->getTransparentBuffer();
-        }
-
-        inline const ImageBuffer& getSsaoBuffer() const {
-            return mPbrDeferredRenderer->getSsaoBuffer();
         }
 
         inline void setDirectShadow(DirectShadow* directShadow) {

@@ -1,7 +1,5 @@
 #include <core/imgui_core.h>
 
-#include <api/commands.h>
-
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
@@ -25,7 +23,7 @@ namespace gl {
         ImGui::StyleColorsLight();
 
         // Setup backends
-        ImGui_ImplGlfw_InitForOpenGL(window->getHandle(), false);
+        ImGui_ImplGlfw_InitForOpenGL(window->getHandle(), true);
         ImGui_ImplOpenGL3_Init(shaderLangVersion);
     }
 

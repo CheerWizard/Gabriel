@@ -98,28 +98,31 @@ namespace gl {
         static const char** getExtensions(u32* count);
 
         template<typename T>
-        void setWindowCloseCallback(void* callback);
+        void initCallbacks(void* callback);
 
         template<typename T>
-        void setWindowResizeCallback(void* callback);
+        void setWindowCloseCallback();
 
         template<typename T>
-        void setWindowMoveCallback(void* callback);
+        void setWindowResizeCallback();
 
         template<typename T>
-        void setFramebufferResizeCallback(void* callback);
+        void setWindowMoveCallback();
 
         template<typename T>
-        void setKeyCallback(void* callback);
+        void setFramebufferResizeCallback();
 
         template<typename T>
-        void setMouseCallback(void* callback);
+        void setKeyCallback();
 
         template<typename T>
-        void setMouseCursorCallback(void* callback);
+        void setMouseCallback();
 
         template<typename T>
-        void setMouseScrollCallback(void* callback);
+        void setMouseCursorCallback();
+
+        template<typename T>
+        void setMouseScrollCallback();
 
     private:
         GLFWwindow* mHandle;
@@ -144,30 +147,32 @@ namespace gl {
     };
 
     template<typename T>
-    void Window::setWindowCloseCallback(void *callback) {
+    void Window::initCallbacks(void* callback) {
         glfwSetWindowUserPointer(mHandle, callback);
+    }
+
+    template<typename T>
+    void Window::setWindowCloseCallback() {
         glfwSetWindowCloseCallback(mHandle, [](GLFWwindow* win) {
-            info("onWindowClose()");
+            info("onWindowClose()")
             static_cast<T*>(glfwGetWindowUserPointer(win))->onWindowClose();
         });
     }
 
     template<typename T>
-    void Window::setWindowResizeCallback(void *callback) {
-        glfwSetWindowUserPointer(mHandle, callback);
+    void Window::setWindowResizeCallback() {
         glfwSetWindowSizeCallback(mHandle, [](GLFWwindow* win, int w, int h) {
-            info("onWindowResize(" << w << ", " << h << ")");
+            info("onWindowResize(" << w << ", " << h << ")")
             static_cast<T*>(glfwGetWindowUserPointer(win))->onWindowResize(w, h);
         });
     }
 
     template<typename T>
-    void Window::setWindowMoveCallback(void *callback) {
-        glfwSetWindowUserPointer(mHandle, callback);
+    void Window::setWindowMoveCallback() {
         glfwSetWindowPosCallback(mHandle, [](GLFWwindow* win, int x, int y) {
-            info("onWindowPositioned(" << x << ", " << y << ")");
+            info("onWindowPositioned(" << x << ", " << y << ")")
             if (x < 0 && y < 0) {
-                error("Window: invalid position x < 0 or y < 0");
+                error("Window: invalid position x < 0 or y < 0")
                 return;
             }
             static_cast<T *>(glfwGetWindowUserPointer(win))->onWindowMove(x, y);
@@ -175,12 +180,11 @@ namespace gl {
     }
 
     template<typename T>
-    void Window::setFramebufferResizeCallback(void *callback) {
-        glfwSetWindowUserPointer(mHandle, callback);
+    void Window::setFramebufferResizeCallback() {
         glfwSetFramebufferSizeCallback(mHandle, [](GLFWwindow* win, int w, int h) {
-            info("onFramebufferResized(" << w << ", " << h << ")");
+            info("onFramebufferResized(" << w << ", " << h << ")")
             if (w <= 0 && h <= 0) {
-                error("Window: invalid framebuffer size w <= 0 or h <= 0");
+                error("Window: invalid framebuffer size w <= 0 or h <= 0")
                 return;
             }
             static_cast<T*>(glfwGetWindowUserPointer(win))->onFramebufferResized(w, h);
@@ -188,8 +192,7 @@ namespace gl {
     }
 
     template<typename T>
-    void Window::setKeyCallback(void *callback) {
-        glfwSetWindowUserPointer(mHandle, callback);
+    void Window::setKeyCallback() {
         glfwSetKeyCallback(mHandle, [](GLFWwindow* win, int key, int scancode, int action, int mods) {
             if (action == GLFW_PRESS) {
                 static_cast<T*>(glfwGetWindowUserPointer(win))->onKeyPress(key);
@@ -200,8 +203,7 @@ namespace gl {
     }
 
     template<typename T>
-    void Window::setMouseCallback(void *callback) {
-        glfwSetWindowUserPointer(mHandle, callback);
+    void Window::setMouseCallback() {
         glfwSetMouseButtonCallback(mHandle, [](GLFWwindow* win, int button, int action, int mods) {
             if (action == GLFW_PRESS) {
                 static_cast<T*>(glfwGetWindowUserPointer(win))->onMousePress(button);
@@ -212,16 +214,14 @@ namespace gl {
     }
 
     template<typename T>
-    void Window::setMouseCursorCallback(void *callback) {
-        glfwSetWindowUserPointer(mHandle, callback);
+    void Window::setMouseCursorCallback() {
         glfwSetCursorPosCallback(mHandle, [](GLFWwindow* win, double x, double y) {
             static_cast<T*>(glfwGetWindowUserPointer(win))->onMouseCursor(x, y);
         });
     }
 
     template<typename T>
-    void Window::setMouseScrollCallback(void *callback) {
-        glfwSetWindowUserPointer(mHandle, callback);
+    void Window::setMouseScrollCallback() {
         glfwSetScrollCallback(mHandle, [](GLFWwindow* win, double x, double y) {
             static_cast<T*>(glfwGetWindowUserPointer(win))->onMouseScroll(x, y);
         });

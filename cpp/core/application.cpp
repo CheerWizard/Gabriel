@@ -12,14 +12,14 @@ namespace gl {
         initLogger();
 #endif
         initWindow();
-#ifdef IMGUI
-        initImgui();
-#endif
         initApi();
         initCamera();
         initLight();
         initScene();
         initText();
+#ifdef IMGUI
+        initImgui();
+#endif
     }
 
     Application::~Application() {
@@ -46,7 +46,7 @@ namespace gl {
     }
 
     void Application::initLogger() {
-        mLogger = new Logger(mTitle);
+        Logger::init(mTitle);
     }
 
     void Application::initWindow() {
@@ -58,14 +58,15 @@ namespace gl {
                 WindowFlags::Sync,
                 4, 6, GLFW_OPENGL_CORE_PROFILE
         );
-        mWindow->setWindowCloseCallback<Application>(this);
-        mWindow->setWindowResizeCallback<Application>(this);
-        mWindow->setWindowMoveCallback<Application>(this);
-        mWindow->setFramebufferResizeCallback<Application>(this);
-        mWindow->setKeyCallback<Application>(this);
-        mWindow->setMouseCallback<Application>(this);
-        mWindow->setMouseCursorCallback<Application>(this);
-        mWindow->setMouseScrollCallback<Application>(this);
+        mWindow->initCallbacks<Application>(this);
+        mWindow->setWindowCloseCallback<Application>();
+        mWindow->setWindowResizeCallback<Application>();
+        mWindow->setWindowMoveCallback<Application>();
+        mWindow->setFramebufferResizeCallback<Application>();
+        mWindow->setKeyCallback<Application>();
+        mWindow->setMouseCallback<Application>();
+        mWindow->setMouseCursorCallback<Application>();
+        mWindow->setMouseScrollCallback<Application>();
 
         mDevice = new Device(mWidth, mHeight);
 
@@ -78,6 +79,15 @@ namespace gl {
         mImgui = new ImguiCore(mWindow, "#version 460 core");
         mImgui->setIniFilename(mTitle);
         mImgui->addFont("fonts/Roboto-Regular.ttf", 14.0f);
+
+        ScreenProperties::title = "Screen Properties";
+        ScreenProperties::resolution = { 256, 256 };
+        ScreenProperties::position = { 0, 0 };
+        ScreenProperties::screenRenderer = mScreenRenderer;
+        ScreenProperties::hdrRenderer = mHdrRenderer;
+        ScreenProperties::blurRenderer = mBlurRenderer;
+        ScreenProperties::bloomRenderer = mBloomRenderer;
+        ScreenProperties::ssaoRenderer = mSsaoRenderer;
     }
 
     void Application::initScene() {
@@ -299,18 +309,8 @@ namespace gl {
     void Application::initApi() {
         mScreenRenderer = new ScreenRenderer();
 
-        mUiPipeline = new UI_Pipeline(&mScene, mWindow->getWidth(), mWindow->getHeight());
-
-        mVisualsPipeline = new VisualsPipeline(&mScene, mWindow->getWidth(), mWindow->getHeight());
-
-        mShadowPipeline = new ShadowPipeline(&mScene, mWindow->getWidth(), mWindow->getHeight(), &mCamera);
-
-        mPbrPipeline = new PBR_Pipeline(&mScene, mWindow->getWidth(), mWindow->getHeight());
-        mPbrPipeline->setDirectShadow(&mShadowPipeline->directShadow);
-        mPbrPipeline->setPointShadow(&mShadowPipeline->pointShadow);
-        mPbrPipeline->terrain = &mTerrainBuilder.terrain;
-
-        mHdrRenderer = new HdrRenderer(mWindow->getWidth(), mWindow->getHeight());
+        mHdrRenderer = new HdrRenderer(mWidth, mHeight);
+        mHdrRenderer->isEnabled = true;
         Image shinyImage = ImageReader::read("images/lens_dirt/lens_dirt.png");
         ImageBuffer shinyBuffer;
         shinyBuffer.init();
@@ -320,9 +320,25 @@ namespace gl {
         mHdrRenderer->getParams().exposure.value = 2.0f;
         mHdrRenderer->updateExposure();
 
-        mBlurRenderer = new BlurRenderer(mWindow->getWidth(), mWindow->getHeight());
+        mBlurRenderer = new BlurRenderer(mWidth, mHeight);
+        mBlurRenderer->isEnabled = false;
 
-        mBloomRenderer = new BloomRenderer(mWindow->getWidth(), mWindow->getHeight());
+        mBloomRenderer = new BloomRenderer(mWidth, mHeight);
+        mBloomRenderer->isEnabled = true;
+
+        mSsaoRenderer = new SsaoRenderer(mWidth, mHeight);
+        mSsaoRenderer->isEnabled = true;
+
+        mShadowPipeline = new ShadowPipeline(&mScene, mWidth, mHeight, &mCamera);
+        mShadowPipeline->directShadow.filterSize = 18;
+
+        mPbrPipeline = new PBR_Pipeline(&mScene, mWidth, mHeight, mSsaoRenderer);
+        mPbrPipeline->setDirectShadow(&mShadowPipeline->directShadow);
+        mPbrPipeline->setPointShadow(&mShadowPipeline->pointShadow);
+        mPbrPipeline->terrain = &mTerrainBuilder.terrain;
+
+        mUiPipeline = new UI_Pipeline(&mScene, mWidth, mHeight);
+        mVisualsPipeline = new VisualsPipeline(&mScene, mWidth, mHeight);
     }
 
     void Application::initCamera() {
@@ -343,8 +359,8 @@ namespace gl {
         mPbrPipeline->generateEnv();
         // setup mSunlight
         mSunlight = &mScene;
-        mSunlight.value().color = {244, 233, 155, 0.02 };
-        mSunlight.value().position = {10, 10, 10, 0 };
+        mSunlight.value().color = {244, 233, 155, 0.01 };
+        mSunlight.value().position = {100, 100, 100, 0 };
         mSunlight.direction() = {0, 0, 0, 0 };
         // setup point lights
         for (auto& pointLight : mPointLights) {
@@ -428,7 +444,7 @@ namespace gl {
 
 #ifdef DEBUG
         delete mDebugger;
-        delete mLogger;
+        Logger::free();
 #endif
     }
 
@@ -450,7 +466,7 @@ namespace gl {
         mHuman.transform()->rotation.y += f * 4;
 
         // translate sunlight
-        float sunlightTranslate = 10 * sin(t);
+        float sunlightTranslate = 100 * sin(t);
         mSunlight.value().position.x = sunlightTranslate;
         mSunlight.value().position.z = sunlightTranslate;
         mPbrPipeline->updateSunlight(mSunlight.value());
@@ -476,24 +492,24 @@ namespace gl {
         mPrintLimiter++;
         if (mPrintLimiter > 100) {
             mPrintLimiter = 0;
-            print_fps(mDeltaTime)
+            printFPS(mDeltaTime)
         }
     }
 
     void Application::onWindowClose() {
-        info("onWindowClose()");
+        info("")
     }
 
     void Application::onWindowResize(int w, int h) {
-        info("width: " << w << ", height: " << h);
+        info("width: " << w << ", height: " << h)
     }
 
     void Application::onWindowMove(int x, int y) {
-        info("x=" << x << ", y=" << y);
+        info("x=" << x << ", y=" << y)
     }
 
     void Application::onFramebufferResized(int w, int h) {
-        info("width=" << w << ", height=" << h);
+        info("width=" << w << ", height=" << h)
 
         mCamera.resize(w, h);
         mPbrPipeline->resize(w, h);
@@ -506,49 +522,35 @@ namespace gl {
     }
 
     void Application::onKeyPress(int key) {
-        info("key=" << key)
+        info("")
 
         if (key == KEY::Esc)
             mWindow->close();
 
-        if (key == KEY::N)
-            mEnableNormalMapping = !mEnableNormalMapping;
-
-        if (key == KEY::B)
-            mEnableBlur = !mEnableBlur;
-
-        if (key == KEY::H)
-            mEnableHDR = !mEnableHDR;
-
-        if (key == KEY::O)
-            mEnableSSAO = !mEnableSSAO;
-
-        if (key == KEY::F) {
+        if (key == KEY::F)
             mWindow->toggleWindowMode();
-        }
 
-        if (key == KEY::C) {
+        if (key == KEY::C)
             mCamera.enableLook = !mCamera.enableLook;
-        }
     }
 
     void Application::onKeyRelease(int key) {
-        info("onKeyRelease()");
+        info("")
     }
 
     void Application::onMousePress(int button) {
-        info("onMousePress()")
+        info("")
         if (button == GLFW_MOUSE_BUTTON_LEFT) {
             Cursor mouse_cursor = mWindow->mouseCursor();
             static PBR_Pixel pixel;
             mPbrPipeline->readPixel(pixel, (int) mouse_cursor.x, (int) mouse_cursor.y);
-            info("Read pixel from [x,y] = [" << mouse_cursor.x << "," << mouse_cursor.y << "]");
+//            info("Read pixel from [x,y] = [" << mouse_cursor.x << "," << mouse_cursor.y << "]")
             mEntityControl->select(mouse_cursor.x, mouse_cursor.y);
         }
     }
 
     void Application::onMouseRelease(int button) {
-        info("onMouseRelease()");
+        info("")
     }
 
     void Application::onMouseCursor(double x, double y) {
@@ -574,29 +576,29 @@ namespace gl {
     }
 
     void Application::onEntityDragged(Entity entity, double x, double y) {
-        info("onEntityDragged: [" << x << "," << y << "]");
+        info("onEntityDragged: [" << x << "," << y << "]")
     }
 
     void Application::onEntityHovered(Entity entity, double x, double y) {
-        info("onEntityHovered: [" << x << "," << y << "]");
+        info("onEntityHovered: [" << x << "," << y << "]")
         entity.getComponent<Material>()->color = { 5, 5, 5, 1 };
     }
 
     void Application::renderPostFX() {
         // Bloom effect
-        if (mEnableBloom) {
+        if (mBloomRenderer->isEnabled) {
             mBloomRenderer->getHdrBuffer() = mScreenRenderer->getParams().sceneBuffer;
             mBloomRenderer->render();
             mScreenRenderer->getParams().sceneBuffer = mBloomRenderer->getRenderTarget();
         }
         // HDR effect
-        if (mEnableHDR) {
+        if (mHdrRenderer->isEnabled) {
             mHdrRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().sceneBuffer;
             mHdrRenderer->render();
             mScreenRenderer->getParams().sceneBuffer = mHdrRenderer->getParams().sceneBuffer;
         }
         // Blur effect
-        if (mEnableBlur) {
+        if (mBlurRenderer->isEnabled) {
             mBlurRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().sceneBuffer;
             mBlurRenderer->render();
             mScreenRenderer->getParams().sceneBuffer = mBlurRenderer->getParams().sceneBuffer;
@@ -629,7 +631,7 @@ namespace gl {
         }
 
         else if (mWindow->isKeyPress(KEY::D7)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getSsaoBuffer();
+            mScreenRenderer->getParams().sceneBuffer = mSsaoRenderer->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::D8)) {
@@ -692,8 +694,9 @@ namespace gl {
 
     void Application::renderImgui() {
         mImgui->begin();
-        static bool showDemo = true;
-        ImGui::ShowDemoWindow(&showDemo);
+
+        ScreenProperties::render();
+
         mImgui->end();
     }
 }

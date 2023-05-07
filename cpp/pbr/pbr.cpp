@@ -151,6 +151,7 @@ namespace gl {
         if (!directShadow->lightSpaces.empty()) {
             mShader.bindSampler("direct_shadow_sampler", 0, directShadow->map.buffer);
             mShader.setUniformArgs("direct_light_space", directShadow->lightSpaces[0]);
+            mShader.setUniformArgs("shadow_filter_size", directShadow->filterSize);
         }
 
         mShader.bindSampler("point_shadow_sampler", 1, pointShadow->map.buffer);
@@ -165,9 +166,7 @@ namespace gl {
         render(entityId, transform, drawable, material);
     }
 
-    PBR_DeferredRenderer::PBR_DeferredRenderer(int w, int h) {
-        ssaoRenderer = new SsaoRenderer(w, h);
-
+    PBR_DeferredRenderer::PBR_DeferredRenderer(int w, int h, SsaoRenderer* ssaoRenderer) : mSsaoRenderer(ssaoRenderer) {
         mGeometryShader.addVertexStage("shaders/pbr_material.vert");
         mGeometryShader.addFragmentStage("shaders/pbr_material.frag");
         mGeometryShader.complete();
@@ -178,7 +177,7 @@ namespace gl {
 
         mDrawable.init();
         // setup PBR positions
-        ColorAttachment pbrPos = {0, w, h };
+        ColorAttachment pbrPos = { 0, w, h };
         pbrPos.image.internalFormat = GL_RGBA32F;
         pbrPos.image.pixelFormat = GL_RGBA;
         pbrPos.image.pixelType = PixelType::FLOAT;
@@ -315,7 +314,7 @@ namespace gl {
     }
 
     PBR_DeferredRenderer::~PBR_DeferredRenderer() {
-        delete ssaoRenderer;
+        delete mSsaoRenderer;
         mGeometryShader.free();
         mGeometryFrame.free();
         mGeometryMsaaFrame.free();
@@ -324,7 +323,7 @@ namespace gl {
     }
 
     void PBR_DeferredRenderer::resize(int w, int h) {
-        ssaoRenderer->resize(w, h);
+        mSsaoRenderer->resize(w, h);
         mGeometryFrame.resize(w, h);
         mGeometryMsaaFrame.resize(w, h);
         mLightFrame.resize(w, h);
@@ -364,10 +363,10 @@ namespace gl {
         }
 
         // render SSAO
-        if (enableSsao) {
-            ssaoRenderer->getParams().positions = mGBuffer.viewPosition;
-            ssaoRenderer->getParams().normals = mGBuffer.viewNormal;
-            ssaoRenderer->render();
+        if (mSsaoRenderer->isEnabled) {
+            mSsaoRenderer->getParams().positions = mGBuffer.viewPosition;
+            mSsaoRenderer->getParams().normals = mGBuffer.viewNormal;
+            mSsaoRenderer->render();
         }
 
         mLightFrame.bind();
@@ -381,15 +380,16 @@ namespace gl {
         mLightShader.bindSampler("direct_shadow_sampler", 0, directShadow->map.buffer);
         mLightShader.bindSampler("point_shadow_sampler", 1, pointShadow->map.buffer);
         mLightShader.setUniformArgs("far_plane", pointShadow->zFar);
+        mLightShader.setUniformArgs("shadow_filter_size", directShadow->filterSize);
 
         for (int i = 0 ; i < samplers_size - 1 ; i++) {
             mLightShader.bindSampler(samplers[i], current_geometry_fbo.colors[i].buffer);
         }
 
-        if (enableSsao) {
-            mLightShader.bindSampler(samplers[samplers_size - 1], ssaoRenderer->getRenderTarget());
+        if (mSsaoRenderer->isEnabled) {
+            mLightShader.bindSampler(samplers[samplers_size - 1], mSsaoRenderer->getRenderTarget());
         }
-        mLightShader.setUniformArgs("enable_ssao", enableSsao);
+        mLightShader.setUniformArgs("enable_ssao", mSsaoRenderer->isEnabled);
 
         mDrawable.draw();
 
@@ -430,13 +430,13 @@ namespace gl {
         FrameBuffer::blit(srcFrame, w, h, 5, mCurrentFrame.id, w, h, 2);
     }
 
-    PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height) : scene(scene) {
+    PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer) : scene(scene) {
         mResolution = {width, height };
 
         mEnvRenderer = new EnvRenderer(width, height);
 
         mPbrForwardRenderer = new PBR_ForwardRenderer(width, height);
-        mPbrDeferredRenderer = new PBR_DeferredRenderer(width, height);
+        mPbrDeferredRenderer = new PBR_DeferredRenderer(width, height, ssaoRenderer);
 
         mSkeletalForwardRenderer = new PBR_Skeletal_ForwardRenderer();
         mSkeletalDeferredRenderer = new PBR_Skeletal_DeferredRenderer();

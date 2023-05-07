@@ -10,10 +10,10 @@ namespace gl {
         UniformF exposure = { "exposure", 1.0f };
         UniformF shinyStrength = {"shiny_strength", 7.5f };
 
-        const ImageSampler sceneSampler = {"scene", 0 };
+        const ImageSampler sceneSampler = { "scene", 0 };
         ImageBuffer sceneBuffer;
 
-        const ImageSampler shinySampler = {"shiny", 1 };
+        const ImageSampler shinySampler = { "shiny", 1 };
         ImageBuffer shinyBuffer;
     };
 
@@ -28,6 +28,7 @@ namespace gl {
     };
 
     struct HdrRenderer final {
+        bool isEnabled = false;
 
         HdrRenderer(int w, int h);
         ~HdrRenderer();

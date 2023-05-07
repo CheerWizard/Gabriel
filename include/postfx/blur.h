@@ -8,7 +8,7 @@ namespace gl {
 
     struct BlurParams final {
         ImageBuffer sceneBuffer;
-        UniformF offset = { "offset", 1.0f / 300.0f };
+        UniformF offset = { "offset", 0.003f };
     };
 
     struct BlurShader : Shader {
@@ -21,6 +21,7 @@ namespace gl {
     };
 
     struct BlurRenderer final {
+        bool isEnabled = false;
 
         BlurRenderer(int w, int h);
         ~BlurRenderer();

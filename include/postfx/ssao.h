@@ -46,6 +46,7 @@ namespace gl {
     };
 
     struct SsaoRenderer final {
+        bool isEnabled = false;
 
         SsaoRenderer(int width, int height);
         ~SsaoRenderer();

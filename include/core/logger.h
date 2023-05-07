@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <mutex>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -31,59 +32,55 @@ enum ConsoleColor {
 
 struct Logger final {
 
-    ConsoleColor verboseColor = ConsoleColor::WHITE;
-    ConsoleColor infoColor = ConsoleColor::GREEN;
-    ConsoleColor warnColor = ConsoleColor::YELLOW;
-    ConsoleColor errorColor = ConsoleColor::RED;
+    static constexpr ConsoleColor VERBOSE_COLOR = ConsoleColor::WHITE;
+    static constexpr ConsoleColor INFO_COLOR = ConsoleColor::GREEN;
+    static constexpr ConsoleColor WARN_COLOR = ConsoleColor::YELLOW;
+    static constexpr ConsoleColor ERROR_COLOR = ConsoleColor::RED;
 
-    Logger(const char* filename);
-    ~Logger();
+    static void init(const char* filename);
+    static void free();
 
-    static Logger& get() {
-        return *sInstance;
-    }
-
-    void print_verbose(const std::string& msg);
-    void print_info(const std::string& msg);
-    void print_warning(const std::string& msg);
-    void print_error(const std::string& msg);
+    static void printVerbose(const std::string& msg);
+    static void printInfo(const std::string& msg);
+    static void printWarning(const std::string& msg);
+    static void printError(const std::string& msg);
 
 private:
-    void print_out(ConsoleColor color, const std::string& msg);
+    static void printOut(ConsoleColor color, const std::string& msg);
 
 private:
-    static Logger* sInstance;
-    FILE* mFile;
-    HANDLE mOut;
-    ConsoleColor mCurrentColor = verboseColor;
+    static FILE* sFile;
+    static std::string sName;
+    static HANDLE sOut;
+    static ConsoleColor sCurrentColor;
 };
 
 #define verbose(msg) \
 { \
     std::stringstream ss; \
     ss << __FUNCTION__ << ": " << msg << std::endl; \
-    Logger::get().print_verbose(ss.str()); \
+    Logger::printVerbose(ss.str()); \
 }
 
 #define info(msg) \
 { \
     std::stringstream ss; \
     ss << __FUNCTION__ << ": " << msg << std::endl; \
-    Logger::get().print_info(ss.str()); \
+    Logger::printInfo(ss.str()); \
 }
 
 #define warning(msg) \
 { \
     std::stringstream ss; \
     ss << __FUNCTION__ << ": " << msg << std::endl; \
-    Logger::get().print_warning(ss.str()); \
+    Logger::printWarning(ss.str()); \
 }
 
 #define error(msg) \
 { \
     std::stringstream ss; \
     ss << __FUNCTION__ << ": " << msg << std::endl << "Error code line: " << __LINE__ << std::endl; \
-    Logger::get().print_error(ss.str()); \
+    Logger::printError(ss.str()); \
 }
 
 #define error_trace(msg, file, function, line) \
@@ -92,8 +89,8 @@ private:
     ss << function << ": " << msg << std::endl << \
     "File: " << file << std::endl << \
     "Function: " << function << " line: " << line << std::endl; \
-    Logger::get().print_error(ss.str()); \
+    Logger::printError(ss.str()); \
 }
 
-#define print_fps(deltaTime) \
+#define printFPS(deltaTime) \
 info("Delta time: " << (deltaTime) << " ms" << " FPS: " << 1000 / (deltaTime))
