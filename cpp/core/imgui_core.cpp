@@ -98,22 +98,25 @@ namespace gl {
     bool ImguiCore::InputInt(const char* label, int &v, int step, const char* fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
+        return ImGui::InputInt(IMGUI_ID(label), &v);
+    }
 
-        bool updated = ImGui::InputInt(IMGUI_ID(label), &v);
+    bool ImguiCore::InputInt2(const char* label, glm::ivec2 &v, float step, const char *fmt) {
+        ImGui::Text(fmt, label);
         ImGui::SameLine();
+        return ImGui::InputInt2(IMGUI_ID(label), glm::value_ptr(v));
+    }
 
-        if (ImGui::ArrowButton(IMGUI_ID(label, "_LeftArrow"), ImGuiDir_Left)) {
-            v -= step;
-            updated = true;
-        }
+    bool ImguiCore::InputInt3(const char* label, glm::ivec3 &v, float step, const char *fmt) {
+        ImGui::Text(fmt, label);
         ImGui::SameLine();
+        return ImGui::InputInt3(IMGUI_ID(label), glm::value_ptr(v));
+    }
 
-        if (ImGui::ArrowButton(IMGUI_ID(label, "_RightArrow"), ImGuiDir_Right)) {
-            v += step;
-            updated = true;
-        }
-
-        return updated;
+    bool ImguiCore::InputInt4(const char* label, glm::ivec4 &v, float step, const char *fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::InputInt4(IMGUI_ID(label), glm::value_ptr(v));
     }
 
     bool ImguiCore::InputFloat(const char* label, float &v, float step, const char *fmt) {
@@ -135,6 +138,24 @@ namespace gl {
         }
 
         return updated;
+    }
+
+    bool ImguiCore::InputFloat2(const char* label, glm::fvec2 &v, float step, const char *fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::InputFloat2(IMGUI_ID(label), glm::value_ptr(v));
+    }
+
+    bool ImguiCore::InputFloat3(const char* label, glm::fvec3 &v, float step, const char *fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::InputFloat3(IMGUI_ID(label), glm::value_ptr(v));
+    }
+
+    bool ImguiCore::InputFloat4(const char* label, glm::fvec4 &v, float step, const char *fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::InputFloat4(IMGUI_ID(label), glm::value_ptr(v));
     }
 
 }

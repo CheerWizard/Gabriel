@@ -328,7 +328,7 @@ namespace gl {
         mSsaoRenderer->isEnabled = true;
 
         mShadowPipeline = new ShadowPipeline(&mScene, mWidth, mHeight, &mCamera);
-        mShadowPipeline->directShadow.filterSize = 18;
+        mShadowPipeline->directShadow.filterSize = 9;
 
         mPbrPipeline = new PBR_Pipeline(&mScene, mWidth, mHeight, mSsaoRenderer);
         mPbrPipeline->setDirectShadow(&mShadowPipeline->directShadow);

@@ -19,7 +19,7 @@ namespace gl {
             ImGui::SetWindowSize({ resolution.x, resolution.y });
         }
 
-        ImGui::Image((ImTextureID) imageBuffer.id, ImGui::GetContentRegionAvail(), { 0, 0 }, { 1, 1 });
+        ImGui::Image((ImTextureID) imageBuffer.id, ImGui::GetContentRegionAvail(), { 0, 1 }, { 1, 0 });
 
         end();
     }

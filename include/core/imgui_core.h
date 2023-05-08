@@ -54,8 +54,14 @@ namespace gl {
         static bool Checkbox(const char* label, bool& v, const char* fmt = "%s");
 
         static bool InputInt(const char* label, int& v, int step, const char* fmt = "%s");
+        static bool InputInt2(const char* label, glm::ivec2& v, float step, const char* fmt = "%s");
+        static bool InputInt3(const char* label, glm::ivec3& v, float step, const char* fmt = "%s");
+        static bool InputInt4(const char* label, glm::ivec4& v, float step, const char* fmt = "%s");
 
         static bool InputFloat(const char* label, float& v, float step, const char* fmt = "%s");
+        static bool InputFloat2(const char* label, glm::fvec2& v, float step, const char* fmt = "%s");
+        static bool InputFloat3(const char* label, glm::fvec3& v, float step, const char* fmt = "%s");
+        static bool InputFloat4(const char* label, glm::fvec4& v, float step, const char* fmt = "%s");
 
     };
 

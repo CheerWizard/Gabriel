@@ -61,6 +61,12 @@ namespace gl {
             if (ImGui::BeginTabItem("Camera")) {
                 Camera* camera = ImguiCore::camera;
 
+                ImGui::SeparatorText("World Space");
+                ImguiCore::InputFloat3("Position", camera->position, 0.1f);
+                ImguiCore::InputFloat3("Front", camera->front, 0.1f);
+                ImguiCore::InputFloat3("Up", camera->up, 0.1f);
+
+                ImGui::SeparatorText("Navigation");
                 ImguiCore::InputFloat("Horizontal Sens", camera->horizontalSensitivity, 0.01f);
                 ImguiCore::InputFloat("Vertical Sens", camera->verticalSensitivity, 0.01f);
                 ImguiCore::Checkbox("Enable Look", camera->enableLook);
@@ -68,42 +74,36 @@ namespace gl {
                 ImguiCore::Checkbox("Enable Move", camera->enableMove);
                 ImguiCore::InputFloat("Move Speed", camera->moveSpeed, 0.1f);
 
-                ImGui::Separator();
-
+                ImGui::SeparatorText("Perspective Space");
                 if (ImguiCore::InputFloat("Far Z", camera->zFar, 1.0f)) {
                     camera->updatePerspective();
                 }
-
                 if (ImguiCore::InputFloat("Near Z", camera->zNear, 0.1f)) {
                     camera->updatePerspective();
                 }
-
                 if (ImguiCore::InputFloat("FOV", camera->fov, 1.0f)) {
                     camera->updatePerspective();
                 }
-
                 ImguiCore::InputFloat("Max FOV", camera->maxFov, 1.0f);
 
-                ImGui::Separator();
-
+                ImGui::SeparatorText("View Space");
                 if (ImguiCore::InputFloat("Pitch", camera->pitch, 1.0f)) {
                     camera->updateView();
                 }
-
                 ImguiCore::InputFloat("Max Pitch", camera->maxPitch, 1.0f);
-
                 if (ImguiCore::InputFloat("Yaw", camera->yaw, 1.0f)) {
                     camera->updateView();
                 }
-
                 if (ImguiCore::InputFloat("Roll", camera->roll, 1.0f)) {
                     camera->updateView();
                 }
+
+                ImGui::EndTabItem();
             }
 
             if (ImGui::BeginTabItem("PostFX")) {
 
-                // HDR
+                ImGui::SeparatorText("HDR");
                 {
                     auto& hdrParams = ImguiCore::hdrRenderer->getParams();
 
@@ -117,9 +117,8 @@ namespace gl {
                         ImguiCore::hdrRenderer->updateShinyStrength();
                     }
                 }
-                ImGui::Separator();
 
-                // Blur
+                ImGui::SeparatorText("Blur");
                 {
                     auto& blurParams = ImguiCore::blurRenderer->getParams();
 
@@ -129,17 +128,15 @@ namespace gl {
                         ImguiCore::blurRenderer->updateOffset();
                     }
                 }
-                ImGui::Separator();
 
-                // Bloom
+                ImGui::SeparatorText("Bloom");
                 {
                     ImguiCore::Checkbox("Enable Bloom", ImguiCore::bloomRenderer->isEnabled);
                     ImguiCore::InputFloat("Strength", ImguiCore::bloomRenderer->getBloomStrength(), 0.01f);
                     ImguiCore::InputFloat("Filter Radius", ImguiCore::bloomRenderer->getFilterRadius(), 0.001f);
                 }
-                ImGui::Separator();
 
-                // SSAO
+                ImGui::SeparatorText("SSAO");
                 {
                     auto& ssaoParams = ImguiCore::ssaoRenderer->getParams();
                     ImguiCore::Checkbox("Enable SSAO", ImguiCore::ssaoRenderer->isEnabled);
