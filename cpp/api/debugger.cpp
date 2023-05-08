@@ -60,10 +60,10 @@ namespace gl {
         ss << "Message: " << message;
 
         if (type == GL_DEBUG_TYPE_ERROR) {
-            error(ss.str())
+            error(ss.str().c_str());
             debug_break();
         } else {
-            info(ss.str())
+            info(ss.str().c_str());
         }
     }
 
@@ -104,7 +104,7 @@ namespace gl {
                 case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
                 case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
             }
-            error_trace(error, file, function, line);
+            error_trace(error.c_str());
         }
 
         return errorCode == GL_NO_ERROR;

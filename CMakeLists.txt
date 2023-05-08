@@ -39,15 +39,17 @@ include_directories(
         vendor/assimp/include
         vendor/freetype/include
         vendor/imgui
+        vendor/spdlog/include
 )
 
 add_subdirectory(vendor/glfw)
 add_subdirectory(vendor/glm)
+add_subdirectory(vendor/spdlog)
 
 replace_dirs(shaders shaders)
 replace_dirs(images images)
 replace_dirs(models models)
 replace_dirs(fonts fonts)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm spdlog)
 dynamic_link(${PROJECT_NAME} vendor/libs)

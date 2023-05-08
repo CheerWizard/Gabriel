@@ -2,8 +2,6 @@
 
 #include <math/aabb.h>
 
-#define print_vec4(name, v) info(name << "[x:" << v.x << ",y:" << v.y << ",z:" << v.z << ",w:" << v.w << ']')
-
 namespace gl {
 
     struct Frustum final {

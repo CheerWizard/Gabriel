@@ -205,7 +205,7 @@ namespace gl {
     void Scene::removeComponent(EntityID entityId) {
         ComponentAddress componentAddress = mComponentAddresses[entityId][T::ID];
         if (componentAddress == null) {
-            error("Component for entity " << entityId << " does not exist");
+            error("Component for entity {0} does not exist", entityId);
             return;
         }
         // remove component from storage

@@ -32,11 +32,11 @@ namespace gl {
     bool FontAtlas::loadFace(const char* filepath, Font& font) {
         FT_Error error = FT_New_Face(mLib, filepath, 0, &font.face);
         if (error == FT_Err_Unknown_File_Format) {
-            error("Failed to load font " << filepath << "\nUnknown file format");
+            error("Failed to load font {0}. Unknown file format", filepath);
             return false;
         }
         else if (error) {
-            error("Failed to load font " << filepath << "\nError: " << error);
+            error("Failed to load font {0}. Error: {1}", filepath, error);
             return false;
         }
         return true;
@@ -68,7 +68,7 @@ namespace gl {
             // load the glyph image into the slot
             FT_Error error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
             if (error) {
-                error("Failed to load a glyph " << glyph_index << "\nError: " << error);
+                error("Failed to load a glyph {0}. Error: {1}", glyph_index, error);
                 continue;
             }
 
@@ -90,14 +90,14 @@ namespace gl {
             // load the glyph image into the slot
             FT_Error error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
             if (error) {
-                error("Failed to load a glyph " << glyph_index << "\nError: " << error);
+                error("Failed to load a glyph {0}. Error: {1}", glyph_index, error);
                 continue;
             }
 
             // convert to an anti-aliased bitmap
             error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
             if (error) {
-                error("Failed to render a glyph " << glyph_index << "\nError: " << error);
+                error("Failed to render a glyph {0}. Error: {1}", glyph_index, error);
             }
 
             // save the character width
@@ -156,7 +156,7 @@ namespace gl {
     bool FontAtlas::init() {
         FT_Error error = FT_Init_FreeType(&mLib);
         if (error != FT_Err_Ok) {
-            error("Failed to init FreeType library\nError: " << error);
+            error("Failed to init FreeType library. Error: {0}", error);
             return false;
         }
         return true;

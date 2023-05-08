@@ -154,7 +154,7 @@ namespace gl {
     template<typename T>
     void Window::setWindowCloseCallback() {
         glfwSetWindowCloseCallback(mHandle, [](GLFWwindow* win) {
-            info("onWindowClose()")
+            info("onWindowClose()");
             static_cast<T*>(glfwGetWindowUserPointer(win))->onWindowClose();
         });
     }
@@ -162,7 +162,7 @@ namespace gl {
     template<typename T>
     void Window::setWindowResizeCallback() {
         glfwSetWindowSizeCallback(mHandle, [](GLFWwindow* win, int w, int h) {
-            info("onWindowResize(" << w << ", " << h << ")")
+            info("onWindowResize({0}, {1})", w, h);
             static_cast<T*>(glfwGetWindowUserPointer(win))->onWindowResize(w, h);
         });
     }
@@ -170,9 +170,9 @@ namespace gl {
     template<typename T>
     void Window::setWindowMoveCallback() {
         glfwSetWindowPosCallback(mHandle, [](GLFWwindow* win, int x, int y) {
-            info("onWindowPositioned(" << x << ", " << y << ")")
+            info("onWindowPositioned({0}, {1})", x, y);
             if (x < 0 && y < 0) {
-                error("Window: invalid position x < 0 or y < 0")
+                error("Invalid window position x < 0 or y < 0");
                 return;
             }
             static_cast<T *>(glfwGetWindowUserPointer(win))->onWindowMove(x, y);
@@ -182,9 +182,9 @@ namespace gl {
     template<typename T>
     void Window::setFramebufferResizeCallback() {
         glfwSetFramebufferSizeCallback(mHandle, [](GLFWwindow* win, int w, int h) {
-            info("onFramebufferResized(" << w << ", " << h << ")")
+            info("onFramebufferResized({0}, {1})", w, h);
             if (w <= 0 && h <= 0) {
-                error("Window: invalid framebuffer size w <= 0 or h <= 0")
+                error("Invalid framebuffer size w <= 0 or h <= 0");
                 return;
             }
             static_cast<T*>(glfwGetWindowUserPointer(win))->onFramebufferResized(w, h);

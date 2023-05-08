@@ -15,11 +15,7 @@ namespace gl {
     }
 
     void AABB::log() const {
-        info(
-                "X: [" << minX << ',' << maxX << ']' << std::endl <<
-                "Y: [" << minY << ',' << maxY << ']' << std::endl <<
-                "Z: [" << minZ << ',' << maxZ << ']' << std::endl
-        );
+        info("X:[{0}, {1}] Y:[{2}, {3}] Z:[{4}, {5}]", minX, maxX, minY, maxY, minZ, maxZ);
     }
 
     void AABB::update(OrthoMat& mat) const {

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cassert>
 #include <cstdarg>
+#include <memory>
 
 #define null nullptr
 
@@ -14,6 +15,31 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 #define STR(s1, s2) s1 ## s2
+
+template<typename T>
+using Scope = std::unique_ptr<T>;
+
+template<typename T, typename ... Args>
+constexpr Scope<T> createScope(Args&& ... args) {
+    return std::make_unique<T>(std::forward<Args>(args)...);
+}
+
+template<typename T>
+using Ref = std::shared_ptr<T>;
+
+template<typename T, typename ... Args>
+constexpr Ref<T> createRef(Args&& ... args) {
+    return std::make_shared<T>(std::forward<Args>(args)...);
+}
+
+template<typename T>
+using Weak = std::weak_ptr<T>;
+
+template<typename T, typename ... Args>
+constexpr Weak<T> createWeak(Args&& ... args) {
+    return std::weak_ptr<T>(std::forward<Args>(args)...);
+}
+
 
 #define COLOR_CLEAR 0, 0, 0, 0
 

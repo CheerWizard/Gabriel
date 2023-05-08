@@ -27,7 +27,7 @@ namespace gl {
         const aiScene* scene = importer.ReadFile(filepath, flags);
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-            error("Failed to read file " << filepath)
+            error("Failed to read file {0}", filepath.c_str());
             return;
         }
 

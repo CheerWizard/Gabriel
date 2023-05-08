@@ -12,7 +12,7 @@ namespace gl {
             }
             ofs.close();
         } else {
-            error("Failed to write to " << filepath << " with data size " << size)
+            error("Failed to write to {0} with data size {1}", filepath, size);
             return false;
         }
 

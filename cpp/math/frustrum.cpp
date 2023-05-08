@@ -40,15 +40,15 @@ namespace gl {
     }
 
     void Frustum::log() const {
-        print_vec4("NearTopLeft", nearTopLeft)
-        print_vec4("NearBottomLeft", nearBottomLeft)
-        print_vec4("NearTopRight", nearTopRight)
-        print_vec4("NearBottomRight", nearBottomRight)
+        printVec4("NearTopLeft", nearTopLeft);
+        printVec4("NearBottomLeft", nearBottomLeft);
+        printVec4("NearTopRight", nearTopRight);
+        printVec4("NearBottomRight", nearBottomRight);
 
-        print_vec4("FarTopLeft", farTopLeft)
-        print_vec4("FarBottomLeft", farBottomLeft)
-        print_vec4("FarTopRight", farTopRight)
-        print_vec4("FarBottomRight", farBottomRight)
+        printVec4("FarTopLeft", farTopLeft);
+        printVec4("FarBottomLeft", farBottomLeft);
+        printVec4("FarTopRight", farTopRight);
+        printVec4("FarBottomRight", farBottomRight);
     }
 
     Frustum& Frustum::toWorldSpace(const ViewMat& viewMat) {

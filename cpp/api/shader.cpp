@@ -17,7 +17,7 @@ namespace gl {
         std::ifstream file(path);
 
         if (!file.is_open()) {
-            error("Failed to open file " << path)
+            error("Failed to open file {0}", path.c_str());
             return fullSrc;
         }
 
@@ -69,7 +69,7 @@ namespace gl {
         std::string src = ShaderReader::read(filepath);
         const char* cSrc = src.c_str();
         if (src.empty()) {
-            error("Failed to read stage from file " << filepath);
+            error("Failed to read stage from file {0}", filepath);
             id = 0;
         }
 
@@ -82,14 +82,14 @@ namespace gl {
         glGetShaderiv(id, GL_COMPILE_STATUS, &status);
         if (!status) {
             glGetShaderInfoLog(id, 512, null, info);
-            error("Failed stage compilation " << info);
+            error("Failed stage compilation {0}", info);
             id = 0;
         }
     }
 
     void Shader::complete() {
         if (stages.empty()) {
-            error("Shader has no stages to complete")
+            error("Shader has no stages to complete");
             return;
         }
 
@@ -106,7 +106,7 @@ namespace gl {
         glGetProgramiv(id, GL_LINK_STATUS, &status);
         if (!status) {
             glGetProgramInfoLog(id, 512, null, info);
-            error("Failed shader program linkage " << info);
+            error("Failed shader program linkage {0}", info);
             return;
         }
 

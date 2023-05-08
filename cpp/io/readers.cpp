@@ -5,7 +5,7 @@ namespace gl {
     std::string FileReader::read(const char* filepath) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            error("Failed to open file " << filepath);
+            error("Failed to open file {0}", filepath);
             return "";
         }
 

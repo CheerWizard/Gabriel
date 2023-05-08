@@ -3,7 +3,7 @@
 namespace gl {
 
     static void onWindowError(int code, const char* message) {
-        error("Error code: " << code << "\nError message: " << message);
+        error("Error code: {0}\nError message: {1}", code, message);
     }
 
     Application::Application(const char* title, int width, int height)
@@ -46,7 +46,7 @@ namespace gl {
     }
 
     void Application::initLogger() {
-        Logger::init(mTitle);
+        Logger::init(mTitle, 32);
     }
 
     void Application::initWindow() {
@@ -490,24 +490,24 @@ namespace gl {
         mPrintLimiter++;
         if (mPrintLimiter > 100) {
             mPrintLimiter = 0;
-            printFPS(mDeltaTime)
+            printFPS(mDeltaTime);
         }
     }
 
     void Application::onWindowClose() {
-        info("")
+        trace("");
     }
 
     void Application::onWindowResize(int w, int h) {
-        info("width: " << w << ", height: " << h)
+        info("width={0}, height={1}", w, h);
     }
 
     void Application::onWindowMove(int x, int y) {
-        info("x=" << x << ", y=" << y)
+        info("x={0}, y={1}", x, y);
     }
 
     void Application::onFramebufferResized(int w, int h) {
-        info("width=" << w << ", height=" << h)
+        info("width={0}, height={1}", w, h);
 
         mCamera.resize(w, h);
 
@@ -524,7 +524,7 @@ namespace gl {
     }
 
     void Application::onKeyPress(int key) {
-        info("")
+        trace("");
 
         if (key == KEY::Esc)
             mWindow->close();
@@ -535,11 +535,11 @@ namespace gl {
     }
 
     void Application::onKeyRelease(int key) {
-        info("")
+        trace("");
     }
 
     void Application::onMousePress(int button) {
-        info("")
+        trace("");
         if (button == GLFW_MOUSE_BUTTON_LEFT) {
             Cursor mouse_cursor = mWindow->mouseCursor();
             static PBR_Pixel pixel;
@@ -550,7 +550,7 @@ namespace gl {
     }
 
     void Application::onMouseRelease(int button) {
-        info("")
+        trace("");
     }
 
     void Application::onMouseCursor(double x, double y) {
@@ -563,7 +563,7 @@ namespace gl {
     }
 
     void Application::onEntitySelected(Entity entity, double x, double y) {
-        info("onEntitySelected: [" << x << "," << y << "]")
+        info("onEntitySelected: [{0}, {1}]", x, y);
         auto& selected = entity.getComponent<Selectable>()->enable;
         selected = !selected;
         if (selected) {
@@ -576,11 +576,11 @@ namespace gl {
     }
 
     void Application::onEntityDragged(Entity entity, double x, double y) {
-        info("onEntityDragged: [" << x << "," << y << "]")
+        info("onEntityDragged: [{0}, {1}]", x, y);
     }
 
     void Application::onEntityHovered(Entity entity, double x, double y) {
-        info("onEntityHovered: [" << x << "," << y << "]")
+        info("onEntityHovered: [{0}, {1}]", x, y);
         entity.getComponent<Material>()->color = { 5, 5, 5, 1 };
     }
 
@@ -689,7 +689,7 @@ namespace gl {
 
         mTextLabel = &mScene;
         mTextLabel.addComponent<Text3d>(mFontRobotoRegular, "Hello World!");
-        mTextLabel.getComponent<Text3d>()->transform.translation = {0, 5, 4 };
+        mTextLabel.getComponent<Text3d>()->transform.translation = { 0, 5, 4 };
     }
 
     void Application::renderImgui() {

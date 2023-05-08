@@ -34,8 +34,7 @@ namespace gl {
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
-            error("Failed to complete framebuffer!");
-            error("Error status=" << status);
+            error("Failed to complete framebuffer. Error status={0}", status);
         }
 
         unbind();
@@ -56,8 +55,7 @@ namespace gl {
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
-            error("Failed to complete framebuffer!");
-            error("Error status=" << status);
+            error("Failed to complete framebuffer. Error status={0}", status);
         }
 
         unbind();

@@ -1,62 +1,66 @@
 #include <core/logger.h>
 
-#include <mutex>
+#include <sstream>
 
-FILE* Logger::sFile = NULL;
-std::string Logger::sName;
-HANDLE Logger::sOut = GetStdHandle(STD_OUTPUT_HANDLE);
-ConsoleColor Logger::sCurrentColor = Logger::VERBOSE_COLOR;
+static Ref<spdlog::logger> pLogger;
+static Ref<spdlog::logger> pTracer;
+// [DateTime][Hours:Minutes:Seconds:Milliseconds]: Message
+static const char* pLogPattern = "[%D][%H:%M:%S.%e]: %^%v%$";
+// [DateTime][Hours:Minutes:Seconds:Milliseconds] FunctionName(FileName:CodeLine) Message
+static const char* pTracePattern = "[%D][%H:%M:%S.%e] %^%!(%s:%#) %v%$";
 
-void Logger::init(const char* filename) {
+static Ref<spdlog::logger> createLogger(const char* logName, const char* filepath, const char* pattern, int backtrace) {
+    auto consoleSink = createRef<spdlog::sinks::stdout_color_sink_mt>();
+    consoleSink->set_pattern(pattern);
+
+    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filepath, true);
+    fileSink->set_pattern(pattern);
+
+    std::vector<spdlog::sink_ptr> sinks = { consoleSink, fileSink };
+
+    auto logger = createRef<spdlog::logger>(logName, std::begin(sinks), std::end(sinks));
+    spdlog::register_logger(logger);
+    logger->enable_backtrace(backtrace);
+
+    return logger;
+}
+
+void Logger::init(const char* name, int backtrace) {
     std::stringstream ss;
-    ss << filename << ".log";
-    sName = ss.str();
-    fopen_s(&sFile, sName.c_str(), "w");
+    try {
+        ss << name << "Logger";
+        std::string logName = ss.str();
+        ss.clear();
+        ss << "logs/" << name << ".log";
+        std::string filepath = ss.str();
+        ss.clear();
+        pLogger = createLogger(logName.c_str(), filepath.c_str(), pLogPattern, backtrace);
+
+        ss << name << "Tracer";
+        logName = ss.str();
+        ss.clear();
+        ss << "logs/" << name << ".trace";
+        filepath = ss.str();
+        ss.clear();
+        pTracer = createLogger(logName.c_str(), filepath.c_str(), pTracePattern, backtrace);
+    }
+    catch (const spdlog::spdlog_ex &ex) {
+        SPDLOG_ERROR("Failed to initialize log {}. Error: {}", name, ex.what());
+    }
 }
 
 void Logger::free() {
-    if (sFile)
-        fclose(sFile);
+    pLogger.reset();
 }
 
-void Logger::printVerbose(const std::string& msg) {
-    printOut(VERBOSE_COLOR, msg);
+void Logger::dumpBacktrace() {
+    pTracer->dump_backtrace();
 }
 
-void Logger::printInfo(const std::string &msg) {
-    printOut(INFO_COLOR, msg);
+spdlog::logger* Logger::getLogger() {
+    return pLogger.get();
 }
 
-void Logger::printWarning(const std::string& msg) {
-    printOut(WARN_COLOR, msg);
-}
-
-void Logger::printError(const std::string& msg) {
-    printOut(ERROR_COLOR, msg);
-}
-
-void Logger::printOut(ConsoleColor color, const std::string& msg) {
-    if (sCurrentColor != color) {
-        sCurrentColor = color;
-        SetConsoleTextAttribute(sOut, color);
-    }
-
-    time_t t = time(NULL);
-    struct tm tm {};
-    localtime_s(&tm, &t);
-    char timeString[80];
-    strftime(timeString, sizeof(timeString), "[%Y-%m-%d][%X]", &tm);
-
-    std::stringstream logBuilder;
-    logBuilder << timeString << "[Thread-" << std::this_thread::get_id() << ']' << msg;
-    std::string log = logBuilder.str();
-
-    std::cout << log << std::endl;
-
-    if (sFile == NULL) {
-        fopen_s(&sFile, sName.c_str(), "w");
-    } else {
-        fwrite(log.data(), sizeof(char), log.length(), sFile);
-        fflush(sFile);
-    }
+spdlog::logger* Logger::getTracer() {
+    return pTracer.get();
 }

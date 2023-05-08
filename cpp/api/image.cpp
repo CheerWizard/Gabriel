@@ -29,7 +29,7 @@ namespace gl {
         }
 
         if (!image.pixels) {
-            error("ImageReader::read(): failed to read image " << filepath);
+            error("Failed to read image {0}", filepath);
             return image;
         }
 
@@ -69,7 +69,7 @@ namespace gl {
             resized_data = malloc(width * height * sizeof(u8));
             int status = stbir_resize_uint8((u8*) pixels, width, height, 0, (u8*) resized_data, w, h, 0, channels);
             if (!status) {
-                error("Image::resize: failed to resize 8-bit pixels [" << w << ", " << h << "]");
+                error("Failed to resize 8-bit pixels [{0}, {1}]", w, h);
                 return;
             }
         }
@@ -88,13 +88,13 @@ namespace gl {
             resized_data = malloc(width * height * sizeof(float));
             int status = stbir_resize_float((float*) pixels, width, height, 0, (float*) resized_data, w, h, 0, channels);
             if (!status) {
-                error("Image::resize: failed to resize 32-bit pixels [" << w << ", " << h << "]");
+                error("Failed to resize 32-bit pixels [{0}, {1}]", w, h);
                 return;
             }
         }
 
         else {
-            error("Image::resize: failed to resize unknown image type!");
+            error("Failed to resize unknown image type!");
             return;
         }
 
@@ -320,7 +320,7 @@ namespace gl {
         FILE* file;
         fopen_s(&file, filepath, "wb");
         if (!file) {
-            error("Failed to write to " << filepath);
+            error("Failed to write to {0}", filepath);
             return false;
         }
 

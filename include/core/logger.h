@@ -1,96 +1,38 @@
 #pragma once
 
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <mutex>
+#include <core/common.h>
 
-#ifdef _WIN32
-#include <Windows.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/async.h>
 
-using namespace std;
-
-enum ConsoleColor {
-    DARKBLUE = 1,
-    DARKGREEN,
-    DARKTEAL,
-    DARKRED,
-    DARKPINK,
-    DARKYELLOW,
-    GRAY,
-    DARKGRAY,
-    BLUE,
-    GREEN,
-    TEAL,
-    RED,
-    PINK,
-    YELLOW,
-    WHITE
-};
-
-#endif
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/string_cast.hpp"
 
 struct Logger final {
 
-    static constexpr ConsoleColor VERBOSE_COLOR = ConsoleColor::WHITE;
-    static constexpr ConsoleColor INFO_COLOR = ConsoleColor::GREEN;
-    static constexpr ConsoleColor WARN_COLOR = ConsoleColor::YELLOW;
-    static constexpr ConsoleColor ERROR_COLOR = ConsoleColor::RED;
-
-    static void init(const char* filename);
+    static void init(const char* name, int backtrace);
     static void free();
 
-    static void printVerbose(const std::string& msg);
-    static void printInfo(const std::string& msg);
-    static void printWarning(const std::string& msg);
-    static void printError(const std::string& msg);
+    static spdlog::logger* getLogger();
+    static spdlog::logger* getTracer();
 
-private:
-    static void printOut(ConsoleColor color, const std::string& msg);
+    static void dumpBacktrace();
 
-private:
-    static FILE* sFile;
-    static std::string sName;
-    static HANDLE sOut;
-    static ConsoleColor sCurrentColor;
 };
 
-#define verbose(msg) \
-{ \
-    std::stringstream ss; \
-    ss << __FUNCTION__ << ": " << msg << std::endl; \
-    Logger::printVerbose(ss.str()); \
-}
+#define trace(...) SPDLOG_LOGGER_TRACE(Logger::getTracer(), __VA_ARGS__)
+#define verbose(...) SPDLOG_LOGGER_TRACE(Logger::getLogger(), __VA_ARGS__)
+#define info(...) SPDLOG_LOGGER_INFO(Logger::getLogger(), __VA_ARGS__)
+#define warning(...) SPDLOG_LOGGER_WARN(Logger::getTracer(), __VA_ARGS__)
+#define error(...) SPDLOG_LOGGER_ERROR(Logger::getTracer(), __VA_ARGS__)
+#define error_trace(...) \
+error(__VA_ARGS__); \
+Logger::dumpBacktrace()
 
-#define info(msg) \
-{ \
-    std::stringstream ss; \
-    ss << __FUNCTION__ << ": " << msg << std::endl; \
-    Logger::printInfo(ss.str()); \
-}
+#define printFPS(dt) \
+info("Delta time: {} ms, FPS: {}", dt, 1000 / dt)
 
-#define warning(msg) \
-{ \
-    std::stringstream ss; \
-    ss << __FUNCTION__ << ": " << msg << std::endl; \
-    Logger::printWarning(ss.str()); \
-}
-
-#define error(msg) \
-{ \
-    std::stringstream ss; \
-    ss << __FUNCTION__ << " (" << __FILE__ << " line:" << __LINE__ << "): " << msg << std::endl; \
-    Logger::printError(ss.str()); \
-}
-
-#define error_trace(msg, file, function, line) \
-{ \
-    std::stringstream ss; \
-    ss << function << ": " << msg << std::endl << \
-    "File: " << file << std::endl << \
-    "Function: " << function << " line: " << line << std::endl; \
-    Logger::printError(ss.str()); \
-}
-
-#define printFPS(deltaTime) \
-info("Delta time: " << (deltaTime) << " ms" << " FPS: " << 1000 / (deltaTime))
+#define printVec4(name, v) \
+info("{}:{}", name, glm::to_string(v))

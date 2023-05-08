@@ -9,12 +9,12 @@ namespace gl {
 
     void DisplacementImageMixer::mix(int width, int height) {
         if (!displacementMap) {
-            error("Displacement map is NULL!")
+            error("Displacement map is NULL!");
             return;
         }
 
         if (displacementImages.empty()) {
-            error("Displacement images are empty!")
+            error("Displacement images are empty!");
             return;
         }
 
@@ -54,7 +54,7 @@ namespace gl {
                 }
 
                 if (red >= 255.0f || green >= 255.0f || blue >= 255.0f) {
-                    error("RGB color out of bounds!")
+                    error("RGB color out of bounds!");
                     return;
                 }
 
@@ -91,11 +91,11 @@ namespace gl {
             percent = nom / denom;
         }
         else {
-            error("Not able to get height " << height << " percent for tile " << tile)
+            error("Not able to get height {0} percent of tile {1}", height, tile);
         }
 
         if (percent < 0.0f || percent > 1.0f) {
-            error("Invalid percent " << percent)
+            error("Invalid percent {0}", percent);
         }
 
         return percent;
@@ -145,7 +145,7 @@ namespace gl {
                 rz2 = rand() % rows;
 
                 if (r++ == 1000) {
-                    error("Infinite randomize loop. Breaking loop")
+                    error("Infinite randomize loop. Breaking loop");
                     break;
                 }
             }
