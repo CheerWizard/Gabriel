@@ -13,8 +13,6 @@
 namespace gl {
 
     struct Camera final {
-        glm::ivec2 resolution = { 800, 600 };
-
         glm::vec3 position = { 0, 0, 10 };
         glm::vec3 front = { 0, 0, -1 };
         glm::vec3 up = { 0, 1, 0 };
@@ -33,17 +31,17 @@ namespace gl {
         float zNear = 0.1f;
         float zFar = 100.0f;
 
-        bool enableLook = false;
-        bool enableZoom = false;
-        bool enableMove = false;
+        bool enableLook = true;
+        bool enableZoom = true;
+        bool enableMove = true;
 
         KEY keyMoveForward = KEY::W;
         KEY keyMoveLeft = KEY::A;
         KEY keyMoveBackward = KEY::S;
         KEY keyMoveRight = KEY::D;
 
-        void init(u32 binding, int w, int h);
-        void free();
+        Camera(u32 binding, Window* window);
+        ~Camera();
 
         void look(double x, double y);
         void zoom(double x, double y);
@@ -54,7 +52,7 @@ namespace gl {
         glm::mat4 perspective() const;
         void updatePerspective();
         [[nodiscard]] inline PerspectiveMat getPerspectiveMat() const {
-            return PerspectiveMat {fov, getAspectRatio(), zNear, zFar };
+            return PerspectiveMat { fov, getAspectRatio(), zNear, zFar };
         }
 
         glm::mat4 view() const;
@@ -66,7 +64,7 @@ namespace gl {
         void update();
 
         inline float getAspectRatio() const {
-            return (float) resolution.x / (float) resolution.y;
+            return mWindow->getAspectRatio();
         }
 
         RayCollider shootRay(double x, double y);
@@ -74,6 +72,7 @@ namespace gl {
         WorldRay raycastWorld(double x, double y);
 
     private:
+        Window* mWindow;
         UniformBuffer mUbo;
         float mLastCursorX = 400;
         float mLastCursorY = 300;

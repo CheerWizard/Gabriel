@@ -178,6 +178,11 @@ namespace gl {
         mY = y;
     }
 
+    void Window::onFrameResized(int w, int h) {
+        mFrameWidth = w;
+        mFrameHeight = h;
+    }
+
     const char** Window::getExtensions(u32* count) {
         return glfwGetRequiredInstanceExtensions(count);
     }

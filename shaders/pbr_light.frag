@@ -12,8 +12,8 @@ vec3 R;
 const float PI = 3.14159265359;
 
 struct LightPhong {
-    vec3 position; // vec3 position
-    vec4 color;  // vec3 color + float refraction
+    vec3 position;
+    vec4 color;
 };
 
 struct LightDirectional {

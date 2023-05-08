@@ -2,18 +2,17 @@
 
 namespace gl {
 
-    void Camera::init(u32 binding, int w, int h) {
-        resolution = { w, h };
+    Camera::Camera(u32 binding, Window* window) : mWindow(window) {
         mUbo.init(binding, 2 * sizeof(glm::mat4));
         update();
     }
 
-    void Camera::free() {
+    Camera::~Camera() {
         mUbo.free();
     }
 
     void Camera::look(double x, double y) {
-        if (!enableLook) return;
+        if (!enableLook || !mWindow->isMousePress(GLFW_MOUSE_BUTTON_LEFT)) return;
 
         if (mFirstCameraLook) {
             mLastCursorX = (float)x;
@@ -51,7 +50,6 @@ namespace gl {
     }
 
     void Camera::resize(int w, int h) {
-        resolution = { w, h };
         updatePerspective();
     }
 
@@ -109,7 +107,7 @@ namespace gl {
     ViewRay Camera::raycastView(double x, double y) {
         // mouse Screen -> NDC
         ScreenRay mouseScreenRay((float) x, (float) y, -1.0f, 1.0f);
-        NDCRay mouseNdcRay = mouseScreenRay.ndcSpace(resolution.x, resolution.y);
+        NDCRay mouseNdcRay = mouseScreenRay.ndcSpace(mWindow->getFrameWidth(), mWindow->getFrameHeight());
         // mouse NDC -> Clip
         // ignore inverse perspective division, since mouse NDC ray is a vector without depth length
         ClipRay mouseClipRay(mouseNdcRay.x(), mouseNdcRay.y(), -1, 1);

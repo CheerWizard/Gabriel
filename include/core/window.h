@@ -37,6 +37,10 @@ namespace gl {
             return mHandle;
         }
 
+        [[nodiscard]] inline const char* getTitle() const {
+            return mTitle;
+        }
+
         [[nodiscard]] inline int getX() const {
             return mX;
         }
@@ -53,12 +57,16 @@ namespace gl {
             return mHeight;
         }
 
-        [[nodiscard]] inline const char* getTitle() const {
-            return mTitle;
+        [[nodiscard]] inline int getFrameWidth() const {
+            return mFrameWidth;
+        }
+
+        [[nodiscard]] inline int getFrameHeight() const {
+            return mFrameHeight;
         }
 
         [[nodiscard]] inline float getAspectRatio() const {
-            return (float) mWidth / (float) mHeight;
+            return (float) mFrameWidth / (float) mFrameHeight;
         }
 
         void setContext();
@@ -92,6 +100,7 @@ namespace gl {
 
         void onResized(int w, int h);
         void onMoved(int x, int y);
+        void onFrameResized(int w, int h);
 
         static void setWindowErrorCallback(GLFWerrorfun errorFun);
 
@@ -135,6 +144,7 @@ namespace gl {
 
         int mX, mY;
         int mWidth, mHeight;
+        int mFrameWidth, mFrameHeight;
 
         int mWindowModeWidth, mWindowModeHeight;
         int mWindowModeX, mWindowModeY;
@@ -175,7 +185,7 @@ namespace gl {
                 error("Invalid window position x < 0 or y < 0");
                 return;
             }
-            static_cast<T *>(glfwGetWindowUserPointer(win))->onWindowMove(x, y);
+            static_cast<T*>(glfwGetWindowUserPointer(win))->onWindowMove(x, y);
         });
     }
 

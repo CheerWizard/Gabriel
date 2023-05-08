@@ -84,7 +84,7 @@ namespace gl {
         ImguiCore::blurRenderer = mBlurRenderer;
         ImguiCore::bloomRenderer = mBloomRenderer;
         ImguiCore::ssaoRenderer = mSsaoRenderer;
-        ImguiCore::camera = &mCamera;
+        ImguiCore::camera = mCamera;
         ImguiCore::scene = &mScene;
     }
 
@@ -98,7 +98,7 @@ namespace gl {
 
         mTerrainBuilder = {
                 &mScene,
-                { 0, 0.25, 4 },
+                { 0, 0.1, 4 },
                 { 0, 0, 0 },
                 { 1, 1, 1 },
                 32
@@ -132,7 +132,7 @@ namespace gl {
                 { 1, 1, 1 }
         };
 
-        mEntityControl = new EntityControl(&mScene, &mCamera);
+        mEntityControl = new EntityControl(&mScene, mCamera);
 
         mTerrainBuilder.addComponent<Selectable>();
         mTerrainBuilder.addComponent<Draggable>();
@@ -327,7 +327,7 @@ namespace gl {
         mSsaoRenderer = new SsaoRenderer(mWidth, mHeight);
         mSsaoRenderer->isEnabled = true;
 
-        mShadowPipeline = new ShadowPipeline(&mScene, mWidth, mHeight, &mCamera);
+        mShadowPipeline = new ShadowPipeline(&mScene, mWidth, mHeight, mCamera);
         mShadowPipeline->directShadow.filterSize = 9;
 
         mPbrPipeline = new PBR_Pipeline(&mScene, mWidth, mHeight, mSsaoRenderer);
@@ -340,10 +340,10 @@ namespace gl {
     }
 
     void Application::initCamera() {
-        mCamera.zFar = 1000.0f;
-        mCamera.maxPitch = 180;
-        mCamera.position = {-5, 2, 10 };
-        mCamera.init(0, mWindow->getWidth(), mWindow->getHeight());
+        mCamera = new Camera(0, mWindow);
+        mCamera->zFar = 1000.0f;
+        mCamera->maxPitch = 180;
+        mCamera->position = {-5, 2, 10 };
     }
 
     void Application::initLight() {
@@ -358,7 +358,7 @@ namespace gl {
         // setup mSunlight
         mSunlight = &mScene;
         mSunlight.value().color = {244, 233, 155, 0.01 };
-        mSunlight.value().position = {100, 100, 100, 0 };
+        mSunlight.value().position = {5, 5, 5, 0 };
         mSunlight.direction() = {0, 0, 0, 0 };
         // setup point lights
         for (auto& pointLight : mPointLights) {
@@ -374,8 +374,8 @@ namespace gl {
         mPointLights[3].value().color = glm::vec4 {0, 0, 0, 1 };
         // setup mFlashlight
         mFlashlight = &mScene;
-        mFlashlight.value().position = {mCamera.position, 0 };
-        mFlashlight.value().direction = {mCamera.front, 0 };
+        mFlashlight.value().position = { mCamera->position, 0 };
+        mFlashlight.value().direction = { mCamera->front, 0 };
         mFlashlight.value().color = {0, 0, 0, 0 };
         // update light buffers
         mPbrPipeline->updateSunlight(mSunlight.value());
@@ -431,7 +431,7 @@ namespace gl {
 
         delete mEntityControl;
 
-        mCamera.free();
+        delete mCamera;
 
 #ifdef IMGUI
         ImguiCore::free();
@@ -449,12 +449,12 @@ namespace gl {
     void Application::simulate() {
         float t = mBeginTime;
 
-        mCamera.move(mWindow, mDeltaTime);
-        mPbrPipeline->setCameraPos(mCamera.position);
+        mCamera->move(mWindow, mDeltaTime);
+        mPbrPipeline->setCameraPos(mCamera->position);
 
         // bind flashlight to camera
-        mFlashlight.value().position = { mCamera.position, 0 };
-        mFlashlight.value().direction = { mCamera.front, 0 };
+        mFlashlight.value().position = { mCamera->position, 0 };
+        mFlashlight.value().direction = { mCamera->front, 0 };
 
         // rotate object each frame
         float f = 0.05f;
@@ -464,10 +464,10 @@ namespace gl {
         mHuman.transform()->rotation.y += f * 4;
 
         // translate sunlight
-        float sunlightTranslate = 100 * sin(t);
-        mSunlight.value().position.x = sunlightTranslate;
-        mSunlight.value().position.z = sunlightTranslate;
-        mPbrPipeline->updateSunlight(mSunlight.value());
+//        float sunlightTranslate = 10 * sin(t);
+//        mSunlight.value().position.x = sunlightTranslate;
+//        mSunlight.value().position.z = sunlightTranslate;
+//        mPbrPipeline->updateSunlight(mSunlight.value());
 
         // translate point lights up/down
         std::array<PointLightUniform, 4> pointLightUniforms;
@@ -500,16 +500,20 @@ namespace gl {
 
     void Application::onWindowResize(int w, int h) {
         info("width={0}, height={1}", w, h);
+        mWindow->onResized(w, h);
     }
 
     void Application::onWindowMove(int x, int y) {
         info("x={0}, y={1}", x, y);
+        mWindow->onMoved(x, y);
     }
 
     void Application::onFramebufferResized(int w, int h) {
         info("width={0}, height={1}", w, h);
 
-        mCamera.resize(w, h);
+        mWindow->onFrameResized(w, h);
+
+        mCamera->resize(w, h);
 
         mScreenRenderer->resize(w, h);
         mHdrRenderer->resize(w, h);
@@ -554,12 +558,12 @@ namespace gl {
     }
 
     void Application::onMouseCursor(double x, double y) {
-        mCamera.look(x, y);
+        mCamera->look(x, y);
         mEntityControl->drag(x, y);
     }
 
     void Application::onMouseScroll(double x, double y) {
-        mCamera.zoom(x, y);
+        mCamera->zoom(x, y);
     }
 
     void Application::onEntitySelected(Entity entity, double x, double y) {

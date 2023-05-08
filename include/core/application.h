@@ -101,7 +101,7 @@ namespace gl {
 
         Scene mScene;
 
-        Camera mCamera;
+        Camera* mCamera = null;
 
         LightVisual mPointLightVisual;
 
