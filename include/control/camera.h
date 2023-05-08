@@ -14,24 +14,28 @@ namespace gl {
 
     struct Camera final {
         glm::ivec2 resolution = { 800, 600 };
+
         glm::vec3 position = { 0, 0, 10 };
         glm::vec3 front = { 0, 0, -1 };
         glm::vec3 up = { 0, 1, 0 };
+
         float pitch = 0;
         float maxPitch = 89;
         float yaw = 0;
         float roll = 0;
+
         float moveSpeed = 1.0f;
         float horizontalSensitivity = 0.15f;
         float verticalSensitivity = 0.30f;
+
         float fov = 45;
         float maxFov = 45;
         float zNear = 0.1f;
         float zFar = 100.0f;
 
-        bool enableLook = true;
-        bool enableZoom = true;
-        bool enableMove = true;
+        bool enableLook = false;
+        bool enableZoom = false;
+        bool enableMove = false;
 
         KEY keyMoveForward = KEY::W;
         KEY keyMoveLeft = KEY::A;

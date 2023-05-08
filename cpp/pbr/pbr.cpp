@@ -314,7 +314,6 @@ namespace gl {
     }
 
     PBR_DeferredRenderer::~PBR_DeferredRenderer() {
-        delete mSsaoRenderer;
         mGeometryShader.free();
         mGeometryFrame.free();
         mGeometryMsaaFrame.free();
@@ -323,7 +322,6 @@ namespace gl {
     }
 
     void PBR_DeferredRenderer::resize(int w, int h) {
-        mSsaoRenderer->resize(w, h);
         mGeometryFrame.resize(w, h);
         mGeometryMsaaFrame.resize(w, h);
         mLightFrame.resize(w, h);

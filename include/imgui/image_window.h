@@ -2,8 +2,6 @@
 
 #include <core/imgui_core.h>
 
-#include <api/image.h>
-
 namespace gl {
 
     struct ImageWindow final {
@@ -20,6 +18,9 @@ namespace gl {
         ) : title(title), imageBuffer(imageBuffer), resolution(resolution), position(position) {}
 
         void render();
+
+    private:
+        void end();
 
     private:
         bool mInitialized = false;

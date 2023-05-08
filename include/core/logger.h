@@ -79,7 +79,7 @@ private:
 #define error(msg) \
 { \
     std::stringstream ss; \
-    ss << __FUNCTION__ << ": " << msg << std::endl << "Error code line: " << __LINE__ << std::endl; \
+    ss << __FUNCTION__ << " (" << __FILE__ << " line:" << __LINE__ << "): " << msg << std::endl; \
     Logger::printError(ss.str()); \
 }
 

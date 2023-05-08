@@ -30,18 +30,30 @@ namespace gl {
 
     struct ScreenRenderer final {
 
-        ScreenRenderer();
+        ScreenRenderer(int width, int height);
         ~ScreenRenderer();
+
+        inline const ImageBuffer& getRenderTarget() const {
+            return mRenderTarget;
+        }
 
         inline ScreenParams& getParams() {
             return mShader.params;
         }
 
+        void resize(int width, int height);
+
         void updateGamma();
 
         void render();
+        void renderBackBuffer();
 
     private:
+        void renderInternal();
+
+    private:
+        ImageBuffer mRenderTarget;
+        FrameBuffer mFrame;
         ScreenShader mShader;
         DrawableQuad mDrawable;
     };

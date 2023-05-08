@@ -32,7 +32,9 @@
 
 #include <terrain/terrain.h>
 
-#include <imgui/screen_properties.h>
+#include <imgui/toolbar.h>
+#include <imgui/screen_window.h>
+#include <imgui/properties_window.h>
 
 namespace gl {
 
@@ -142,8 +144,6 @@ namespace gl {
         DirectLight mSunlight;
         std::array<PointLight, 4> mPointLights;
         SpotLight mFlashlight;
-
-        ImguiCore* mImgui = null;
     };
 
 }

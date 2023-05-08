@@ -76,18 +76,16 @@ namespace gl {
     }
 
     void Application::initImgui() {
-        mImgui = new ImguiCore(mWindow, "#version 460 core");
-        mImgui->setIniFilename(mTitle);
-        mImgui->addFont("fonts/Roboto-Regular.ttf", 14.0f);
-
-        ScreenProperties::title = "Screen Properties";
-        ScreenProperties::resolution = { 256, 256 };
-        ScreenProperties::position = { 0, 0 };
-        ScreenProperties::screenRenderer = mScreenRenderer;
-        ScreenProperties::hdrRenderer = mHdrRenderer;
-        ScreenProperties::blurRenderer = mBlurRenderer;
-        ScreenProperties::bloomRenderer = mBloomRenderer;
-        ScreenProperties::ssaoRenderer = mSsaoRenderer;
+        ImguiCore::init(mWindow, "#version 460 core");
+        ImguiCore::setIniFilename(mTitle);
+        ImguiCore::addFont("fonts/Roboto-Regular.ttf", 16.0f);
+        ImguiCore::screenRenderer = mScreenRenderer;
+        ImguiCore::hdrRenderer = mHdrRenderer;
+        ImguiCore::blurRenderer = mBlurRenderer;
+        ImguiCore::bloomRenderer = mBloomRenderer;
+        ImguiCore::ssaoRenderer = mSsaoRenderer;
+        ImguiCore::camera = &mCamera;
+        ImguiCore::scene = &mScene;
     }
 
     void Application::initScene() {
@@ -307,7 +305,7 @@ namespace gl {
     }
 
     void Application::initApi() {
-        mScreenRenderer = new ScreenRenderer();
+        mScreenRenderer = new ScreenRenderer(mWidth, mHeight);
 
         mHdrRenderer = new HdrRenderer(mWidth, mHeight);
         mHdrRenderer->isEnabled = true;
@@ -436,7 +434,7 @@ namespace gl {
         mCamera.free();
 
 #ifdef IMGUI
-        delete mImgui;
+        ImguiCore::free();
 #endif
 
         delete mDevice;
@@ -512,13 +510,17 @@ namespace gl {
         info("width=" << w << ", height=" << h)
 
         mCamera.resize(w, h);
+
+        mScreenRenderer->resize(w, h);
+        mHdrRenderer->resize(w, h);
+        mBlurRenderer->resize(w, h);
+        mBloomRenderer->resize(w, h);
+        mSsaoRenderer->resize(w, h);
+
+        mShadowPipeline->resize(w, h);
         mPbrPipeline->resize(w, h);
         mUiPipeline->resize(w, h);
         mVisualsPipeline->resize(w, h);
-        mHdrRenderer->resize(w, h);
-        mBloomRenderer->resize(w, h);
-        mBlurRenderer->resize(w, h);
-        mShadowPipeline->resize(w, h);
     }
 
     void Application::onKeyPress(int key) {
@@ -530,8 +532,6 @@ namespace gl {
         if (key == KEY::F)
             mWindow->toggleWindowMode();
 
-        if (key == KEY::C)
-            mCamera.enableLook = !mCamera.enableLook;
     }
 
     void Application::onKeyRelease(int key) {
@@ -664,20 +664,20 @@ namespace gl {
         mUiPipeline->render();
         mScreenRenderer->getParams().uiBuffer = mUiPipeline->getRenderTarget();
 
-#ifdef DEBUG
         mVisualsPipeline->render();
         mScreenRenderer->getParams().visualsBuffer = mVisualsPipeline->getRenderTarget();
-#endif
 
         renderPostFX();
 
         renderDebugScreen();
 
-        mScreenRenderer->render();
-
 #ifdef IMGUI
+        mScreenRenderer->render();
         renderImgui();
+#else
+        mScreenRenderer->renderBackBuffer();
 #endif
+
     }
 
     void Application::initText() {
@@ -693,10 +693,16 @@ namespace gl {
     }
 
     void Application::renderImgui() {
-        mImgui->begin();
+        ImguiCore::begin();
 
-        ScreenProperties::render();
+        Toolbar::render();
+        ScreenWindow::render();
+        PropertiesWindow::render();
 
-        mImgui->end();
+        ImguiCore::end();
+
+        if (ImguiCore::close) {
+            mWindow->close();
+        }
     }
 }

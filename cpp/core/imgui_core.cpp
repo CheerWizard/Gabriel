@@ -9,15 +9,37 @@
 
 namespace gl {
 
-    ImguiCore::ImguiCore(Window* window, const char* shaderLangVersion) : mWindow(window) {
+    Window* ImguiCore::window;
+    ImGuiIO* ImguiCore::IO;
+    bool ImguiCore::close = false;
+
+    ImGuiID ImguiCore::dockspaceId;
+    ImGuiDockNodeFlags ImguiCore::dockspaceFlags = ImGuiDockNodeFlags_None;
+
+    ScreenRenderer* ImguiCore::screenRenderer = null;
+    HdrRenderer* ImguiCore::hdrRenderer = null;
+    BlurRenderer* ImguiCore::blurRenderer = null;
+    BloomRenderer* ImguiCore::bloomRenderer = null;
+    SsaoRenderer* ImguiCore::ssaoRenderer = null;
+
+    Camera* ImguiCore::camera = null;
+
+    Scene* ImguiCore::scene = null;
+
+    void ImguiCore::init(Window* window, const char* shaderLangVersion) {
+        ImguiCore::window = window;
+
         // Setup context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
 
         // Setup input configs
-        mIO = &ImGui::GetIO();
-        mIO->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        mIO->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+        IO = &ImGui::GetIO();
+        IO->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        IO->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+        IO->ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking Space
+        IO->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Viewports
+        IO->ConfigDockingWithShift = false;
 
         // Setup style
         ImGui::StyleColorsLight();
@@ -27,7 +49,7 @@ namespace gl {
         ImGui_ImplOpenGL3_Init(shaderLangVersion);
     }
 
-    ImguiCore::~ImguiCore() {
+    void ImguiCore::free() {
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
@@ -42,14 +64,75 @@ namespace gl {
     void ImguiCore::end() {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        GLFWwindow* backupWindow = glfwGetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(backupWindow);
     }
 
     void ImguiCore::addFont(const char* filepath, float size) {
-        mIO->Fonts->AddFontFromFileTTF(filepath, size);
+        IO->Fonts->AddFontFromFileTTF(filepath, size);
     }
 
     void ImguiCore::setIniFilename(const char* iniFilename) {
-        mIO->IniFilename = iniFilename;
+        IO->IniFilename = iniFilename;
+    }
+
+    std::string ImguiCore::ID(const std::vector<const char*> &str) {
+        std::stringstream ss;
+        ss << "##";
+        for (auto& s : str) {
+            ss << s;
+        }
+        return ss.str();
+    }
+
+    bool ImguiCore::Checkbox(const char* label, bool &v, const char* fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::Checkbox(IMGUI_ID(label), &v);
+    }
+
+    bool ImguiCore::InputInt(const char* label, int &v, int step, const char* fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+
+        bool updated = ImGui::InputInt(IMGUI_ID(label), &v);
+        ImGui::SameLine();
+
+        if (ImGui::ArrowButton(IMGUI_ID(label, "_LeftArrow"), ImGuiDir_Left)) {
+            v -= step;
+            updated = true;
+        }
+        ImGui::SameLine();
+
+        if (ImGui::ArrowButton(IMGUI_ID(label, "_RightArrow"), ImGuiDir_Right)) {
+            v += step;
+            updated = true;
+        }
+
+        return updated;
+    }
+
+    bool ImguiCore::InputFloat(const char* label, float &v, float step, const char *fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+
+        bool updated = ImGui::InputFloat(IMGUI_ID(label), &v);
+        ImGui::SameLine();
+
+        if (ImGui::ArrowButton(IMGUI_ID(label, "_LeftArrow"), ImGuiDir_Left)) {
+            v -= step;
+            updated = true;
+        }
+        ImGui::SameLine();
+
+        if (ImGui::ArrowButton(IMGUI_ID(label, "_RightArrow"), ImGuiDir_Right)) {
+            v += step;
+            updated = true;
+        }
+
+        return updated;
     }
 
 }
