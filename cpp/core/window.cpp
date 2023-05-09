@@ -1,5 +1,7 @@
 #include <core/window.h>
 
+#include <api/image.h>
+
 #include <unordered_map>
 
 namespace gl {
@@ -7,15 +9,19 @@ namespace gl {
     Window::Window(
             int x, int y,
             int width, int height,
-            const char* title, WindowFlags flags,
+            const char* title,
+            bool enableFullscreen,
+            bool enableVSync,
             int majorVersion, int minorVersion, int profileVersion
     ) :
-    mX(x), mY(y),
-    mWidth(width), mHeight(height),
-    mTitle(title), mFlags(flags),
-    mWindowModeX(x), mWindowModeY(y),
-    mWindowModeWidth(width), mWindowModeHeight(height),
-    mMajorVersion(majorVersion), mMinorVersion(minorVersion), mProfileVersion(profileVersion)
+            mX(x), mY(y),
+            mWidth(width), mHeight(height),
+            mTitle(title),
+            mEnableFullscreen(enableFullscreen),
+            mEnableVSync(enableVSync),
+            mWindowModeX(x), mWindowModeY(y),
+            mWindowModeWidth(width), mWindowModeHeight(height),
+            mMajorVersion(majorVersion), mMinorVersion(minorVersion), mProfileVersion(profileVersion)
     {
 
         int status = glfwInit();
@@ -50,14 +56,7 @@ namespace gl {
             assert(false);
         }
 
-        glfwMakeContextCurrent(mHandle);
-
-        if (flags & WindowFlags::Fullscreen)
-            setFullScreen();
-        else
-            setWindowed();
-
-        glfwSwapInterval(flags & WindowFlags::Sync);
+        setContext();
     }
 
     Window::~Window() {
@@ -68,12 +67,12 @@ namespace gl {
     void Window::setContext() {
         glfwMakeContextCurrent(mHandle);
 
-        if (mFlags & WindowFlags::Fullscreen)
+        if (mEnableFullscreen)
             setFullScreen();
         else
             setWindowed();
 
-        glfwSwapInterval(mFlags & WindowFlags::Sync);
+        glfwSwapInterval(mEnableVSync);
     }
 
     void Window::setFullScreen() {
@@ -90,8 +89,8 @@ namespace gl {
         mY = mWindowModeY;
         mWidth = mWindowModeWidth;
         mHeight = mWindowModeHeight;
-        auto& refresh_rate = mVideoModes[mPrimaryMonitor]->refreshRate;
-        glfwSetWindowMonitor(mHandle, null, mX, mY, mWidth, mHeight, refresh_rate);
+        auto& refreshRate = mVideoModes[mPrimaryMonitor]->refreshRate;
+        glfwSetWindowMonitor(mHandle, null, mX, mY, mWidth, mHeight, refreshRate);
     }
 
     void Window::toggleWindowMode() {
@@ -102,12 +101,20 @@ namespace gl {
             setWindowed();
     }
 
-    void Window::enableSync() {
+    void Window::enableVSync() {
         glfwSwapInterval(true);
     }
 
-    void Window::disableSync() {
+    void Window::disableVSync() {
         glfwSwapInterval(false);
+    }
+
+    void Window::toggleVSync() {
+        mEnableVSync = !mEnableVSync;
+        if (mEnableVSync)
+            enableVSync();
+        else
+            disableVSync();
     }
 
     void Window::poll() {
@@ -185,6 +192,16 @@ namespace gl {
 
     const char** Window::getExtensions(u32* count) {
         return glfwGetRequiredInstanceExtensions(count);
+    }
+
+    void Window::loadIcon(const char* filepath) {
+        Image image = ImageReader::read(filepath);
+        mIcon.width = image.width;
+        mIcon.height = image.height;
+        mIcon.pixels = (u8*) malloc(image.size());
+        memcpy(mIcon.pixels, image.pixels, image.size());
+        image.free();
+        glfwSetWindowIcon(mHandle, 1, &mIcon);
     }
 
 }

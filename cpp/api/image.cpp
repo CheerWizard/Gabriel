@@ -124,6 +124,10 @@ namespace gl {
         }
     }
 
+    size_t Image::size() {
+        return width * height * channels;
+    }
+
     void ImageBuffer::init() {
         glGenTextures(1, &id);
     }

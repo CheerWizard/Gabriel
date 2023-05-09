@@ -51,5 +51,7 @@ replace_dirs(images images)
 replace_dirs(models models)
 replace_dirs(fonts fonts)
 
+configure_file(Gabriel_Logo.png Gabriel_Logo.png COPYONLY)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm spdlog)
 dynamic_link(${PROJECT_NAME} vendor/libs)

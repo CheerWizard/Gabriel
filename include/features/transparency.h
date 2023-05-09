@@ -9,6 +9,8 @@
 
 namespace gl {
 
+    component(Transparency) {};
+
     struct TransparentBuffer final {
         ImageBuffer accumulation;
         ImageBuffer revealage;

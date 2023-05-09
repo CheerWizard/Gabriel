@@ -1,11 +1,8 @@
 #include <imgui/toolbar.h>
 
-namespace gl {
+#include <imgui_internal.h>
 
-    static bool showHDRImage = false;
-    static bool showBlurImage = false;
-    static bool showBloomImage = false;
-    static bool showSSAOImage = false;
+namespace gl {
 
     static ImageWindow hdrImage = { "HDR Viewport", InvalidImageBuffer };
     static ImageWindow blurImage = { "Blur Viewport", InvalidImageBuffer };
@@ -13,22 +10,22 @@ namespace gl {
     static ImageWindow ssaoImage = { "SSAO Viewport", InvalidImageBuffer };
 
     void Viewports::render() {
-        if (showHDRImage) {
+        if (hdrImage.show) {
             hdrImage.imageBuffer = ImguiCore::hdrRenderer->getRenderTarget();
             hdrImage.render();
         }
 
-        if (showBlurImage) {
+        if (blurImage.show) {
             blurImage.imageBuffer = ImguiCore::blurRenderer->getRenderTarget();
             blurImage.render();
         }
 
-        if (showBloomImage) {
+        if (bloomImage.show) {
             bloomImage.imageBuffer = ImguiCore::bloomRenderer->getRenderTarget();
             bloomImage.render();
         }
 
-        if (showSSAOImage) {
+        if (ssaoImage.show) {
             ssaoImage.imageBuffer = ImguiCore::ssaoRenderer->getRenderTarget();
             ssaoImage.render();
         }
@@ -36,10 +33,10 @@ namespace gl {
 
     void ViewportsMenu::render() {
         if (ImGui::BeginMenu("Viewports")) {
-            ImGui::MenuItem("HDR", null, &showHDRImage);
-            ImGui::MenuItem("Blur", null, &showBlurImage);
-            ImGui::MenuItem("Bloom", null, &showBloomImage);
-            ImGui::MenuItem("SSAO", null, &showSSAOImage);
+            ImGui::MenuItem("HDR", null, &hdrImage.show);
+            ImGui::MenuItem("Blur", null, &blurImage.show);
+            ImGui::MenuItem("Bloom", null, &bloomImage.show);
+            ImGui::MenuItem("SSAO", null, &ssaoImage.show);
             ImGui::EndMenu();
         }
     }
@@ -61,14 +58,42 @@ namespace gl {
         windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         windowFlags |= ImGuiWindowFlags_NoBackground;
 
-        ImGui::Begin("Dockspace", &open, windowFlags);
+        ImGui::Begin("DockSpace", &open, windowFlags);
+        ImGuiID dsId = ImGui::GetID("Dashboard");
+        ImguiCore::dockspaceId = dsId;
+        if (!ImGui::DockBuilderGetNode(dsId)) {
+            ImGui::DockBuilderRemoveNode(dsId);
+            ImGui::DockBuilderAddNode(dsId);
 
-        ImguiCore::dockspaceId = ImGui::GetID("DockSpace");
-        ImGui::DockSpace(ImguiCore::dockspaceId, ImVec2(0.0f, 0.0f), ImguiCore::dockspaceFlags);
+            ImGuiID dsIdCopy = dsId;
+            ImGuiID dsIdLeft = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Left, 0.0f, NULL, &dsIdCopy);
+            ImGuiID dsIdRight = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Right, 0.0f, NULL, &dsIdCopy);
+            ImGuiID dsIdUp = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Up, 0.0f, NULL, &dsIdCopy);
+            ImGuiID dsIdDown = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Down, 0.0f, NULL, &dsIdCopy);
+
+            if (ImguiCore::dockLeft) {
+                ImGui::DockBuilderDockWindow(ImguiCore::dockLeft, dsIdLeft);
+            }
+
+            if (ImguiCore::dockRight) {
+                ImGui::DockBuilderDockWindow(ImguiCore::dockRight, dsIdRight);
+            }
+
+            if (ImguiCore::dockUp) {
+                ImGui::DockBuilderDockWindow(ImguiCore::dockUp, dsIdUp);
+            }
+
+            if (ImguiCore::dockDown) {
+                ImGui::DockBuilderDockWindow(ImguiCore::dockDown, dsIdDown);
+            }
+
+            ImGui::DockBuilderFinish(dsId);
+        }
+        ImGui::DockSpace(dsId, ImVec2(0.0f, 0.0f), ImguiCore::dockspaceFlags);
 
         if (ImGui::BeginMenuBar()) {
 
-            if (ImGui::BeginMenu("Main")) {
+            if (ImGui::BeginMenu("Docking")) {
                 if (ImGui::MenuItem("NoSplit Mode", null, (ImguiCore::dockspaceFlags & ImGuiDockNodeFlags_NoSplit) != 0)) {
                     ImguiCore::dockspaceFlags ^= ImGuiDockNodeFlags_NoSplit;
                 }

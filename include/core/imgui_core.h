@@ -23,22 +23,24 @@ namespace gl {
 
     struct ImguiCore final {
 
-        static Window* window;
         static ImGuiIO* IO;
         static bool close;
-
         static ImGuiID dockspaceId;
         static ImGuiDockNodeFlags dockspaceFlags;
+        static const char* dockLeft;
+        static const char* dockRight;
+        static const char* dockUp;
+        static const char* dockDown;
+
+        static Window* window;
+        static Camera* camera;
+        static Scene* scene;
 
         static ScreenRenderer* screenRenderer;
         static HdrRenderer* hdrRenderer;
         static BlurRenderer* blurRenderer;
         static BloomRenderer* bloomRenderer;
         static SsaoRenderer* ssaoRenderer;
-
-        static Camera* camera;
-
-        static Scene* scene;
 
         static void init(Window* window, const char* shaderLangVersion = "#version 460 core");
         static void free();

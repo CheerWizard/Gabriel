@@ -1,6 +1,5 @@
-#include <api/debugger.h>
-
-#include <core/debug_break.h>
+#include <debugging/debugger.h>
+#include <debugging/debug_break.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>

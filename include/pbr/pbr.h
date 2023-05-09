@@ -36,8 +36,6 @@ namespace gl {
     component(PBR_SkeletalComponent_ForwardCull) {};
     component(PBR_SkeletalComponent_DeferredCull) {};
 
-    component(PBR_Component_Transparent) {};
-
     struct PBR_Entity : Entity {
 
         PBR_Entity() : Entity() {}

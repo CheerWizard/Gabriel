@@ -47,6 +47,8 @@ namespace gl {
         glm::vec4 getColor(int x, int y);
 
         void setFormat();
+
+        size_t size();
     };
 
     struct ImageFace final {

@@ -6,8 +6,8 @@ namespace gl {
         error("Error code: {0}\nError message: {1}", code, message);
     }
 
-    Application::Application(const char* title, int width, int height)
-    : mTitle(title), mWidth(width), mHeight(height) {
+    Application::Application(const char* title, int width, int height, const char* logoName)
+    : mTitle(title), mWidth(width), mHeight(height), mLogoName(logoName) {
 #ifdef DEBUG
         initLogger();
 #endif
@@ -28,7 +28,8 @@ namespace gl {
 
     void Application::run() {
         while (mRunning) {
-            mBeginTime = glfwGetTime();
+            Timer::begin();
+
             mRunning = mWindow->isOpen();
 
             mWindow->poll();
@@ -39,7 +40,7 @@ namespace gl {
 
             mWindow->swap();
 
-            mDeltaTime = ((float)glfwGetTime() - mBeginTime) * 1000;
+            Timer::end();
 
             printDt();
         }
@@ -54,9 +55,7 @@ namespace gl {
         mWindow = new Window(
                 0, 0,
                 mWidth, mHeight,
-                mTitle,
-                WindowFlags::Sync,
-                4, 6, GLFW_OPENGL_CORE_PROFILE
+                mTitle
         );
         mWindow->initCallbacks<Application>(this);
         mWindow->setWindowCloseCallback<Application>();
@@ -67,6 +66,8 @@ namespace gl {
         mWindow->setMouseCallback<Application>();
         mWindow->setMouseCursorCallback<Application>();
         mWindow->setMouseScrollCallback<Application>();
+
+        mWindow->loadIcon(mLogoName);
 
         mDevice = new Device(mWidth, mHeight);
 
@@ -350,14 +351,14 @@ namespace gl {
         // setup light presentation
         CubeDefault().init(mPointLightVisual.drawable);
         // setup environment
-        mPbrPipeline->env.resolution = {1024, 1024 };
-        mPbrPipeline->env.prefilterResolution = {512, 512 };
+        mPbrPipeline->env.resolution = { 1024, 1024 };
+        mPbrPipeline->env.prefilterResolution = { 512, 512 };
         mPbrPipeline->env.init();
         mPbrPipeline->initHdrEnv("images/hdr/Arches_E_PineTree_3k.hdr", true);
         mPbrPipeline->generateEnv();
         // setup mSunlight
         mSunlight = &mScene;
-        mSunlight.value().color = {244, 233, 155, 0.01 };
+        mSunlight.value().color = {244, 233, 155, 0 };
         mSunlight.value().position = {5, 5, 5, 0 };
         mSunlight.direction() = {0, 0, 0, 0 };
         // setup point lights
@@ -447,9 +448,9 @@ namespace gl {
     }
 
     void Application::simulate() {
-        float t = mBeginTime;
+        float t = Timer::getBeginMillis();
 
-        mCamera->move(mWindow, mDeltaTime);
+        mCamera->move(mWindow, Timer::getDeltaMillis());
         mPbrPipeline->setCameraPos(mCamera->position);
 
         // bind flashlight to camera
@@ -490,7 +491,7 @@ namespace gl {
         mPrintLimiter++;
         if (mPrintLimiter > 100) {
             mPrintLimiter = 0;
-            printFPS(mDeltaTime);
+            printFPS(Timer::getDeltaMillis());
         }
     }
 
@@ -599,13 +600,13 @@ namespace gl {
         if (mHdrRenderer->isEnabled) {
             mHdrRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().sceneBuffer;
             mHdrRenderer->render();
-            mScreenRenderer->getParams().sceneBuffer = mHdrRenderer->getParams().sceneBuffer;
+            mScreenRenderer->getParams().sceneBuffer = mHdrRenderer->getRenderTarget();
         }
         // Blur effect
         if (mBlurRenderer->isEnabled) {
             mBlurRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().sceneBuffer;
             mBlurRenderer->render();
-            mScreenRenderer->getParams().sceneBuffer = mBlurRenderer->getParams().sceneBuffer;
+            mScreenRenderer->getParams().sceneBuffer = mBlurRenderer->getRenderTarget();
         }
     }
 

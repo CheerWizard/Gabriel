@@ -3,12 +3,10 @@
 namespace gl {
 
     void ImageWindow::render() {
-        static bool open = true;
-
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-        if (!ImGui::Begin(title, &open)) {
+        if (!ImGui::Begin(title, &show, windowFlags)) {
             end();
             return;
         }

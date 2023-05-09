@@ -17,6 +17,10 @@ namespace gl {
 
     ImGuiID ImguiCore::dockspaceId;
     ImGuiDockNodeFlags ImguiCore::dockspaceFlags = ImGuiDockNodeFlags_None;
+    const char* ImguiCore::dockLeft = null;
+    const char* ImguiCore::dockRight = null;
+    const char* ImguiCore::dockUp = null;
+    const char* ImguiCore::dockDown = null;
 
     ScreenRenderer* ImguiCore::screenRenderer = null;
     HdrRenderer* ImguiCore::hdrRenderer = null;

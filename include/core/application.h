@@ -2,6 +2,7 @@
 
 #include <core/window.h>
 #include <core/imgui_core.h>
+#include <core/timer.h>
 
 #include <debugging/visuals.h>
 
@@ -41,7 +42,7 @@ namespace gl {
     class Application final {
 
     public:
-        Application(const char* title, int width, int height);
+        Application(const char* title, int width, int height, const char* logoName);
         ~Application();
 
         void run();
@@ -89,11 +90,10 @@ namespace gl {
 
     private:
         const char* mTitle;
+        const char* mLogoName;
         int mWidth;
         int mHeight;
         bool mRunning = true;
-        float mDeltaTime = 6;
-        float mBeginTime = 0;
 
         Window* mWindow = null;
         Device* mDevice = null;

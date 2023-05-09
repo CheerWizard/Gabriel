@@ -12,12 +12,6 @@
 
 namespace gl {
 
-    enum WindowFlags : u8 {
-        None = 0,
-        Sync = 1,
-        Fullscreen = 2
-    };
-
     struct Cursor final {
         double x = 0;
         double y = 0;
@@ -28,7 +22,9 @@ namespace gl {
         Window(
                 int x, int y,
                 int width, int height,
-                const char* title, WindowFlags flags = WindowFlags::None,
+                const char* title,
+                bool enableFullscreen = false,
+                bool enableVSync = true,
                 int majorVersion = 4, int minorVersion = 6, int profileVersion = GLFW_OPENGL_CORE_PROFILE
         );
         ~Window();
@@ -69,14 +65,27 @@ namespace gl {
             return (float) mFrameWidth / (float) mFrameHeight;
         }
 
+        [[nodiscard]] inline int getRefreshRate() {
+            return mVideoModes[mPrimaryMonitor]->refreshRate;
+        }
+
+        [[nodiscard]] inline bool getVSync() const {
+            return mEnableVSync;
+        }
+
+        [[nodiscard]] inline bool getFullscreen() const {
+            return mEnableFullscreen;
+        }
+
         void setContext();
 
         void setFullScreen();
         void setWindowed();
         void toggleWindowMode();
 
-        void enableSync();
-        void disableSync();
+        void enableVSync();
+        void disableVSync();
+        void toggleVSync();
 
         void poll();
         void swap();
@@ -133,8 +142,11 @@ namespace gl {
         template<typename T>
         void setMouseScrollCallback();
 
+        void loadIcon(const char* filepath);
+
     private:
         GLFWwindow* mHandle;
+        GLFWimage mIcon;
 
         const int mMajorVersion;
         const int mMinorVersion;
@@ -152,8 +164,8 @@ namespace gl {
         GLFWmonitor* mPrimaryMonitor;
         std::unordered_map<GLFWmonitor*, const GLFWvidmode*> mVideoModes;
 
-        WindowFlags mFlags;
         bool mEnableFullscreen = false;
+        bool mEnableVSync = false;
     };
 
     template<typename T>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <api/debugger.h>
+#include <debugging/debugger.h>
 #include <api/viewport.h>
 
 namespace gl {

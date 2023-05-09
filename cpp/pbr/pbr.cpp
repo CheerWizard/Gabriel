@@ -500,7 +500,7 @@ namespace gl {
     }
 
     void PBR_Pipeline::resize(int width, int height) {
-        mResolution = {width, height };
+        mResolution = { width, height };
 
         mPbrForwardRenderer->resize(width, height);
         mPbrDeferredRenderer->resize(width, height);
@@ -603,8 +603,8 @@ namespace gl {
 
         // render transparent objects
         mTransparentRenderer->begin();
-        scene->eachComponent<PBR_Component_Transparent>([this](PBR_Component_Transparent* component) {
-            EntityID entityId = component->entityId;
+        scene->eachComponent<Transparency>([this](Transparency* transparency) {
+            EntityID entityId = transparency->entityId;
             mTransparentRenderer->render(
                     entityId,
                     *scene->getComponent<Transform>(entityId),

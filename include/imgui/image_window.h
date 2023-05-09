@@ -9,6 +9,8 @@ namespace gl {
         glm::vec2 resolution;
         glm::vec2 position;
         ImageBuffer imageBuffer;
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+        bool show = false;
 
         ImageWindow(
                 const char* title,
