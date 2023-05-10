@@ -29,7 +29,6 @@ namespace gl {
             pInitialized = true;
             ImGui::SetWindowPos({ position.x, position.y });
             ImGui::SetWindowSize({ resolution.x, resolution.y });
-            ImguiCore::dockRight = title;
         }
 
         if (ImGui::BeginTabBar(title)) {

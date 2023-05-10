@@ -30,11 +30,10 @@ namespace gl {
         mFrame.rbo = { w, h };
         mFrame.rbo.init();
 
-        mFrame.colors = {uiColor };
+        mFrame.colors = { uiColor };
         mFrame.init();
         mFrame.attachColors();
         mFrame.attachRenderBuffer();
-
         mFrame.complete();
 
         mRenderTarget = mFrame.colors[0].buffer;
@@ -42,6 +41,7 @@ namespace gl {
 
     void UI_Pipeline::render() {
         mFrame.bind();
+        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
 

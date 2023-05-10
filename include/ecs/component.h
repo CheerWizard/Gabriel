@@ -20,4 +20,11 @@ namespace gl {
 
     #define component(type) struct type : gl::Component<type>
 
+    component(Tag) {
+        std::string buffer;
+
+        Tag(const char* buffer) : buffer(buffer) {}
+        Tag(const std::string& buffer) : buffer(buffer) {}
+    };
+
 }

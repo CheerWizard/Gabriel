@@ -15,10 +15,10 @@ namespace gl {
 
     template<typename T>
     struct RectVertices {
-        T v0 = { { 0.5f, 0.5f } };
-        T v1 = { { 0.5f, -0.5f } };
-        T v2 = { { -0.5f, -0.5f } };
-        T v3 = { { -0.5, 0.5f } };
+        T v0 = { { -0.5f, -0.5f } };
+        T v1 = { { -0.5f, 0.5f } };
+        T v2 = { { 0.5f, 0.5f } };
+        T v3 = { { 0.5, -0.5f } };
 
         inline size_t size() const { return sizeof(RectVertices<T>); }
         inline float* toFloat() const { return (float*) &v0.pos.x; }
@@ -28,8 +28,8 @@ namespace gl {
     struct Rect {
         RectVertices<T> vertices;
         u32 indices[6] = {
-                0, 1, 3,
-                1, 2, 3
+                0, 1, 2,
+                0, 2, 3
         };
 
         void init(DrawableElements& drawable);

@@ -17,8 +17,8 @@ vec3 R;
 const float PI = 3.14159265359;
 
 struct LightPhong {
-    vec3 position; // vec3 position
-    vec4 color;  // vec3 color + float refraction
+    vec3 position;
+    vec4 color;
 };
 
 struct LightDirectional {
@@ -28,7 +28,7 @@ struct LightDirectional {
 
 struct LightPoint {
     vec3 position;
-    vec3 color;
+    vec4 color;
     float constant;
     float linear;
     float quadratic;
@@ -38,7 +38,7 @@ struct LightPoint {
 struct LightSpot {
     vec3 position;
     vec3 direction;
-    vec3 color;
+    vec4 color;
     float cutoff;
     float outer;
     float refraction;
@@ -284,7 +284,7 @@ vec3 pbr(LightPoint light_point, vec3 albedo, float metallic, float roughness)
 {
     vec3 light_pos = light_point.position;
     vec3 light_dir = normalize(light_pos - w_pos);
-    vec3 light_color = light_point.color;
+    vec3 light_color = light_point.color.rgb * light_point.color.a;
     float constant  = light_point.constant;
     float linear    = light_point.linear;
     float quadratic = light_point.quadratic;
@@ -299,7 +299,7 @@ vec3 pbr(LightSpot light_spot, vec3 albedo, float metallic, float roughness)
 {
     vec3 light_pos = light_spot.position;
     vec3 light_dir = normalize(light_pos - w_pos);
-    vec3 light_color = light_spot.color;
+    vec3 light_color = light_spot.color.rgb * light_spot.color.a;
     vec3 spot_dir       = normalize(-light_spot.direction);
     float theta         = dot(light_dir, spot_dir);
     float cutoff        = light_spot.cutoff;

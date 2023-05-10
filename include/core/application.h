@@ -36,6 +36,8 @@
 #include <imgui/toolbar.h>
 #include <imgui/screen_window.h>
 #include <imgui/properties_window.h>
+#include <imgui/entity_window.h>
+#include <imgui/component_window.h>
 
 namespace gl {
 

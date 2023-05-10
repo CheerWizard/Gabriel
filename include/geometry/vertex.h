@@ -30,8 +30,8 @@ namespace gl {
     };
 
     namespace Attributes {
-        static constexpr Attribute POS3 = {0, Vec3 };
         static constexpr Attribute POS2 = {0, Vec2 };
+        static constexpr Attribute POS3 = {0, Vec3 };
         static constexpr Attribute UV = {1, Vec2 };
         static constexpr Attribute NORMAL = {2, Vec3 };
         static constexpr Attribute TANGENT = {3, Vec3 };

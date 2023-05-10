@@ -8,9 +8,9 @@ namespace gl {
 
         Entity() = default;
 
-        Entity(Scene* scene) : scene(scene) {
-            id = scene->createEntity();
-        }
+        Entity(Scene* scene);
+
+        Entity(EntityID id, Scene* scene) : id(id), scene(scene) {}
 
         virtual void free();
 
@@ -39,6 +39,10 @@ namespace gl {
 
         template<typename T>
         bool invalidComponent();
+
+        inline bool operator ==(const Entity& other) const {
+            return id == other.getId();
+        }
 
     protected:
         EntityID id = InvalidEntity;

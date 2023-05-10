@@ -85,10 +85,18 @@ namespace gl {
         glm::vec4 position = { 0, 0, 0, 0 };
         glm::vec4 direction = { -0.2f, -1.0f, -0.3f, 0 };
         glm::vec4 color = { 1, 1, 1, 1 };
-        float cutoff = glm::cos(glm::radians(6.5f));
-        float outer = glm::cos(glm::radians(11.5f));
+        float cutoff = 6.5f;
+        float outer = 11.5f;
         float refraction = 1;
         float pad = 0;
+
+        inline void setCutOff(float cutoff) {
+            this->cutoff = glm::cos(glm::radians(cutoff));
+        }
+
+        inline void setOuter(float outer) {
+            this->outer = glm::cos(glm::radians(outer));
+        }
     };
 
     component(SpotLightComponent) {

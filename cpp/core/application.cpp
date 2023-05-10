@@ -79,7 +79,9 @@ namespace gl {
     void Application::initImgui() {
         ImguiCore::init(mWindow, "#version 460 core");
         ImguiCore::setIniFilename(mTitle);
-        ImguiCore::addFont("fonts/Roboto-Regular.ttf", 16.0f);
+        ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 16.0f);
+        ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 16.0f);
+        ImguiCore::setFont(ImguiCore::regularFont);
         ImguiCore::screenRenderer = mScreenRenderer;
         ImguiCore::hdrRenderer = mHdrRenderer;
         ImguiCore::blurRenderer = mBlurRenderer;
@@ -358,7 +360,7 @@ namespace gl {
         mPbrPipeline->generateEnv();
         // setup mSunlight
         mSunlight = &mScene;
-        mSunlight.value().color = {244, 233, 155, 0 };
+        mSunlight.value().color = { 244, 233, 155, 0.1 };
         mSunlight.value().position = {5, 5, 5, 0 };
         mSunlight.direction() = {0, 0, 0, 0 };
         // setup point lights
@@ -366,13 +368,13 @@ namespace gl {
             pointLight = &mScene;
         }
         mPointLights[0].value().position = {-4, 2, 0, 1 };
-        mPointLights[0].value().color = glm::vec4 {0, 0, 0, 1 };
+        mPointLights[0].value().color = glm::vec4 {0, 0, 0, 0 };
         mPointLights[1].value().position = {4, 3, 0, 1 };
-        mPointLights[1].value().color = glm::vec4 {0, 0, 0, 1 };
+        mPointLights[1].value().color = glm::vec4 {0, 0, 0, 0 };
         mPointLights[2].value().position = {-4, 4, 8, 1 };
-        mPointLights[2].value().color = glm::vec4 {0, 0, 0, 1 };
+        mPointLights[2].value().color = glm::vec4 {0, 0, 0, 0 };
         mPointLights[3].value().position = {4, 5, 8, 1 };
-        mPointLights[3].value().color = glm::vec4 {0, 0, 0, 1 };
+        mPointLights[3].value().color = glm::vec4 {0, 0, 0, 0 };
         // setup mFlashlight
         mFlashlight = &mScene;
         mFlashlight.value().position = { mCamera->position, 0 };
@@ -648,11 +650,11 @@ namespace gl {
         }
 
         else if (mWindow->isKeyPress(KEY::D0)) {
-            mScreenRenderer->getParams().uiBuffer = mUiPipeline->getRenderTarget();
+            mScreenRenderer->getParams().sceneBuffer = mUiPipeline->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::P)) {
-            mScreenRenderer->getParams().visualsBuffer = mVisualsPipeline->getRenderTarget();
+            mScreenRenderer->getParams().sceneBuffer = mVisualsPipeline->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::T)) {
@@ -693,8 +695,8 @@ namespace gl {
         mFontRobotoRegular->saveWidths("fonts/Roboto-Regular.widths");
 
         mTextLabel = &mScene;
-        mTextLabel.addComponent<Text3d>(mFontRobotoRegular, "Hello World!");
-        mTextLabel.getComponent<Text3d>()->transform.translation = { 0, 5, 4 };
+        mTextLabel.addComponent<Text2d>(mFontRobotoRegular, "Hello World");
+        mTextLabel.getComponent<Text2d>()->transform.translation = { 0, 0 };
     }
 
     void Application::renderImgui() {
@@ -703,6 +705,8 @@ namespace gl {
         Toolbar::render();
         ScreenWindow::render();
         PropertiesWindow::render();
+        EntityWindow::render();
+        ComponentWindow::render();
 
         ImguiCore::end();
 

@@ -49,8 +49,8 @@ namespace gl {
             u32 index = 6 * i;
             mIndices[index] = indexOffset;
             mIndices[index + 1] = indexOffset + 1;
-            mIndices[index + 2] = indexOffset + 3;
-            mIndices[index + 3] = indexOffset + 1;
+            mIndices[index + 2] = indexOffset + 2;
+            mIndices[index + 3] = indexOffset;
             mIndices[index + 4] = indexOffset + 2;
             mIndices[index + 5] = indexOffset + 3;
         }

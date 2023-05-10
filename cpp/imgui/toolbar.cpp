@@ -61,34 +61,6 @@ namespace gl {
         ImGui::Begin("DockSpace", &open, windowFlags);
         ImGuiID dsId = ImGui::GetID("Dashboard");
         ImguiCore::dockspaceId = dsId;
-        if (!ImGui::DockBuilderGetNode(dsId)) {
-            ImGui::DockBuilderRemoveNode(dsId);
-            ImGui::DockBuilderAddNode(dsId);
-
-            ImGuiID dsIdCopy = dsId;
-            ImGuiID dsIdLeft = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Left, 0.0f, NULL, &dsIdCopy);
-            ImGuiID dsIdRight = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Right, 0.0f, NULL, &dsIdCopy);
-            ImGuiID dsIdUp = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Up, 0.0f, NULL, &dsIdCopy);
-            ImGuiID dsIdDown = ImGui::DockBuilderSplitNode(dsIdCopy, ImGuiDir_Down, 0.0f, NULL, &dsIdCopy);
-
-            if (ImguiCore::dockLeft) {
-                ImGui::DockBuilderDockWindow(ImguiCore::dockLeft, dsIdLeft);
-            }
-
-            if (ImguiCore::dockRight) {
-                ImGui::DockBuilderDockWindow(ImguiCore::dockRight, dsIdRight);
-            }
-
-            if (ImguiCore::dockUp) {
-                ImGui::DockBuilderDockWindow(ImguiCore::dockUp, dsIdUp);
-            }
-
-            if (ImguiCore::dockDown) {
-                ImGui::DockBuilderDockWindow(ImguiCore::dockDown, dsIdDown);
-            }
-
-            ImGui::DockBuilderFinish(dsId);
-        }
         ImGui::DockSpace(dsId, ImVec2(0.0f, 0.0f), ImguiCore::dockspaceFlags);
 
         if (ImGui::BeginMenuBar()) {
