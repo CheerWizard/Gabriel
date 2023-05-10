@@ -90,48 +90,48 @@ namespace gl {
         {
             ImguiCore::DrawVec4Control("Position", component.value.position);
             ImguiCore::DrawVec4Control("Direction", component.direction);
-            ImGui::ColorPicker4("##direct_light_color", glm::value_ptr(component.value.color));
+            ImguiCore::DrawColor4Control("Color", component.value.color);
         });
 
         ImguiCore::DrawComponent<PointLightComponent>("PointLight", sEntity, [](PointLightComponent& component)
         {
             ImguiCore::DrawVec4Control("Position", component.value.position);
+            ImguiCore::DrawColor4Control("Color", component.value.color);
             ImguiCore::InputFloat("Constant", component.value.constant, 0.1f);
             ImguiCore::InputFloat("Linear", component.value.linear, 0.1f);
             ImguiCore::InputFloat("Quadratic", component.value.quadratic, 0.1f);
-            ImGui::ColorPicker4("##point_light_color", glm::value_ptr(component.value.color));
         });
 
         ImguiCore::DrawComponent<SpotLightComponent>("SpotLight", sEntity, [](SpotLightComponent& component)
         {
             ImguiCore::DrawVec4Control("Position", component.value.position);
             ImguiCore::DrawVec4Control("Direction", component.value.direction);
+            ImguiCore::DrawColor4Control("Color", component.value.color);
             ImguiCore::InputFloat("CutOff", component.value.cutoff, 0.1f);
             component.value.setCutOff(component.value.cutoff);
             ImguiCore::InputFloat("Outer CutOff", component.value.outer, 0.1f);
             component.value.setOuter(component.value.outer);
             ImguiCore::InputFloat("Refraction", component.value.refraction, 0.1f);
-            ImGui::ColorPicker4("##spot_light_color", glm::value_ptr(component.value.color));
         });
     }
 
     void ComponentWindow::renderVisualComponents() {
         ImguiCore::DrawComponent<PolygonVisual>("PolygonVisual", sEntity, [](PolygonVisual& component)
         {
-            ImGui::ColorPicker3("##polygon_color", glm::value_ptr(component.color));
             ImguiCore::InputFloat("Thickness", component.thickness, 0.0001f);
+            ImguiCore::DrawColor3Control("##polygon_color", component.color);
         });
 
         ImguiCore::DrawComponent<NormalVisual>("NormalVisual", sEntity, [](NormalVisual& component)
         {
-            ImGui::ColorPicker3("##normal_color", glm::value_ptr(component.color));
             ImguiCore::InputFloat("Length", component.length, 0.1f);
+            ImguiCore::DrawColor3Control("##normal_color", component.color);
         });
 
         ImguiCore::DrawComponent<LightVisual>("LightVisual", sEntity, [](LightVisual& component)
         {
-            ImGui::ColorPicker4("##light_visual_color", glm::value_ptr(component.color));
             ImguiCore::DrawTransform(component.transform);
+            ImguiCore::DrawColor4Control("##light_visual_color", component.color);
         });
     }
 

@@ -170,7 +170,11 @@ namespace gl {
         return ImGui::InputFloat4(IMGUI_ID(label), glm::value_ptr(v));
     }
 
-    bool ImguiCore::DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue, float columnWidth) {
+    bool ImguiCore::DrawVec3Control(
+            const std::string& label, glm::vec3& values,
+            const std::array<std::string, 3>& tags,
+            float resetValue, float columnWidth
+    ) {
         bool press = false;
 
         ImGui::PushID(label.c_str());
@@ -190,7 +194,7 @@ namespace gl {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("X", buttonSize)) {
+        if (ImGui::Button(tags[0].c_str(), buttonSize)) {
             values.x = resetValue;
             press = true;
         }
@@ -206,7 +210,7 @@ namespace gl {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("Y", buttonSize)) {
+        if (ImGui::Button(tags[1].c_str(), buttonSize)) {
             values.y = resetValue;
             press = true;
         }
@@ -222,7 +226,7 @@ namespace gl {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("Z", buttonSize)) {
+        if (ImGui::Button(tags[2].c_str(), buttonSize)) {
             values.z = resetValue;
             press = true;
         }
@@ -242,7 +246,11 @@ namespace gl {
         return press;
     }
 
-    bool ImguiCore::DrawVec4Control(const std::string& label, glm::vec4& values, float resetValue, float columnWidth) {
+    bool ImguiCore::DrawVec4Control(
+            const std::string& label, glm::vec4& values,
+            const std::array<std::string, 4>& tags,
+            float resetValue, float columnWidth
+    ) {
         bool press = false;
 
         ImGui::PushID(label.c_str());
@@ -262,7 +270,7 @@ namespace gl {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("X", buttonSize)) {
+        if (ImGui::Button(tags[0].c_str(), buttonSize)) {
             values.x = resetValue;
             press = true;
         }
@@ -278,7 +286,7 @@ namespace gl {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("Y", buttonSize)) {
+        if (ImGui::Button(tags[1].c_str(), buttonSize)) {
             values.y = resetValue;
             press = true;
         }
@@ -294,7 +302,7 @@ namespace gl {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("Z", buttonSize)) {
+        if (ImGui::Button(tags[2].c_str(), buttonSize)) {
             values.z = resetValue;
             press = true;
         }
@@ -310,7 +318,7 @@ namespace gl {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("W", buttonSize)) {
+        if (ImGui::Button(tags[3].c_str(), buttonSize)) {
             values.w = resetValue;
             press = true;
         }
@@ -335,7 +343,21 @@ namespace gl {
         glm::vec3 rotation = glm::degrees(transform.rotation);
         ImguiCore::DrawVec3Control("Rotation", rotation);
         transform.rotation = glm::radians(rotation);
-        ImguiCore::DrawVec3Control("Scale", transform.scale, 1.0f);
+        ImguiCore::DrawVec3Control("Scale", transform.scale, { "X", "Y", "Z" }, 1.0f);
+    }
+
+    void ImguiCore::DrawColor3Control(
+            const std::string &label, glm::vec3 &values,
+            float resetValue, float columnWidth
+    ) {
+        DrawVec3Control(label, values, { "R", "G", "B" }, resetValue, columnWidth);
+    }
+
+    void ImguiCore::DrawColor4Control(
+            const std::string &label, glm::vec4 &values,
+            float resetValue, float columnWidth
+    ) {
+        DrawVec4Control(label, values, { "R", "G", "B", "A" }, resetValue, columnWidth);
     }
 
 }

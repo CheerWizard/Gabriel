@@ -79,16 +79,36 @@ namespace gl {
 
         static bool InputFloat4(const char *label, glm::fvec4 &v, float step, const char *fmt = "%s");
 
-        static bool DrawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
-                                        float columnWidth = 100.0f);
+        static bool DrawVec3Control(
+                const std::string &label, glm::vec3 &values,
+                const std::array<std::string, 3>& tags = { "X", "Y", "Z" },
+                float resetValue = 0.0f,
+                float columnWidth = 100.0f
+        );
 
-        static bool DrawVec4Control(const std::string &label, glm::vec4 &values, float resetValue = 0.0f,
-                                    float columnWidth = 100.0f);
+        static bool DrawVec4Control(
+                const std::string &label, glm::vec4 &values,
+                const std::array<std::string, 4>& tags = { "X", "Y", "Z", "W" },
+                float resetValue = 0.0f,
+                float columnWidth = 100.0f
+        );
 
         template<typename T, typename UIFunction>
         static void DrawComponent(const std::string& name, Entity entity, UIFunction uiFunction);
 
         static void DrawTransform(Transform& transform);
+
+        static void DrawColor3Control(
+                const std::string &label, glm::vec3 &values,
+                float resetValue = 0.0f,
+                float columnWidth = 100.0f
+        );
+
+        static void DrawColor4Control(
+                const std::string &label, glm::vec4 &values,
+                float resetValue = 0.0f,
+                float columnWidth = 100.0f
+        );
 
     };
 
