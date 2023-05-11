@@ -1,6 +1,6 @@
 #include <imgui/component_window.h>
 
-#include <features/light.h>
+#include <features/lighting/light.h>
 
 #include <debugging/visuals.h>
 
@@ -88,30 +88,30 @@ namespace gl {
     void ComponentWindow::renderLightComponents() {
         ImguiCore::DrawComponent<DirectLightComponent>("DirectLight", sEntity, [](DirectLightComponent& component)
         {
-            ImguiCore::DrawVec4Control("Position", component.value.position);
-            ImguiCore::DrawVec4Control("Direction", component.direction);
-            ImguiCore::DrawColor4Control("Color", component.value.color);
+            ImguiCore::DrawVec4Control("Position", component.position);
+            ImguiCore::DrawVec3Control("Direction", component.direction);
+            ImguiCore::DrawColor4Control("Color", component.color);
         });
 
         ImguiCore::DrawComponent<PointLightComponent>("PointLight", sEntity, [](PointLightComponent& component)
         {
-            ImguiCore::DrawVec4Control("Position", component.value.position);
-            ImguiCore::DrawColor4Control("Color", component.value.color);
-            ImguiCore::InputFloat("Constant", component.value.constant, 0.1f);
-            ImguiCore::InputFloat("Linear", component.value.linear, 0.1f);
-            ImguiCore::InputFloat("Quadratic", component.value.quadratic, 0.1f);
+            ImguiCore::DrawVec4Control("Position", component.position);
+            ImguiCore::DrawColor4Control("Color", component.color);
+            ImguiCore::InputFloat("Constant", component.constant, 0.1f);
+            ImguiCore::InputFloat("Linear", component.linear, 0.1f);
+            ImguiCore::InputFloat("Quadratic", component.quadratic, 0.1f);
         });
 
         ImguiCore::DrawComponent<SpotLightComponent>("SpotLight", sEntity, [](SpotLightComponent& component)
         {
-            ImguiCore::DrawVec4Control("Position", component.value.position);
-            ImguiCore::DrawVec4Control("Direction", component.value.direction);
-            ImguiCore::DrawColor4Control("Color", component.value.color);
-            ImguiCore::InputFloat("CutOff", component.value.cutoff, 0.1f);
-            component.value.setCutOff(component.value.cutoff);
-            ImguiCore::InputFloat("Outer CutOff", component.value.outer, 0.1f);
-            component.value.setOuter(component.value.outer);
-            ImguiCore::InputFloat("Refraction", component.value.refraction, 0.1f);
+            ImguiCore::DrawVec4Control("Position", component.position);
+            ImguiCore::DrawVec4Control("Direction", component.direction);
+            ImguiCore::DrawColor4Control("Color", component.color);
+            ImguiCore::InputFloat("CutOff", component.cutoff, 0.1f);
+            component.setCutOff(component.cutoff);
+            ImguiCore::InputFloat("Outer CutOff", component.outer, 0.1f);
+            component.setOuter(component.outer);
+            ImguiCore::InputFloat("Refraction", component.refraction, 0.1f);
         });
     }
 

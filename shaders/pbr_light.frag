@@ -11,33 +11,7 @@ vec3 R;
 
 const float PI = 3.14159265359;
 
-struct LightPhong {
-    vec3 position;
-    vec4 color;
-};
-
-struct LightDirectional {
-    vec3 position;
-    vec4 color;
-};
-
-struct LightPoint {
-    vec3 position;
-    vec4 color;
-    float constant;
-    float linear;
-    float quadratic;
-    float refraction;
-};
-
-struct LightSpot {
-    vec3 position;
-    vec3 direction;
-    vec4 color;
-    float cutoff;
-    float outer;
-    float refraction;
-};
+#include features/lighting.glsl
 
 struct LightEnvironmental {
     int prefilter_levels;
@@ -45,21 +19,9 @@ struct LightEnvironmental {
     samplerCube prefilter;
     sampler2D brdf_convolution;
 };
-
-layout (std140, binding = 1) uniform Sunlight {
-    LightDirectional sunlight;
-};
-
-layout (std140, binding = 2) uniform Lights {
-    LightPoint light_points[4];
-};
-
-layout (std140, binding = 3) uniform FlashLight {
-    LightSpot flashlight;
-};
+uniform LightEnvironmental envlight;
 
 uniform vec3 camera_pos;
-uniform LightEnvironmental envlight;
 
 uniform sampler2D direct_shadow_sampler;
 
@@ -278,19 +240,25 @@ void main()
         ao *= texture(ssao, l_uv).r;
     }
 
-    // PBR sunlight
-    Lo += pbr(sunlight, albedo.rgb, metallic, roughness);
-
-    // PBR multiple point lights
-    int light_points_size = light_points.length();
-    for (int i = 0 ; i < light_points_size ; i++) {
-        Lo += pbr(light_points[i], albedo.rgb, metallic, roughness);
+    // apply direct lights
+    int directLightSize = directLights.length();
+    for (int i = 0 ; i < directLightSize ; i++) {
+        Lo += pbr(directLights[i], albedo.rgb, metallic, roughness);
     }
 
-    // PBR flashlight
-    Lo += pbr(flashlight, albedo.rgb, metallic, roughness);
+    // apply point lights
+    int pointLightSize = pointLights.length();
+    for (int i = 0 ; i < pointLightSize ; i++) {
+        Lo += pbr(pointLights[i], albedo.rgb, metallic, roughness);
+    }
 
-    // PBR env light
+    // apply spot lights
+    int spotLightSize = spotLights.length();
+    for (int i = 0 ; i < spotLightSize ; i++) {
+        Lo += pbr(spotLights[i], albedo.rgb, metallic, roughness);
+    }
+
+    // apply env light
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo.rgb, metallic);
     vec3 F = fresnel_shlick_rough(NdotV, F0, roughness);

@@ -1,4 +1,4 @@
-#include <shadow/shadow_direct.h>
+#include <features/shadow/shadow_direct.h>
 #include <math/frustrum.h>
 
 namespace gl {

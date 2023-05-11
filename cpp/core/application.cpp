@@ -79,8 +79,8 @@ namespace gl {
     void Application::initImgui() {
         ImguiCore::init(mWindow, "#version 460 core");
         ImguiCore::setIniFilename(mTitle);
-        ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 16.0f);
-        ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 16.0f);
+        ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 18.0f);
+        ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 18.0f);
         ImguiCore::setFont(ImguiCore::regularFont);
         ImguiCore::screenRenderer = mScreenRenderer;
         ImguiCore::hdrRenderer = mHdrRenderer;
@@ -350,6 +350,8 @@ namespace gl {
     }
 
     void Application::initLight() {
+        LightStorage::scene = &mScene;
+        LightStorage::init();
         // setup light presentation
         CubeDefault().init(mPointLightVisual.drawable);
         // setup environment
@@ -360,39 +362,31 @@ namespace gl {
         mPbrPipeline->generateEnv();
         // setup mSunlight
         mSunlight = &mScene;
-        mSunlight.value().color = { 244, 233, 155, 0.1 };
-        mSunlight.value().position = {5, 5, 5, 0 };
-        mSunlight.direction() = {0, 0, 0, 0 };
+        mSunlight.value().color = { 244, 233, 155, 0.02 };
+        mSunlight.value().position = { 5, 5, 5, 0 };
+        mSunlight.value().direction = { 0, 0, 0 };
         // setup point lights
         for (auto& pointLight : mPointLights) {
             pointLight = &mScene;
         }
         mPointLights[0].value().position = {-4, 2, 0, 1 };
-        mPointLights[0].value().color = glm::vec4 {0, 0, 0, 0 };
+        mPointLights[0].value().color = glm::vec4 {1, 0, 0, 0 };
         mPointLights[1].value().position = {4, 3, 0, 1 };
-        mPointLights[1].value().color = glm::vec4 {0, 0, 0, 0 };
+        mPointLights[1].value().color = glm::vec4 {0, 1, 0, 0 };
         mPointLights[2].value().position = {-4, 4, 8, 1 };
-        mPointLights[2].value().color = glm::vec4 {0, 0, 0, 0 };
+        mPointLights[2].value().color = glm::vec4 {0, 0, 1, 0 };
         mPointLights[3].value().position = {4, 5, 8, 1 };
-        mPointLights[3].value().color = glm::vec4 {0, 0, 0, 0 };
+        mPointLights[3].value().color = glm::vec4 {1, 0, 1, 0 };
         // setup mFlashlight
         mFlashlight = &mScene;
         mFlashlight.value().position = { mCamera->position, 0 };
         mFlashlight.value().direction = { mCamera->front, 0 };
         mFlashlight.value().color = {0, 0, 0, 0 };
-        // update light buffers
-        mPbrPipeline->updateSunlight(mSunlight.value());
-        std::array<PointLightUniform, 4> pointLightUniforms = {
-                mPointLights[0].value(),
-                mPointLights[1].value(),
-                mPointLights[2].value(),
-                mPointLights[3].value()
-        };
-        mPbrPipeline->updatePointLights(pointLightUniforms);
-        mPbrPipeline->updateFlashlight(mFlashlight.value());
     }
 
     void Application::free() {
+        LightStorage::free();
+
         FontAtlas::free();
 
         delete mScreenRenderer;
@@ -472,21 +466,14 @@ namespace gl {
 //        mSunlight.value().position.z = sunlightTranslate;
 //        mPbrPipeline->updateSunlight(mSunlight.value());
 
-        // translate point lights up/down
-        std::array<PointLightUniform, 4> pointLightUniforms;
-        for (int i = 0 ; i < 4 ; i++) {
-            auto& pointLight = mPointLights[i];
-            pointLight.value().position.y = sin(t/5);
-            pointLightUniforms[i] = pointLight.value();
-        }
-        mPbrPipeline->updatePointLights(pointLightUniforms);
-
         // skeletal animations
         {
             // animate human
 //            mHumanAnimator.update(dt / 1000.0f);
 //            pbr.update_bones(mHumanAnimator.bone_transforms);
         }
+
+        LightStorage::update();
     }
 
     void Application::printDt() {

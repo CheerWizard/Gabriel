@@ -6,15 +6,14 @@
 
 #include <features/transform.h>
 #include <features/material.h>
-#include <features/light.h>
+#include <features/lighting/light.h>
 #include <features/outline.h>
 #include <features/transparency.h>
+#include <features/shadow/shadow.h>
 
 #include <pbr/environment.h>
 
 #include <animation/skeletal_renderer.h>
-
-#include <shadow/shadow.h>
 
 #include <postfx/ssao.h>
 
@@ -218,10 +217,6 @@ namespace gl {
 
         void render();
 
-        void updateSunlight(DirectLightUniform& sunlight);
-        void updatePointLights(std::array<PointLightUniform, 4>& pointLights);
-        void updateFlashlight(SpotLightUniform& flashlight);
-
     private:
         void renderForward();
         void renderForwardDefault();
@@ -242,10 +237,6 @@ namespace gl {
         OutlineRenderer* mOutlineRenderer;
 
         EnvRenderer* mEnvRenderer;
-
-        UniformBuffer mSunlightUbo;
-        UniformBuffer mLightsUbo;
-        UniformBuffer mFlashlightUbo;
     };
 
 }

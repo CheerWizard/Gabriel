@@ -21,37 +21,9 @@ vec3 V;
 
 const float PI = 3.14159265359;
 
-struct Material {
-    // base color
-    vec4 color;
-    sampler2D albedo;
-    bool enable_albedo;
-    // bumping
-    sampler2D normal;
-    bool enable_normal;
-    // parallax
-    sampler2D parallax;
-    bool enable_parallax;
-    float height_scale;
-    float parallax_min_layers;
-    float parallax_max_layers;
-    // metalness
-    float metallic_factor;
-    sampler2D metallic;
-    bool enable_metallic;
-    // roughness
-    float roughness_factor;
-    sampler2D roughness;
-    bool enable_roughness;
-    // ambient occlusion
-    float ao_factor;
-    sampler2D ao;
-    bool enable_ao;
-};
+#include features/material.glsl
 
 uniform vec3 camera_pos;
-
-uniform Material material;
 
 uniform uint entity_id;
 

@@ -1,5 +1,5 @@
-#include <shadow/shadow.h>
-#include <features/light.h>
+#include <features/shadow/shadow.h>
+#include <features/lighting/light.h>
 
 namespace gl {
 
@@ -106,7 +106,7 @@ namespace gl {
 
         scene->eachComponent<DirectLightComponent>([this](DirectLightComponent* directLightComponent) {
             glm::vec3 lightDirection = directLightComponent->direction;
-            glm::vec3 lightPos = directLightComponent->value.position;
+            glm::vec3 lightPos = directLightComponent->position;
 
             mDirectShadowRenderer->begin();
 
@@ -127,7 +127,7 @@ namespace gl {
 
     void ShadowPipeline::renderPointShadows() {
         scene->eachComponent<PointLightComponent>([this](PointLightComponent* pointLightComponent) {
-            glm::vec3 lightPosition = pointLightComponent->value.position;
+            glm::vec3 lightPosition = pointLightComponent->position;
 
             mPointShadowRenderer->begin();
 

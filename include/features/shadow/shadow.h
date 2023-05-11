@@ -2,8 +2,8 @@
 
 #include <ecs/scene.h>
 
-#include <shadow/shadow_direct.h>
-#include <shadow/shadow_point.h>
+#include <features/shadow/shadow_direct.h>
+#include <features/shadow/shadow_point.h>
 
 namespace gl {
 

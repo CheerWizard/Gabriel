@@ -47,6 +47,10 @@ namespace gl {
 
         void free(ComponentID componentId);
 
+        inline std::vector<u8>& data() {
+            return mComponents;
+        }
+
     private:
         std::vector<u8> mComponents;
     };

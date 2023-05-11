@@ -60,7 +60,7 @@ namespace gl {
 
     void Camera::updateView() {
         glm::mat4 viewMat = view();
-        mUbo.update({ sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewMat) });
+        mUbo.update(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewMat));
     }
 
     glm::mat4 Camera::view() const {
@@ -69,7 +69,7 @@ namespace gl {
 
     void Camera::updatePerspective() {
         glm::mat4 perspectiveMat = perspective();
-        mUbo.update({ 0, sizeof(glm::mat4), glm::value_ptr(perspectiveMat) });
+        mUbo.update(0, sizeof(glm::mat4), glm::value_ptr(perspectiveMat));
     }
 
     glm::mat4 Camera::perspective() const {

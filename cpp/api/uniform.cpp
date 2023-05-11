@@ -14,17 +14,17 @@ namespace gl {
         glBindBufferBase(GL_UNIFORM_BUFFER, binding, id);
     }
 
-    void UniformBuffer::bind() {
-        glBindBuffer(GL_UNIFORM_BUFFER, id);
-    }
-
-    void UniformBuffer::update(const UniformData& uniformData) {
-        glBindBuffer(GL_UNIFORM_BUFFER, id);
-        glBufferSubData(GL_UNIFORM_BUFFER, uniformData.offset, uniformData.size, uniformData.data);
-    }
-
     void UniformBuffer::free() {
         glDeleteBuffers(1, &id);
+    }
+
+    void UniformBuffer::bind() const {
+        glBindBuffer(GL_UNIFORM_BUFFER, id);
+    }
+
+    void UniformBuffer::update(long long offset, long long size, void* data) const {
+        glBindBuffer(GL_UNIFORM_BUFFER, id);
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
     }
 
 }

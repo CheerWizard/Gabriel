@@ -11,12 +11,11 @@
 
 #include <ui/ui.h>
 
-#include <features/light.h>
+#include <features/lighting/light.h>
 #include <features/screen.h>
+#include <features/shadow/shadow.h>
 
 #include <io/model_loader.h>
-
-#include <shadow/shadow.h>
 
 #include <math/math_functions.h>
 

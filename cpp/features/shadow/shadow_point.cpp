@@ -1,4 +1,4 @@
-#include <shadow/shadow_point.h>
+#include <features/shadow/shadow_point.h>
 
 namespace gl {
 

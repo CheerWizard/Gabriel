@@ -96,19 +96,41 @@ namespace gl {
     typedef UniformArray<glm::dmat3> UniformArrayM3D;
     typedef UniformArray<glm::dmat4> UniformArrayM4D;
 
-    struct UniformData final {
-        long long offset;
-        long long size;
-        void* data;
+    template<typename T>
+    struct UniformData {
+        static u32 ID;
+        u32 id = ID++;
+        T value;
+
+        [[nodiscard]] inline long long size() const {
+            return sizeof(T);
+        }
+
+        [[nodiscard]] inline long long offset() const {
+            return id * sizeof(T);
+        }
+
+        [[nodiscard]] inline void* data() const {
+            return &value;
+        }
     };
 
-    struct UniformBuffer final {
+    template<typename T>
+    u32 UniformData<T>::ID = 0;
+
+    struct UniformBuffer {
         u32 id;
 
         void init(u32 binding, long long size);
-        void bind();
-        void update(const UniformData& uniformData);
         void free();
+        void bind() const;
+
+        void update(long long offset, long long size, void* data) const;
+
+        template<typename T>
+        inline void update(const UniformData<T>& uniformData) {
+            update(uniformData.offset(), uniformData.size(), uniformData.data());
+        }
     };
 
 }

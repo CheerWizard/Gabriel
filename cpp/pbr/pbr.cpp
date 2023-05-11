@@ -442,10 +442,6 @@ namespace gl {
         mTransparentRenderer = new TransparentRenderer(width, height);
 
         mOutlineRenderer = new OutlineRenderer();
-
-        mSunlightUbo.init(1, sizeof(DirectLightUniform));
-        mLightsUbo.init(2, sizeof(PointLightUniform) * 4);
-        mFlashlightUbo.init(3, sizeof(SpotLightUniform));
     }
 
     PBR_Pipeline::~PBR_Pipeline() {
@@ -461,10 +457,6 @@ namespace gl {
         delete mTransparentRenderer;
 
         delete mOutlineRenderer;
-
-        mSunlightUbo.free();
-        mLightsUbo.free();
-        mFlashlightUbo.free();
     }
 
     void PBR_Pipeline::setSamples(int samples) {
@@ -713,18 +705,6 @@ namespace gl {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_STENCIL_TEST);
         glDisable(GL_BLEND);
-    }
-
-    void PBR_Pipeline::updateSunlight(DirectLightUniform& sunlight) {
-        mSunlightUbo.update({0, sizeof(sunlight), &sunlight });
-    }
-
-    void PBR_Pipeline::updatePointLights(std::array<PointLightUniform, 4>& pointLights) {
-        mLightsUbo.update({0, sizeof(pointLights), pointLights.data() });
-    }
-
-    void PBR_Pipeline::updateFlashlight(SpotLightUniform& flashlight) {
-        mFlashlightUbo.update({0, sizeof(flashlight), &flashlight });
     }
 
 }
