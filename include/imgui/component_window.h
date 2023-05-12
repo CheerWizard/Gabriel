@@ -25,6 +25,8 @@ namespace gl {
 
         static void renderLightComponents();
 
+        static void renderTextComponents();
+
     private:
         static Entity sEntity;
     };

@@ -10,24 +10,22 @@ struct Transform2d {
     float rotation;
     vec2 scale;
 };
-
 uniform Transform2d transform;
 
 void main() {
-//    // translate
-//    float x = a_pos.x + transform.translation.x;
-//    float y = a_pos.y + transform.translation.y;
-//    // rotate
-//    float theta = transform.rotation;
-//    float rx = x * cos(theta) - y * sin(theta);
-//    float ry = x * sin(theta) + y * cos(theta);
-//    // scale
-//    float sx = rx * transform.scale.x;
-//    float sy = ry * transform.scale.y;
-//
-//    vec2 w_pos = vec2(sx, sy);
-//    gl_Position = vec4(w_pos, 0, 1);
+    // translate
+    float x = a_pos.x + transform.translation.x;
+    float y = a_pos.y + transform.translation.y;
+    // rotate
+    float theta = transform.rotation;
+    float rx = x * cos(theta) - y * sin(theta);
+    float ry = x * sin(theta) + y * cos(theta);
+    // scale
+    float sx = rx * transform.scale.x;
+    float sy = ry * transform.scale.y;
 
-    gl_Position = vec4(a_pos, 0, 1);
+    vec2 w_pos = vec2(sx * 0.1f, sy * 0.1f);
+    gl_Position = vec4(w_pos, 0, 1);
+
     l_uv = a_uv;
 }

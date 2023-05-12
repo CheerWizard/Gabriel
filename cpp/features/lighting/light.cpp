@@ -6,7 +6,7 @@ namespace gl {
 
     PhongLightBuffer LightStorage::phongLightBuffer = 1;
     DirectLightBuffer LightStorage::directLightBuffer = 1;
-    PointLightBuffer LightStorage::pointLightBuffer = 4;
+    PointLightBuffer LightStorage::pointLightBuffer = 1;
     SpotLightBuffer LightStorage::spotLightBuffer = 1;
 
     void LightStorage::init() {

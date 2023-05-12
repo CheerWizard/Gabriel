@@ -91,6 +91,8 @@ namespace gl {
     };
 
     struct TextShader : Shader {
+        UniformV4F textColor = { "textColor", { 1, 1, 1, 1 } };
+
         void update(Style& style);
     };
 

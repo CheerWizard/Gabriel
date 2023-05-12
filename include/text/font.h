@@ -10,7 +10,7 @@
 #include <map>
 
 #include <ft2build.h>
-#include FT_FREETYPE_H
+#include FT_FREETYPE_H"freetype/freetype.h"
 
 namespace gl {
 
@@ -77,17 +77,19 @@ namespace gl {
 
     struct FontAtlas final {
         static std::map<FontId, Font> fonts;
+        static std::map<FontId, std::string> fontPaths;
 
         static bool init();
         static void free();
 
         static Font* load(const char* filepath, u32 fontSize);
+        static void remove(FontId fontId);
 
     private:
         static bool loadFace(const char* filepath, Font& font);
 
     private:
-        static FT_Library mLib;
+        static FT_Library sLib;
     };
 
 }

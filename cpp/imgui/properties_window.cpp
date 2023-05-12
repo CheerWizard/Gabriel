@@ -68,9 +68,9 @@ namespace gl {
                     Camera* camera = ImguiCore::camera;
 
                     ImGui::SeparatorText("World Space");
-                    ImguiCore::InputFloat3("Position", camera->position, 0.1f);
-                    ImguiCore::InputFloat3("Front", camera->front, 0.1f);
-                    ImguiCore::InputFloat3("Up", camera->up, 0.1f);
+                    ImguiCore::DrawVec3Control("Position", camera->position);
+                    ImguiCore::DrawVec3Control("Front", camera->front);
+                    ImguiCore::DrawVec3Control("Up", camera->up);
 
                     ImGui::SeparatorText("Navigation");
                     ImguiCore::InputFloat("Horizontal Sens", camera->horizontalSensitivity, 0.01f);

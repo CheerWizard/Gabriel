@@ -30,7 +30,7 @@ namespace gl {
     }
 
     bool FontAtlas::loadFace(const char* filepath, Font& font) {
-        FT_Error error = FT_New_Face(mLib, filepath, 0, &font.face);
+        FT_Error error = FT_New_Face(sLib, filepath, 0, &font.face);
         if (error == FT_Err_Unknown_File_Format) {
             error("Failed to load font {0}. Unknown file format", filepath);
             return false;
@@ -150,11 +150,12 @@ namespace gl {
         return FileWriter::write(filepath, mWidths, mWidthSize);
     }
 
-    FT_Library FontAtlas::mLib;
+    FT_Library FontAtlas::sLib;
     std::map<FontId, Font> FontAtlas::fonts;
+    std::map<FontId, std::string> FontAtlas::fontPaths;
 
     bool FontAtlas::init() {
-        FT_Error error = FT_Init_FreeType(&mLib);
+        FT_Error error = FT_Init_FreeType(&sLib);
         if (error != FT_Err_Ok) {
             error("Failed to init FreeType library. Error: {0}", error);
             return false;
@@ -166,7 +167,7 @@ namespace gl {
         for (auto& font : fonts) {
             font.second.free();
         }
-        FT_Done_FreeType(mLib);
+        FT_Done_FreeType(sLib);
     }
 
     Font* FontAtlas::load(const char* filepath, u32 fontSize) {
@@ -180,7 +181,13 @@ namespace gl {
         newFont.init();
 
         fonts[newFont.id] = newFont;
+        fontPaths[newFont.id] = std::string(filepath);
 
         return &fonts[newFont.id];
+    }
+
+    void FontAtlas::remove(FontId fontId) {
+        fonts[fontId].free();
+        fonts[fontId] = {};
     }
 }

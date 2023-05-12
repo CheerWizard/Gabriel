@@ -1,6 +1,8 @@
 #version 460 core
 
-out vec4 out_color;
+#define IMGUI
+
+out vec4 outColor;
 
 in vec2 l_uv;
 
@@ -12,7 +14,19 @@ uniform float gamma;
 
 void main()
 {
-    vec3 screen_color = texture(scene, l_uv).rgb;
-    screen_color = pow(screen_color, vec3(1.0 / gamma));
-    out_color = vec4(screen_color, 1.0);
+    vec3 screenColor = vec3(0, 0, 0);
+
+    vec3 sceneColor = texture(scene, l_uv).rgb;
+    sceneColor = pow(sceneColor, vec3(1.0 / gamma));
+    screenColor += sceneColor;
+
+    vec3 uiColor = texture(ui, l_uv).rgb;
+    screenColor += uiColor;
+
+    #ifdef IMGUI
+    vec3 visualsColor = texture(visuals, l_uv).rgb;
+    screenColor += visualsColor;
+    #endif
+
+    outColor = vec4(screenColor, 1.0);
 }

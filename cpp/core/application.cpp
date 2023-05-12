@@ -682,8 +682,8 @@ namespace gl {
         mFontRobotoRegular->saveWidths("fonts/Roboto-Regular.widths");
 
         mTextLabel = &mScene;
-        mTextLabel.addComponent<Text2d>(mFontRobotoRegular, "Hello World");
-        mTextLabel.getComponent<Text2d>()->transform.translation = { 0, 0 };
+        mTextLabel.addComponent<Text3d>(mFontRobotoRegular, "Hello World!");
+        mTextLabel.getComponent<Text3d>()->transform.translation = { 0, 5, 0 };
     }
 
     void Application::renderImgui() {

@@ -6,9 +6,8 @@ in vec2 l_uv;
 
 uniform sampler2D bitmap;
 
-uniform vec4 text_color;
+uniform vec4 textColor;
 
 void main() {
-    vec4 character = vec4(1, 1, 1, 1);
-    out_color = character;
+    out_color = vec4(textColor.rgb, texture(bitmap, l_uv).r * textColor.a);
 }

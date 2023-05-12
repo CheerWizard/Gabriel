@@ -16,6 +16,8 @@
 #include <postfx/bloom.h>
 #include <postfx/ssao.h>
 
+#include <text/text.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -63,6 +65,8 @@ namespace gl {
 
         static bool Checkbox(const char *label, bool &v, const char *fmt = "%s");
 
+        static bool InputUInt(const char *label, u32 &v, u32 step, const char *fmt = "%s");
+
         static bool InputInt(const char *label, int &v, int step, const char *fmt = "%s");
 
         static bool InputInt2(const char *label, glm::ivec2 &v, float step, const char *fmt = "%s");
@@ -78,6 +82,13 @@ namespace gl {
         static bool InputFloat3(const char *label, glm::fvec3 &v, float step, const char *fmt = "%s");
 
         static bool InputFloat4(const char *label, glm::fvec4 &v, float step, const char *fmt = "%s");
+
+        static bool DrawVec2Control(
+                const std::string &label, glm::vec2 &values,
+                const std::array<std::string, 2>& tags = { "X", "Y" },
+                float resetValue = 0.0f,
+                float columnWidth = 100.0f
+        );
 
         static bool DrawVec3Control(
                 const std::string &label, glm::vec3 &values,
@@ -98,6 +109,8 @@ namespace gl {
 
         static void DrawTransform(Transform& transform);
 
+        static void DrawTransform2d(Transform2d& transform);
+
         static void DrawColor3Control(
                 const std::string &label, glm::vec3 &values,
                 float resetValue = 0.0f,
@@ -109,6 +122,10 @@ namespace gl {
                 float resetValue = 0.0f,
                 float columnWidth = 100.0f
         );
+
+        static bool InputText(std::string& text);
+
+        static void DrawFontStyle(Style& style);
 
     };
 

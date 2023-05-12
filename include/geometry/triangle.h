@@ -29,7 +29,7 @@ namespace gl {
     void Triangle<T>::init(DrawableVertices &drawable)
     {
         drawable.vao.bind();
-        drawable.vbo.init(this, T::format, GL_STATIC_DRAW);
+        drawable.vbo.init(this, T::format, BufferAllocType::STATIC);
     }
 
 }

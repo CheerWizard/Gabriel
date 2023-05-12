@@ -46,8 +46,8 @@ namespace gl {
     {
         drawable.vao.init();
         drawable.vao.bind();
-        drawable.vbo.init(vertices, T::format, GL_STATIC_DRAW);
-        drawable.ibo.init(indices, 6, GL_STATIC_DRAW);
+        drawable.vbo.init(vertices, T::format, BufferAllocType::STATIC);
+        drawable.ibo.init(indices, 6, BufferAllocType::STATIC);
         drawable.strips = 1;
         drawable.verticesPerStrip = 6;
     }

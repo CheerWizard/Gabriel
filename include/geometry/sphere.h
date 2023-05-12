@@ -92,7 +92,7 @@ namespace gl {
 
     template<typename T>
     void Sphere<T>::init(DrawableElements &drawable) {
-        drawable.type = GL_TRIANGLE_STRIP;
+        drawable.type = DrawType::TRIANGLE_STRIP;
         drawable.strips = 1;
         drawable.verticesPerStrip = this->indices.count;
         this->initDrawable(drawable);

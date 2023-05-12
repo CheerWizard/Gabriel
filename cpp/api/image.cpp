@@ -56,18 +56,18 @@ namespace gl {
     }
 
     void Image::free() {
-        stbi_image_free(pixels);
+        ::free(pixels);
     }
 
     void Image::resize(int w, int h) {
         if (width == w || height == h)
             return;
 
-        void* resized_data;
+        void* resizedData;
 
         if (pixelType == PixelType::U8) {
-            resized_data = malloc(width * height * sizeof(u8));
-            int status = stbir_resize_uint8((u8*) pixels, width, height, 0, (u8*) resized_data, w, h, 0, channels);
+            resizedData = malloc(width * height * sizeof(u8));
+            int status = stbir_resize_uint8((u8*) pixels, width, height, 0, (u8*) resizedData, w, h, 0, channels);
             if (!status) {
                 error("Failed to resize 8-bit pixels [{0}, {1}]", w, h);
                 return;
@@ -76,8 +76,8 @@ namespace gl {
 
         else if (pixelType == PixelType::U16) {
             // todo consider how to resize 16-bit pixels
-            resized_data = malloc(width * height * sizeof(u16));
-//            int status = stbir_resize_uint16_generic((u16*) data, width, height, 0, (u16*) resized_data, w, h, 0, channels);
+            resizedData = malloc(width * height * sizeof(u16));
+//            int status = stbir_resize_uint16_generic((u16*) data, width, height, 0, (u16*) resizedData, w, h, 0, channels);
 //            if (!status) {
 //                print_err("Image::resize: failed to resize 16-bit pixels [ " << width << " , " << height << "] -> [ , ] << w << ", height" << h);
 //                return;
@@ -85,8 +85,8 @@ namespace gl {
         }
 
         else if (pixelType == PixelType::FLOAT) {
-            resized_data = malloc(width * height * sizeof(float));
-            int status = stbir_resize_float((float*) pixels, width, height, 0, (float*) resized_data, w, h, 0, channels);
+            resizedData = malloc(width * height * sizeof(float));
+            int status = stbir_resize_float((float*) pixels, width, height, 0, (float*) resizedData, w, h, 0, channels);
             if (!status) {
                 error("Failed to resize 32-bit pixels [{0}, {1}]", w, h);
                 return;
@@ -100,7 +100,7 @@ namespace gl {
 
         free();
 
-        pixels = resized_data;
+        pixels = resizedData;
         width = w;
         height = h;
     }
@@ -142,6 +142,11 @@ namespace gl {
 
     void ImageBuffer::bind() const {
         glBindTexture(type, id);
+    }
+
+    void ImageBuffer::bindActivate(int slot) const {
+        activate(slot);
+        bind(type, id);
     }
 
     void ImageBuffer::bind(u32 type, u32 id) {

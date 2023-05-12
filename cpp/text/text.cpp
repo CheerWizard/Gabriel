@@ -3,17 +3,17 @@
 namespace gl {
 
     void Text::init() {
-        mDrawable.type = GL_TRIANGLES;
+        mDrawable.type = DrawType::TRIANGLES;
         mDrawable.strips = 1;
 
         mDrawable.vao.init();
         mDrawable.vao.bind();
 
-        mVertices.reserve(100);
-        mDrawable.vbo.init<CharVertices>(100, Vertex2dUV::format, BufferAllocType::DYNAMIC);
+        mVertices.reserve(1);
+        mDrawable.vbo.init<CharVertices>(1, Vertex2dUV::format, BufferAllocType::DYNAMIC);
 
-        mIndices.reserve(600); // 6 indices per character
-        mDrawable.ibo.init(600, BufferAllocType::DYNAMIC);
+        mIndices.reserve(6); // 6 indices per character
+        mDrawable.ibo.init(6, BufferAllocType::DYNAMIC);
     }
 
     void Text::free() {
@@ -55,10 +55,9 @@ namespace gl {
             mIndices[index + 5] = indexOffset + 3;
         }
 
-        int indexCount = (int) mIndices.size();
-        mDrawable.verticesPerStrip = indexCount;
-        mDrawable.vbo.update(mVertices);
-        mDrawable.ibo.update(mIndices.data(), indexCount);
+        mDrawable.vbo.tryUpdate(mVertices);
+        mDrawable.ibo.tryUpdate(mIndices);
+        mDrawable.verticesPerStrip = mIndices.size();
     }
 
     void Text::draw() {
@@ -66,11 +65,9 @@ namespace gl {
     }
 
     void TextShader::update(Style &style) {
-        const auto& fontBuffer = style.font->buffer;
-        fontBuffer.bind();
-        fontBuffer.activate(0);
-
-        setUniformArgs("text_color", style.color);
+        style.font->buffer.bindActivate(0);
+        textColor.value = style.color;
+        setUniform(textColor);
     }
 
     Text2dRenderer::Text2dRenderer() {

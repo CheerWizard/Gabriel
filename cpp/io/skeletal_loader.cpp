@@ -213,7 +213,7 @@ namespace gl {
             indexOffset += mesh.indices.size();
         }
 
-        drawable.type = GL_TRIANGLES;
+        drawable.type = DrawType::TRIANGLES;
         drawable.strips = 1;
         drawable.verticesPerStrip = indexCount;
     }

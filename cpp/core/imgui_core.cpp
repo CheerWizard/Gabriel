@@ -107,6 +107,12 @@ namespace gl {
         return ImGui::Checkbox(IMGUI_ID(label), &v);
     }
 
+    bool ImguiCore::InputUInt(const char* label, u32 &v, u32 step, const char* fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::InputInt(IMGUI_ID(label), (int*) &v);
+    }
+
     bool ImguiCore::InputInt(const char* label, int &v, int step, const char* fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
@@ -170,6 +176,66 @@ namespace gl {
         return ImGui::InputFloat4(IMGUI_ID(label), glm::value_ptr(v));
     }
 
+    bool ImguiCore::DrawVec2Control(
+            const std::string& label, glm::vec2& values,
+            const std::array<std::string, 2>& tags,
+            float resetValue, float columnWidth
+    ) {
+        bool press = false;
+
+        ImGui::PushID(label.c_str());
+
+        ImGui::Columns(2);
+        ImGui::SetColumnWidth(0, columnWidth);
+        ImGui::Text("%s", label.c_str());
+        ImGui::NextColumn();
+
+        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+
+        float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+        ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+        ImGui::PushFont(boldFont);
+        if (ImGui::Button(tags[0].c_str(), buttonSize)) {
+            values.x = resetValue;
+            press = true;
+        }
+        ImGui::PopFont();
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine();
+        ImGui::DragFloat(IMGUI_ID("##X", label.c_str()), &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+        ImGui::PushFont(boldFont);
+        if (ImGui::Button(tags[1].c_str(), buttonSize)) {
+            values.y = resetValue;
+            press = true;
+        }
+        ImGui::PopFont();
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine();
+        ImGui::DragFloat(IMGUI_ID("##Y", label.c_str()), &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+
+        ImGui::PopStyleVar();
+
+        ImGui::Columns(1);
+
+        ImGui::PopID();
+
+        return press;
+    }
+
     bool ImguiCore::DrawVec3Control(
             const std::string& label, glm::vec3& values,
             const std::array<std::string, 3>& tags,
@@ -202,7 +268,7 @@ namespace gl {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat(IMGUI_ID("##X", label.c_str()), &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
@@ -218,7 +284,7 @@ namespace gl {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat(IMGUI_ID("##Y", label.c_str()), &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
@@ -234,7 +300,7 @@ namespace gl {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat(IMGUI_ID("##Z", label.c_str()), &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
 
         ImGui::PopStyleVar();
@@ -278,7 +344,7 @@ namespace gl {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat(IMGUI_ID("##X", label.c_str()), &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
@@ -294,7 +360,7 @@ namespace gl {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat(IMGUI_ID("##Y", label.c_str()), &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
@@ -310,7 +376,7 @@ namespace gl {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat(IMGUI_ID("##Z", label.c_str()), &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
@@ -326,7 +392,7 @@ namespace gl {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##W", &values.w, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat(IMGUI_ID("##W", label.c_str()), &values.w, 0.1f, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
 
         ImGui::PopStyleVar();
@@ -346,6 +412,12 @@ namespace gl {
         ImguiCore::DrawVec3Control("Scale", transform.scale, { "X", "Y", "Z" }, 1.0f);
     }
 
+    void ImguiCore::DrawTransform2d(Transform2d& transform) {
+        ImguiCore::DrawVec2Control("Translation", transform.translation);
+        ImguiCore::InputFloat("Rotation", transform.rotation, 1.0f);
+        ImguiCore::DrawVec2Control("Scale", transform.scale, { "X", "Y" }, 1.0f);
+    }
+
     void ImguiCore::DrawColor3Control(
             const std::string &label, glm::vec3 &values,
             float resetValue, float columnWidth
@@ -358,6 +430,43 @@ namespace gl {
             float resetValue, float columnWidth
     ) {
         DrawVec4Control(label, values, { "R", "G", "B", "A" }, resetValue, columnWidth);
+    }
+
+    bool ImguiCore::InputText(std::string& text) {
+        char buffer[256];
+        memset(buffer, 0, sizeof(buffer));
+        strncpy_s(buffer, sizeof(buffer), text.c_str(), sizeof(buffer));
+        if (ImGui::InputText(IMGUI_ID("##Tag", text.c_str()), buffer, sizeof(buffer))) {
+            text = std::string(buffer);
+            return true;
+        }
+        return false;
+    }
+
+    void ImguiCore::DrawFontStyle(Style &style) {
+        Font* font = style.font;
+        if (font) {
+            std::string& fontPath = FontAtlas::fontPaths[font->id];
+            char buffer[256];
+            memset(buffer, 0, sizeof(buffer));
+            strncpy_s(buffer, sizeof(buffer), fontPath.c_str(), sizeof(buffer));
+            if (ImGui::InputText(IMGUI_ID("##Tag", fontPath.c_str()), buffer, sizeof(buffer))) {
+                fontPath = std::string(buffer);
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Save", { 48, 24 })) {
+                u32 fontSize = font->size;
+                FontAtlas::remove(font->id);
+                font = FontAtlas::load(fontPath.c_str(), fontSize);
+            }
+        }
+        style.font = font;
+
+        InputUInt("Size", font->size, 1);
+        DrawColor4Control("Color", style.color);
+        DrawVec2Control("Padding", style.padding);
     }
 
 }

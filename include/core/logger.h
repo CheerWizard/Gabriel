@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/common.h>
+#include <core/pointers.h>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>

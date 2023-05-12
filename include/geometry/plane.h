@@ -38,7 +38,7 @@ namespace gl {
 
     template<typename T>
     void Plane<T>::init(DrawableElements &drawable) {
-        drawable.type = GL_TRIANGLES;
+        drawable.type = DrawType::TRIANGLES;
         drawable.strips = 1;
         drawable.verticesPerStrip = this->indices.count;
         this->initDrawable(drawable);

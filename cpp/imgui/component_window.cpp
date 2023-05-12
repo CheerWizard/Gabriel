@@ -4,6 +4,8 @@
 
 #include <debugging/visuals.h>
 
+#include <text/text.h>
+
 namespace gl {
 
     const char* ComponentWindow::title = "Components";
@@ -45,14 +47,7 @@ namespace gl {
 
     void ComponentWindow::renderComponents() {
         if (sEntity.validComponent<Tag>()) {
-            auto& tag = sEntity.getComponent<Tag>()->buffer;
-
-            char buffer[256];
-            memset(buffer, 0, sizeof(buffer));
-            strncpy_s(buffer, sizeof(buffer), tag.c_str(), sizeof(buffer));
-            if (ImGui::InputText("##Tag", buffer, sizeof(buffer))) {
-                tag = std::string(buffer);
-            }
+            ImguiCore::InputText(sEntity.getComponent<Tag>()->buffer);
         }
 
         ImGui::SameLine();
@@ -63,12 +58,17 @@ namespace gl {
 
         if (ImGui::BeginPopup("AddComponent")) {
             displayAddComponent<Transform>("Transform");
+
             displayAddComponent<PolygonVisual>("PolygonVisual");
             displayAddComponent<NormalVisual>("NormalVisual");
             displayAddComponent<LightVisual>("LightVisual");
+
             displayAddComponent<DirectLightComponent>("DirectLight");
             displayAddComponent<PointLightComponent>("PointLight");
             displayAddComponent<SpotLightComponent>("SpotLight");
+
+            displayAddComponent<Text2d>("Text2D");
+            displayAddComponent<Text3d>("Text3D");
 
             ImGui::EndPopup();
         }
@@ -83,6 +83,8 @@ namespace gl {
         renderLightComponents();
 
         renderVisualComponents();
+
+        renderTextComponents();
     }
 
     void ComponentWindow::renderLightComponents() {
@@ -119,19 +121,47 @@ namespace gl {
         ImguiCore::DrawComponent<PolygonVisual>("PolygonVisual", sEntity, [](PolygonVisual& component)
         {
             ImguiCore::InputFloat("Thickness", component.thickness, 0.0001f);
+            ImGui::SeparatorText("Color");
             ImguiCore::DrawColor3Control("##polygon_color", component.color);
         });
 
         ImguiCore::DrawComponent<NormalVisual>("NormalVisual", sEntity, [](NormalVisual& component)
         {
             ImguiCore::InputFloat("Length", component.length, 0.1f);
+            ImGui::SeparatorText("Color");
             ImguiCore::DrawColor3Control("##normal_color", component.color);
         });
 
         ImguiCore::DrawComponent<LightVisual>("LightVisual", sEntity, [](LightVisual& component)
         {
+            ImGui::SeparatorText("Transform");
             ImguiCore::DrawTransform(component.transform);
+            ImGui::SeparatorText("Color");
             ImguiCore::DrawColor4Control("##light_visual_color", component.color);
+        });
+    }
+
+    void ComponentWindow::renderTextComponents() {
+        ImguiCore::DrawComponent<Text2d>("Text2D", sEntity, [](Text2d& component) {
+            ImGui::SeparatorText("Input");
+            if (ImguiCore::InputText(component.buffer)) {
+                component.update();
+            }
+            ImGui::SeparatorText("Font Style");
+            ImguiCore::DrawFontStyle(component.style);
+            ImGui::SeparatorText("Transform 2D");
+            ImguiCore::DrawTransform2d(component.transform);
+        });
+
+        ImguiCore::DrawComponent<Text3d>("Text3D", sEntity, [](Text3d& component) {
+            ImGui::SeparatorText("Input");
+            if (ImguiCore::InputText(component.buffer)) {
+                component.update();
+            }
+            ImGui::SeparatorText("Font Style");
+            ImguiCore::DrawFontStyle(component.style);
+            ImGui::SeparatorText("Transform");
+            ImguiCore::DrawTransform(component.transform);
         });
     }
 

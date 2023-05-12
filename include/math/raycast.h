@@ -63,8 +63,8 @@ namespace gl {
         inline float& z() { return vector.z; }
         inline float& w() { return vector.w; }
 
-        inline glm::vec2 vec2() { return { vector.x, vector.y }; }
-        inline glm::vec3 vec3() { return { vector.x, vector.y, vector.z }; }
+        inline glm::vec2 vec2() const { return { vector.x, vector.y }; }
+        inline glm::vec3 vec3() const { return { vector.x, vector.y, vector.z }; }
     };
 
     struct LocalRay;

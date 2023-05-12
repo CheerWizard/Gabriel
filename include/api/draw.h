@@ -8,8 +8,17 @@
 
 namespace gl {
 
+    enum DrawType : u32 {
+        TRIANGLES = GL_TRIANGLES,
+        TRIANGLE_STRIP = GL_TRIANGLE_STRIP,
+        TRIANGLE_FAN = GL_TRIANGLE_FAN,
+        LINES = GL_LINES,
+        QUADS = GL_QUADS,
+        POINTS = GL_POINTS
+    };
+
     component(DrawableVertices) {
-        u32 type = GL_TRIANGLES;
+        DrawType type = DrawType::TRIANGLES;
         VertexArray vao;
         VertexBuffer vbo;
         int vertexCount = 0;
@@ -21,7 +30,7 @@ namespace gl {
     };
 
     component(DrawableElements) {
-        u32 type = GL_TRIANGLES;
+        DrawType type = DrawType::TRIANGLES;
         VertexArray vao;
         VertexBuffer vbo;
         IndexBuffer ibo;

@@ -12,28 +12,21 @@
 namespace gl {
 
     template<typename T>
-    struct LightBuffer : StorageBuffer {
-        int capacity = 1;
+    struct LightBuffer : StorageBuffer<T> {
 
-        LightBuffer() = default;
-        LightBuffer(int capacity) : capacity(capacity) {}
+        LightBuffer() : StorageBuffer<T>() {}
+        LightBuffer(long long capacity) : StorageBuffer<T>(capacity) {}
 
-        void init(u32 binding);
         void update(Scene* scene);
     };
-
-    template<typename T>
-    void LightBuffer<T>::init(u32 binding) {
-        StorageBuffer::init(binding, sizeof(int) + sizeof(T) * capacity);
-    }
 
     template<typename T>
     void LightBuffer<T>::update(Scene *scene) {
         auto& components = scene->getComponents<T>();
         long long componentsSize = components.data().size();
         void* data = components.data().data();
-        StorageBuffer::bind();
-        StorageBuffer::update(0, componentsSize, data);
+        StorageBuffer<T>::bind();
+        StorageBuffer<T>::tryUpdate(0, componentsSize, data);
     }
 
     typedef LightBuffer<PhongLightComponent> PhongLightBuffer;

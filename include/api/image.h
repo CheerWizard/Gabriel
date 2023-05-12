@@ -128,6 +128,7 @@ namespace gl {
         void free(int size);
 
         void bind() const;
+        void bindActivate(int slot) const;
         static void bind(u32 type, u32 id);
         static void activate(int slot);
         static void bindActivate(u32 type, u32 id, int slot);
