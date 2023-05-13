@@ -12,7 +12,7 @@ namespace gl {
     }
 
     void Camera::look(double x, double y) {
-        if (!enableLook || !mWindow->isMousePress(GLFW_MOUSE_BUTTON_LEFT)) return;
+        if (!enableLook || !mWindow->isMousePress(GLFW_MOUSE_BUTTON_RIGHT)) return;
 
         if (mFirstCameraLook) {
             mLastCursorX = (float)x;

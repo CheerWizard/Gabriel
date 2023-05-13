@@ -363,8 +363,8 @@ namespace gl {
         mPbrPipeline->generateEnv();
         // setup mSunlight
         mSunlight = &mScene;
-        mSunlight.value().color = { 244, 233, 155, 0.02 };
-        mSunlight.value().position = { 5, 5, 5, 0 };
+        mSunlight.value().color = { 244, 233, 155, 1 };
+        mSunlight.value().position = { 10, 10, 10, 0 };
         mSunlight.value().direction = { 0, 0, 0 };
         // setup point lights
         for (auto& pointLight : mPointLights) {

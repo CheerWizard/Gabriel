@@ -1,5 +1,7 @@
 #include <features/lighting/light.h>
 
+#include <math/maths.h>
+
 namespace gl {
 
     Scene* LightStorage::scene = null;
@@ -28,6 +30,14 @@ namespace gl {
         directLightBuffer.update(scene);
         pointLightBuffer.update(scene);
         spotLightBuffer.update(scene);
+    }
+
+    float LightMath::radius(const glm::vec3& color, const float brightness, const float quadratic, const float linear, const float constant) {
+        float Imax  = std::fmaxf(std::fmaxf(color.r, color.g), color.b);
+        const float a = quadratic;
+        const float b = linear;
+        const float c = constant - (Imax * 256 / brightness);
+        return (-b + sqrtf(b * b - 4 * a * c)) / (2 * a);
     }
 
 }

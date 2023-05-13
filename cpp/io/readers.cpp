@@ -18,8 +18,6 @@ namespace gl {
                 break;
         }
 
-        file.close();
-
         return buffer;
     }
 

@@ -4,6 +4,8 @@ include(cmake_tools/CMakeLists.txt)
 
 project(Gabriel)
 
+set(CMAKE_CXX_STANDARD 17)
+
 # Targets
 if(DEBUG)
     add_definitions(-DDEBUG=1)

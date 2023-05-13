@@ -1,11 +1,10 @@
 #include <api/shader.h>
 
-#include <io/readers.h>
-
-#include <glad/glad.h>
+#include <io/writers.h>
 
 #include <unordered_map>
 #include <sstream>
+#include <filesystem>
 
 namespace gl {
 
@@ -66,6 +65,8 @@ namespace gl {
     }
 
     ShaderStage::ShaderStage(u32 type, const char* filepath) {
+
+        // read and preprocess shader from filepath
         std::string src = ShaderReader::read(filepath);
         const char* cSrc = src.c_str();
         if (src.empty()) {
@@ -73,10 +74,19 @@ namespace gl {
             id = 0;
         }
 
+#ifdef DEBUG
+        // write preprocessed shader into file
+        std::string generatedFilepath = "generated/" + std::string(filepath);
+        std::filesystem::create_directory("generated/shaders");
+        FileWriter::write(generatedFilepath.c_str(), src);
+#endif
+
+        // create and compile shader
         id = glCreateShader(type);
         glShaderSource(id, 1, &cSrc, null);
         glCompileShader(id);
 
+        // validate compilation
         int status;
         char info[512];
         glGetShaderiv(id, GL_COMPILE_STATUS, &status);

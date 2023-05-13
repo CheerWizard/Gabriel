@@ -30,18 +30,18 @@ void Logger::init(const char* name, int backtrace) {
     try {
         ss << name << "Logger";
         std::string logName = ss.str();
-        ss.clear();
+        ss = {};
         ss << "logs/" << name << ".log";
         std::string filepath = ss.str();
-        ss.clear();
+        ss = {};
         pLogger = createLogger(logName.c_str(), filepath.c_str(), pLogPattern, backtrace);
 
         ss << name << "Tracer";
         logName = ss.str();
-        ss.clear();
+        ss = {};
         ss << "logs/" << name << ".trace";
         filepath = ss.str();
-        ss.clear();
+        ss = {};
         pTracer = createLogger(logName.c_str(), filepath.c_str(), pTracePattern, backtrace);
     }
     catch (const spdlog::spdlog_ex &ex) {

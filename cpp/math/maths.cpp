@@ -2,8 +2,12 @@
 
 namespace gl {
 
-    bool approximate(float x1, float x2) {
+    bool approximate(const float x1, const float x2) {
         return fabs(x1 - x2) < EPSILON;
+    }
+
+    constexpr float sphereVolume(const float radius) {
+        return SPHERE_VOLUME_SCALAR * radius * radius * radius;
     }
 
 }

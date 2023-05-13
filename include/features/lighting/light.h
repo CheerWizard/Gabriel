@@ -50,4 +50,8 @@ namespace gl {
 
     };
 
+    struct LightMath final {
+        static float radius(const glm::vec3& color, const float brightness, const float quadratic, const float linear, const float constant);
+    };
+
 }
