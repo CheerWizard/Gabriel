@@ -26,6 +26,8 @@ namespace gl {
     BloomRenderer* ImguiCore::bloomRenderer = null;
     SsaoRenderer* ImguiCore::ssaoRenderer = null;
 
+    UI_Pipeline* ImguiCore::uiPipeline = null;
+
     Camera* ImguiCore::camera = null;
 
     Scene* ImguiCore::scene = null;

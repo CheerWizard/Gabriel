@@ -44,6 +44,7 @@ namespace gl {
     void VisualsPipeline::render() {
         mFrame.bind();
         glEnable(GL_DEPTH_TEST);
+        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // render visual polygons
         mPolygonVisualRenderer->begin();

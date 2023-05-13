@@ -116,7 +116,6 @@ namespace gl {
 
     void PBR_ForwardRenderer::bind() {
         mCurrentFrame.bind();
-//        clear_display(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);

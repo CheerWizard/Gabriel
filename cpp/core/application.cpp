@@ -89,6 +89,7 @@ namespace gl {
         ImguiCore::ssaoRenderer = mSsaoRenderer;
         ImguiCore::camera = mCamera;
         ImguiCore::scene = &mScene;
+        ImguiCore::uiPipeline = mUiPipeline;
     }
 
     void Application::initScene() {

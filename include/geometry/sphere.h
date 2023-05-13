@@ -6,6 +6,8 @@
 
 #include <geometry/geometry.h>
 
+#include <math/maths.h>
+
 #include <gtc/type_ptr.hpp>
 
 #include <vector>

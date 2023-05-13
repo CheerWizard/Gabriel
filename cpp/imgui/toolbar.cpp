@@ -4,10 +4,11 @@
 
 namespace gl {
 
-    static ImageWindow hdrImage = { "HDR Viewport", InvalidImageBuffer };
-    static ImageWindow blurImage = { "Blur Viewport", InvalidImageBuffer };
-    static ImageWindow bloomImage = { "Bloom Viewport", InvalidImageBuffer };
-    static ImageWindow ssaoImage = { "SSAO Viewport", InvalidImageBuffer };
+    static ImageWindow hdrImage = { "HDR Preview", InvalidImageBuffer };
+    static ImageWindow blurImage = { "Blur Preview", InvalidImageBuffer };
+    static ImageWindow bloomImage = { "Bloom Preview", InvalidImageBuffer };
+    static ImageWindow ssaoImage = { "SSAO Preview", InvalidImageBuffer };
+    static ImageWindow uiImage = { "UI Preview", InvalidImageBuffer };
 
     void Viewports::render() {
         if (hdrImage.show) {
@@ -29,14 +30,20 @@ namespace gl {
             ssaoImage.imageBuffer = ImguiCore::ssaoRenderer->getRenderTarget();
             ssaoImage.render();
         }
+
+        if (uiImage.show) {
+            uiImage.imageBuffer = ImguiCore::uiPipeline->getRenderTarget();
+            uiImage.render();
+        }
     }
 
     void ViewportsMenu::render() {
         if (ImGui::BeginMenu("Viewports")) {
-            ImGui::MenuItem("HDR", null, &hdrImage.show);
-            ImGui::MenuItem("Blur", null, &blurImage.show);
-            ImGui::MenuItem("Bloom", null, &bloomImage.show);
-            ImGui::MenuItem("SSAO", null, &ssaoImage.show);
+            ImGui::MenuItem(hdrImage.title, null, &hdrImage.show);
+            ImGui::MenuItem(blurImage.title, null, &blurImage.show);
+            ImGui::MenuItem(bloomImage.title, null, &bloomImage.show);
+            ImGui::MenuItem(ssaoImage.title, null, &ssaoImage.show);
+            ImGui::MenuItem(uiImage.title, null, &uiImage.show);
             ImGui::EndMenu();
         }
     }

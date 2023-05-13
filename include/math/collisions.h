@@ -1,7 +1,7 @@
 #pragma once
 
+#include <math/maths.h>
 #include <math/raycast.h>
-#include <math/math_functions.h>
 
 #include <ecs/component.h>
 

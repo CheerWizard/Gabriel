@@ -1,6 +1,8 @@
 #include <postfx/ssao.h>
+
+#include <math/maths.h>
+
 #include <random>
-#include <math/math_functions.h>
 
 namespace gl {
 

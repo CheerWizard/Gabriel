@@ -9,5 +9,5 @@ uniform sampler2D bitmap;
 uniform vec4 textColor;
 
 void main() {
-    out_color = vec4(textColor.rgb, texture(bitmap, l_uv).r * textColor.a);
+    out_color = vec4(textColor.rgb, texture(bitmap, l_uv).a * textColor.a);
 }

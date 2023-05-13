@@ -17,7 +17,7 @@
 
 #include <io/model_loader.h>
 
-#include <math/math_functions.h>
+#include <math/maths.h>
 
 #include <geometry/sphere.h>
 

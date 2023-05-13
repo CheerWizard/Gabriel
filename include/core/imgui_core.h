@@ -18,6 +18,8 @@
 
 #include <text/text.h>
 
+#include <ui/ui.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -27,23 +29,25 @@ namespace gl {
 
     struct ImguiCore final {
 
-        static ImGuiIO *IO;
+        static ImGuiIO* IO;
         static bool close;
         static ImGuiID dockspaceId;
         static ImGuiDockNodeFlags dockspaceFlags;
         static ImFont* regularFont;
         static ImFont* boldFont;
 
-        static Window *window;
-        static Camera *camera;
-        static Scene *scene;
+        static Window* window;
+        static Camera* camera;
+        static Scene* scene;
         static Entity selectedEntity;
 
-        static ScreenRenderer *screenRenderer;
-        static HdrRenderer *hdrRenderer;
-        static BlurRenderer *blurRenderer;
-        static BloomRenderer *bloomRenderer;
-        static SsaoRenderer *ssaoRenderer;
+        static ScreenRenderer* screenRenderer;
+        static HdrRenderer* hdrRenderer;
+        static BlurRenderer* blurRenderer;
+        static BloomRenderer* bloomRenderer;
+        static SsaoRenderer* ssaoRenderer;
+
+        static UI_Pipeline* uiPipeline;
 
         static void init(Window *window, const char *shaderLangVersion = "#version 460 core");
 

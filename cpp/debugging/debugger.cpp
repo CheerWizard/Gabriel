@@ -20,7 +20,7 @@ namespace gl {
     ) {
         std::stringstream ss;
 
-        ss << "ID: " << id << " ";
+        ss << "ID: " << id << "\n";
 
         switch (source)
         {
@@ -31,7 +31,7 @@ namespace gl {
             case GL_DEBUG_SOURCE_APPLICATION:     ss << "Source: Application"; break;
             case GL_DEBUG_SOURCE_OTHER:           ss << "Source: Other"; break;
         }
-        ss << " ";
+        ss << "\n";
 
         switch (type)
         {
@@ -45,7 +45,7 @@ namespace gl {
             case GL_DEBUG_TYPE_POP_GROUP:           ss << "Type: Pop Group"; break;
             case GL_DEBUG_TYPE_OTHER:               ss << "Type: Other"; break;
         }
-        ss << " ";
+        ss << "\n";
 
         switch (severity)
         {
@@ -54,7 +54,7 @@ namespace gl {
             case GL_DEBUG_SEVERITY_LOW:          ss << "Severity: low"; break;
             case GL_DEBUG_SEVERITY_NOTIFICATION: ss << "Severity: notification"; break;
         }
-        ss << " ";
+        ss << "\n";
 
         ss << "Message: " << message;
 
@@ -86,7 +86,7 @@ namespace gl {
 
     Debugger::~Debugger() = default;
 
-    bool Debugger::checkError(const char* file, const char* function, int line) {
+    bool Debugger::checkError() {
 #ifdef DEBUG
         GLenum errorCode;
 

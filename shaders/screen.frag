@@ -1,6 +1,6 @@
 #version 460 core
 
-#define IMGUI
+#include core.glsl
 
 out vec4 outColor;
 
@@ -8,7 +8,10 @@ in vec2 l_uv;
 
 uniform sampler2D scene;
 uniform sampler2D ui;
+
+#ifdef IMGUI
 uniform sampler2D visuals;
+#endif
 
 uniform float gamma;
 

@@ -56,8 +56,8 @@ namespace gl {
             mText3dRenderer->render(*text);
         });
 
-        glDisable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
     }
 
 }

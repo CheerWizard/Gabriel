@@ -3,7 +3,7 @@
 #include <core/common.h>
 
 #ifdef DEBUG
-    #define debugCheckError() gl::Debugger::checkError(__FILE__, __FUNCTION__, __LINE__)
+    #define debugCheckError() gl::Debugger::checkError()
 #else
     #define debugCheckError()
 #endif
@@ -19,7 +19,7 @@ namespace gl {
             return *sInstance;
         }
 
-        static bool checkError(const char* file, const char* function, int line);
+        static bool checkError();
 
     private:
         static Debugger* sInstance;
