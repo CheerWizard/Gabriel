@@ -22,8 +22,8 @@ namespace gl {
         float roll = 0;
 
         float moveSpeed = 1.0f;
-        float horizontalSensitivity = 0.075f;
-        float verticalSensitivity = 0.15f;
+        float horizontalSensitivity = 0.01f;
+        float verticalSensitivity = 0.01f;
 
         float fov = 45;
         float zNear = 0.1f;
@@ -41,8 +41,8 @@ namespace gl {
         Camera(const u32 binding, Window* window);
         ~Camera();
 
-        void look(const double x, const double y);
-        void zoom(const double y);
+        void look(const double x, const double y, const float dt);
+        void zoom(const double y, const float dt);
         void move(Window* window, const float dt);
 
         void resize();

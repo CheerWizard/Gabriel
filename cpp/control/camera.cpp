@@ -1,5 +1,7 @@
 #include <control/camera.h>
 
+#include <glm/gtx/quaternion.hpp>
+
 namespace gl {
 
     Camera::Camera(const u32 binding, Window* window) : mWindow(window) {
@@ -11,7 +13,7 @@ namespace gl {
         mUbo.free();
     }
 
-    void Camera::look(const double x, const double y) {
+    void Camera::look(const double x, const double y, const float dt) {
         if (!enableLook || !mWindow->isMousePress(GLFW_MOUSE_BUTTON_RIGHT)) {
             mCurrentCursorMode = CursorMode::NORMAL;
             mWindow->setCursorMode(CursorMode::NORMAL);
@@ -34,27 +36,21 @@ namespace gl {
 
         float xoffset = fx - mLastCursorX;
         float yoffset = mLastCursorY - fy;
-
         mLastCursorX = fx;
         mLastCursorY = fy;
 
-        xoffset *= horizontalSensitivity;
-        yoffset *= verticalSensitivity;
+        float pitchDt = yoffset * verticalSensitivity / dt;
+        float yawDt = xoffset * horizontalSensitivity / dt;
 
-        yaw += xoffset;
-        pitch += yoffset;
-
-        glm::vec3 direction;
-        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        direction.y = sin(glm::radians(pitch));
-        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        front = glm::normalize(direction);
+        glm::vec3 right = glm::cross(front, up);
+        glm::quat q = glm::normalize(glm::cross(glm::angleAxis(pitchDt, right), glm::angleAxis(-yawDt, up)));
+        front = glm::rotate(q, front);
     }
 
-    void Camera::zoom(const double y) {
+    void Camera::zoom(const double y, const float dt) {
         if (!enableZoom) return;
 
-        mZoomedFOV -= (float) y;
+        mZoomedFOV -= (float) y / dt;
         clamp(mZoomedFOV, 1.0f, fov);
         glm::mat4 perspectiveMat = PerspectiveMat { mZoomedFOV, getAspectRatio(), zNear, zFar }.init();
         mUbo.update(0, sizeof(glm::mat4), glm::value_ptr(perspectiveMat));

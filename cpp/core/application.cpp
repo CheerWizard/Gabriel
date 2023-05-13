@@ -548,12 +548,12 @@ namespace gl {
     }
 
     void Application::onMouseCursor(double x, double y) {
-        mCamera->look(x, y);
+        mCamera->look(x, y, Timer::getDeltaMillis());
         mEntityControl->drag(x, y);
     }
 
     void Application::onMouseScroll(double x, double y) {
-        mCamera->zoom(y);
+        mCamera->zoom(y, Timer::getDeltaMillis());
     }
 
     void Application::onEntitySelected(Entity entity, double x, double y) {
