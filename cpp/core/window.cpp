@@ -204,4 +204,8 @@ namespace gl {
         glfwSetWindowIcon(mHandle, 1, &mIcon);
     }
 
+    void Window::setCursorMode(const CursorMode cursorMode) {
+        glfwSetInputMode(mHandle, GLFW_CURSOR, cursorMode);
+    }
+
 }

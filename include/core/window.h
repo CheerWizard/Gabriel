@@ -17,6 +17,12 @@ namespace gl {
         double y = 0;
     };
 
+    enum CursorMode : int {
+        NORMAL = GLFW_CURSOR_NORMAL,
+        HIDE = GLFW_CURSOR_HIDDEN,
+        DISABLED = GLFW_CURSOR_DISABLED
+    };
+
     struct Window final {
 
         Window(
@@ -143,6 +149,8 @@ namespace gl {
         void setMouseScrollCallback();
 
         void loadIcon(const char* filepath);
+
+        void setCursorMode(const CursorMode cursorMode);
 
     private:
         GLFWwindow* mHandle;

@@ -77,6 +77,7 @@ namespace gl {
 #ifdef DEBUG
         // write preprocessed shader into file
         std::string generatedFilepath = "generated/" + std::string(filepath);
+        std::filesystem::create_directory("generated");
         std::filesystem::create_directory("generated/shaders");
         FileWriter::write(generatedFilepath.c_str(), src);
 #endif

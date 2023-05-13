@@ -18,16 +18,14 @@ namespace gl {
         glm::vec3 up = { 0, 1, 0 };
 
         float pitch = 0;
-        float maxPitch = 89;
         float yaw = 0;
         float roll = 0;
 
         float moveSpeed = 1.0f;
-        float horizontalSensitivity = 0.15f;
-        float verticalSensitivity = 0.30f;
+        float horizontalSensitivity = 0.075f;
+        float verticalSensitivity = 0.15f;
 
         float fov = 45;
-        float maxFov = 45;
         float zNear = 0.1f;
         float zFar = 100.0f;
 
@@ -40,14 +38,14 @@ namespace gl {
         KEY keyMoveBackward = KEY::S;
         KEY keyMoveRight = KEY::D;
 
-        Camera(u32 binding, Window* window);
+        Camera(const u32 binding, Window* window);
         ~Camera();
 
-        void look(double x, double y);
-        void zoom(double x, double y);
-        void move(Window* window, float dt);
+        void look(const double x, const double y);
+        void zoom(const double y);
+        void move(Window* window, const float dt);
 
-        void resize(int w, int h);
+        void resize();
 
         glm::mat4 perspective() const;
         void updatePerspective();
@@ -67,9 +65,9 @@ namespace gl {
             return mWindow->getAspectRatio();
         }
 
-        RayCollider shootRay(double x, double y);
-        ViewRay raycastView(double x, double y);
-        WorldRay raycastWorld(double x, double y);
+        RayCollider shootRay(const double x, const double y);
+        ViewRay raycastView(const double x, const double y);
+        WorldRay raycastWorld(const double x, const double y);
 
     private:
         Window* mWindow;
@@ -77,6 +75,8 @@ namespace gl {
         float mLastCursorX = 400;
         float mLastCursorY = 300;
         bool mFirstCameraLook = true;
+        float mZoomedFOV = fov;
+        CursorMode mCurrentCursorMode = CursorMode::NORMAL;
     };
 
 }

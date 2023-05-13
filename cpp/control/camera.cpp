@@ -2,7 +2,7 @@
 
 namespace gl {
 
-    Camera::Camera(u32 binding, Window* window) : mWindow(window) {
+    Camera::Camera(const u32 binding, Window* window) : mWindow(window) {
         mUbo.init(binding, 2 * sizeof(glm::mat4));
         update();
     }
@@ -11,28 +11,38 @@ namespace gl {
         mUbo.free();
     }
 
-    void Camera::look(double x, double y) {
-        if (!enableLook || !mWindow->isMousePress(GLFW_MOUSE_BUTTON_RIGHT)) return;
+    void Camera::look(const double x, const double y) {
+        if (!enableLook || !mWindow->isMousePress(GLFW_MOUSE_BUTTON_RIGHT)) {
+            mCurrentCursorMode = CursorMode::NORMAL;
+            mWindow->setCursorMode(CursorMode::NORMAL);
+            return;
+        }
+
+        float fx = (float)x;
+        float fy = (float)y;
+
+        if (mCurrentCursorMode != CursorMode::DISABLED) {
+            mCurrentCursorMode = CursorMode::DISABLED;
+            mWindow->setCursorMode(CursorMode::DISABLED);
+        }
 
         if (mFirstCameraLook) {
-            mLastCursorX = (float)x;
-            mLastCursorY = (float)y;
+            mLastCursorX = fx;
+            mLastCursorY = fy;
             mFirstCameraLook = false;
         }
 
-        float xoffset = (float)x - mLastCursorX;
-        float yoffset = mLastCursorY - (float)y;
+        float xoffset = fx - mLastCursorX;
+        float yoffset = mLastCursorY - fy;
 
-        mLastCursorX = (float)x;
-        mLastCursorY = (float)y;
+        mLastCursorX = fx;
+        mLastCursorY = fy;
 
         xoffset *= horizontalSensitivity;
         yoffset *= verticalSensitivity;
 
         yaw += xoffset;
         pitch += yoffset;
-
-        clamp(pitch, -maxPitch, maxPitch);
 
         glm::vec3 direction;
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -41,15 +51,16 @@ namespace gl {
         front = glm::normalize(direction);
     }
 
-    void Camera::zoom(double x, double y) {
+    void Camera::zoom(const double y) {
         if (!enableZoom) return;
 
-        fov -= (float) y;
-        clamp(fov, 1.0f, maxFov);
-        updatePerspective();
+        mZoomedFOV -= (float) y;
+        clamp(mZoomedFOV, 1.0f, fov);
+        glm::mat4 perspectiveMat = PerspectiveMat { mZoomedFOV, getAspectRatio(), zNear, zFar }.init();
+        mUbo.update(0, sizeof(glm::mat4), glm::value_ptr(perspectiveMat));
     }
 
-    void Camera::resize(int w, int h) {
+    void Camera::resize() {
         updatePerspective();
     }
 
@@ -100,11 +111,11 @@ namespace gl {
         updateView();
     }
 
-    RayCollider Camera::shootRay(double x, double y) {
+    RayCollider Camera::shootRay(const double x, const double y) {
         return { position, raycastWorld(x, y).vec3() };
     }
 
-    ViewRay Camera::raycastView(double x, double y) {
+    ViewRay Camera::raycastView(const double x, const double y) {
         // mouse Screen -> NDC
         ScreenRay mouseScreenRay((float) x, (float) y, -1.0f, 1.0f);
         NDCRay mouseNdcRay = mouseScreenRay.ndcSpace(mWindow->getFrameWidth(), mWindow->getFrameHeight());
@@ -118,7 +129,7 @@ namespace gl {
         return mouseViewRay;
     }
 
-    WorldRay Camera::raycastWorld(double x, double y) {
+    WorldRay Camera::raycastWorld(const double x, const double y) {
         return raycastView(x, y).worldSpace(view());
     }
 

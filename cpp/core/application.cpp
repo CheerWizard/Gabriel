@@ -346,7 +346,6 @@ namespace gl {
     void Application::initCamera() {
         mCamera = new Camera(0, mWindow);
         mCamera->zFar = 1000.0f;
-        mCamera->maxPitch = 180;
         mCamera->position = {-5, 2, 10 };
     }
 
@@ -504,7 +503,7 @@ namespace gl {
 
         mWindow->onFrameResized(w, h);
 
-        mCamera->resize(w, h);
+        mCamera->resize();
 
         mScreenRenderer->resize(w, h);
         mHdrRenderer->resize(w, h);
@@ -554,7 +553,7 @@ namespace gl {
     }
 
     void Application::onMouseScroll(double x, double y) {
-        mCamera->zoom(x, y);
+        mCamera->zoom(y);
     }
 
     void Application::onEntitySelected(Entity entity, double x, double y) {

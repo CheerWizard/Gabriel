@@ -90,13 +90,11 @@ namespace gl {
                     if (ImguiCore::InputFloat("FOV", camera->fov, 1.0f)) {
                         camera->updatePerspective();
                     }
-                    ImguiCore::InputFloat("Max FOV", camera->maxFov, 1.0f);
 
                     ImGui::SeparatorText("View Space");
                     if (ImguiCore::InputFloat("Pitch", camera->pitch, 1.0f)) {
                         camera->updateView();
                     }
-                    ImguiCore::InputFloat("Max Pitch", camera->maxPitch, 1.0f);
                     if (ImguiCore::InputFloat("Yaw", camera->yaw, 1.0f)) {
                         camera->updateView();
                     }

@@ -4,7 +4,7 @@
 
 namespace gl {
 
-    void UniformBuffer::init(u32 binding, long long size) {
+    void UniformBuffer::init(const u32 binding, long long size) {
         glGenBuffers(1, &id);
 
         glBindBuffer(GL_UNIFORM_BUFFER, id);
