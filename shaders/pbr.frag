@@ -1,6 +1,7 @@
 #version 460 core
 
 #include core.glsl
+#include camera.glsl
 
 in vec2 l_uv;
 in vec3 w_pos;
@@ -11,7 +12,6 @@ layout(location = 0) out vec4 out_color;
 layout(location = 1) out float out_reveal;
 layout(location = 2) out uint out_entity_id;
 
-uniform vec3 camera_pos;
 uniform uint entity_id;
 
 #include features/material.glsl

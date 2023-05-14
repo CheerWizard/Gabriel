@@ -1,5 +1,7 @@
 #pragma once
 
+#include <features/lighting/light_color.h>
+
 #include <ecs/entity.h>
 
 namespace gl {
@@ -7,7 +9,7 @@ namespace gl {
     component(PointLightComponent) {
         glm::vec3 padding0 = { 0, 0, 0 };
         glm::vec4 position = { 0, 0, 0, 0 };
-        glm::vec4 color = { 1, 1, 1, 1 };
+        LightColor color = { 1, 1, 1, 1 };
         float constant = 0;
         float linear = 0;
         float quadratic = 1;

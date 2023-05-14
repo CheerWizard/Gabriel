@@ -7,9 +7,10 @@ out vec4 outColor;
 in vec2 l_uv;
 
 uniform sampler2D scene;
-uniform sampler2D ui;
+uniform sampler2D raytrace;
 
 #ifdef IMGUI
+uniform sampler2D ui;
 uniform sampler2D visuals;
 #endif
 
@@ -23,12 +24,16 @@ void main()
     sceneColor = pow(sceneColor, vec3(1.0 / gamma));
     screenColor += sceneColor;
 
-    vec3 uiColor = texture(ui, l_uv).rgb;
-    screenColor += uiColor;
+    vec3 raytraceColor = texture(raytrace, l_uv).rgb;
+    screenColor += raytraceColor;
 
     #ifdef IMGUI
+
+    vec3 uiColor = texture(ui, l_uv).rgb;
+    screenColor += uiColor;
     vec3 visualsColor = texture(visuals, l_uv).rgb;
     screenColor += visualsColor;
+
     #endif
 
     outColor = vec4(screenColor, 1.0);

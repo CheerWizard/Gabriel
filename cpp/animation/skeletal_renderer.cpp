@@ -16,11 +16,6 @@ namespace gl {
         mShader.free();
     }
 
-    void SkeletalRenderer::setCameraPos(glm::vec3& cameraPos) {
-        mShader.use();
-        mShader.setUniformArgs("camera_pos", cameraPos);
-    }
-
     void SkeletalRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable) {
         mShader.setUniformArgs("entity_id", entityId);
         transform.update(mShader);

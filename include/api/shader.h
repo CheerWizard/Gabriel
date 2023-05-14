@@ -2,6 +2,7 @@
 
 #include <api/uniform.h>
 #include <api/image.h>
+#include <api/memory_barrier.h>
 
 namespace gl {
 

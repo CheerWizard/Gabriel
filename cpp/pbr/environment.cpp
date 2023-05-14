@@ -165,8 +165,8 @@ namespace gl {
     void EnvRenderer::render() {
         glDepthFunc(GL_LEQUAL);
         mEnvShader.use();
-        environment->irradiance.activate(0);
-        environment->irradiance.bind();
+        environment->skybox.activate(0);
+        environment->skybox.bind();
         mEnvCube.draw();
         glDepthFunc(GL_LESS);
     }

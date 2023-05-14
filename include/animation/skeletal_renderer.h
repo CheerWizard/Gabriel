@@ -14,7 +14,6 @@ namespace gl {
 
         void begin();
 
-        void setCameraPos(glm::vec3& cameraPos);
         void updateBones(std::vector<glm::mat4>& bones);
 
         void render(EntityID entityId, Transform& transform, DrawableElements& drawable);

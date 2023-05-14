@@ -9,12 +9,12 @@
 namespace gl {
 
     template<typename T>
-    struct Plane : Geometry<T> {
+    struct PlaneGeometry : Geometry<T> {
         int size = 64;
 
-        Plane() = default;
+        PlaneGeometry() = default;
 
-        Plane(int size) : size(size) {
+        PlaneGeometry(int size) : size(size) {
             generate();
         }
 
@@ -22,14 +22,14 @@ namespace gl {
         void init(DrawableElements& drawable);
     };
 
-    struct PlaneUV : Plane<VertexUV> {
+    struct PlaneUV : PlaneGeometry<VertexUV> {
         PlaneUV() = default;
-        PlaneUV(int size) : Plane<VertexUV>(size) {}
+        PlaneUV(int size) : PlaneGeometry<VertexUV>(size) {}
     };
 
-    struct PlaneTBN : Plane<VertexTBN> {
+    struct PlaneTBN : PlaneGeometry<VertexTBN> {
         PlaneTBN() = default;
-        PlaneTBN(int size) : Plane<VertexTBN>(size) {
+        PlaneTBN(int size) : PlaneGeometry<VertexTBN>(size) {
             generateTBN();
         }
 
@@ -37,7 +37,7 @@ namespace gl {
     };
 
     template<typename T>
-    void Plane<T>::init(DrawableElements &drawable) {
+    void PlaneGeometry<T>::init(DrawableElements &drawable) {
         drawable.type = DrawType::TRIANGLES;
         drawable.strips = 1;
         drawable.verticesPerStrip = this->indices.count;
@@ -45,7 +45,7 @@ namespace gl {
     }
 
     template<typename T>
-    void Plane<T>::generate() {
+    void PlaneGeometry<T>::generate() {
         this->vertices.init(size * size);
         float shiftX = -size / 2.0f;
         float shiftZ = shiftX;

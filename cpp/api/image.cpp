@@ -287,7 +287,7 @@ namespace gl {
         updateParams(params);
     }
 
-    void ImageBuffer::setByteAlignment(int alignment) {
+    void ImageBuffer::setUnpackAlignment(int alignment) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
     }
 

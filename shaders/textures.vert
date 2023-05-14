@@ -5,10 +5,7 @@ layout (location = 1) in vec2 a_uv;
 
 out vec2 l_uv;
 
-layout (std140, binding = 0) uniform Camera {
-    mat4 perspective;
-    mat4 view;
-};
+#include camera.glsl
 
 uniform mat4 models[16];
 

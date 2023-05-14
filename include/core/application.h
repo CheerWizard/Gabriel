@@ -32,6 +32,8 @@
 
 #include <terrain/terrain.h>
 
+#include <raytracer/raytracer.h>
+
 #include <imgui/toolbar.h>
 #include <imgui/screen_window.h>
 #include <imgui/properties_window.h>
@@ -145,6 +147,8 @@ namespace gl {
         DirectLight mSunlight;
         std::array<PointLight, 4> mPointLights;
         SpotLight mFlashlight;
+
+        RayTraceRenderer* mRayTraceRenderer = null;
     };
 
 }

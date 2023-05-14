@@ -6,6 +6,7 @@
 
 #include <features/screen.h>
 #include <features/transform.h>
+#include <features/lighting/light_color.h>
 
 #include <control/camera.h>
 
@@ -69,23 +70,23 @@ namespace gl {
 
         static bool Checkbox(const char *label, bool &v, const char *fmt = "%s");
 
-        static bool InputUInt(const char *label, u32 &v, u32 step, const char *fmt = "%s");
+        static bool InputUInt(const char *label, u32 &v, const char *fmt = "%s");
 
-        static bool InputInt(const char *label, int &v, int step, const char *fmt = "%s");
+        static bool InputInt(const char *label, int &v, const char *fmt = "%s");
 
-        static bool InputInt2(const char *label, glm::ivec2 &v, float step, const char *fmt = "%s");
+        static bool InputInt2(const char *label, glm::ivec2 &v, const char *fmt = "%s");
 
-        static bool InputInt3(const char *label, glm::ivec3 &v, float step, const char *fmt = "%s");
+        static bool InputInt3(const char *label, glm::ivec3 &v, const char *fmt = "%s");
 
-        static bool InputInt4(const char *label, glm::ivec4 &v, float step, const char *fmt = "%s");
+        static bool InputInt4(const char *label, glm::ivec4 &v, const char *fmt = "%s");
 
         static bool InputFloat(const char *label, float &v, float step, const char *fmt = "%s");
 
-        static bool InputFloat2(const char *label, glm::fvec2 &v, float step, const char *fmt = "%s");
+        static bool InputFloat2(const char *label, glm::fvec2 &v, const char *fmt = "%s");
 
-        static bool InputFloat3(const char *label, glm::fvec3 &v, float step, const char *fmt = "%s");
+        static bool InputFloat3(const char *label, glm::fvec3 &v, const char *fmt = "%s");
 
-        static bool InputFloat4(const char *label, glm::fvec4 &v, float step, const char *fmt = "%s");
+        static bool InputFloat4(const char *label, glm::fvec4 &v, const char *fmt = "%s");
 
         static bool DrawVec2Control(
                 const std::string &label, glm::vec2 &values,
@@ -123,6 +124,15 @@ namespace gl {
 
         static void DrawColor4Control(
                 const std::string &label, glm::vec4 &values,
+                float resetValue = 0.0f,
+                float columnWidth = 100.0f
+        );
+
+        static bool ColorEdit3(const char* label, glm::vec3& values, const char* fmt = "%s");
+        static bool ColorEdit4(const char* label, glm::vec4& values, const char* fmt = "%s");
+
+        static void DrawLightColorControl(
+                const std::string &label, LightColor& color,
                 float resetValue = 0.0f,
                 float columnWidth = 100.0f
         );

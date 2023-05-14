@@ -205,7 +205,10 @@ namespace gl {
     }
 
     void Window::setCursorMode(const CursorMode cursorMode) {
-        glfwSetInputMode(mHandle, GLFW_CURSOR, cursorMode);
+        if (mCurrentCursorMode != cursorMode) {
+            mCurrentCursorMode = cursorMode;
+            glfwSetInputMode(mHandle, GLFW_CURSOR, cursorMode);
+        }
     }
 
 }

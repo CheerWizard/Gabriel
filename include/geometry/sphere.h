@@ -16,13 +16,13 @@
 namespace gl {
 
     template<typename T>
-    struct Sphere : Geometry<T> {
+    struct SphereGeometry : Geometry<T> {
         int xSegments = 64;
         int ySegments = 64;
 
-        Sphere() = default;
+        SphereGeometry() = default;
 
-        Sphere(int xSegments, int ySegments) : xSegments(xSegments), ySegments(ySegments) {
+        SphereGeometry(int xSegments, int ySegments) : xSegments(xSegments), ySegments(ySegments) {
             generate();
         }
 
@@ -30,14 +30,14 @@ namespace gl {
         void init(DrawableElements& drawable);
     };
 
-    struct SphereUV : Sphere<VertexUV> {
+    struct SphereUV : SphereGeometry<VertexUV> {
         SphereUV() = default;
-        SphereUV(int xSegments, int ySegments) : Sphere<VertexUV>(xSegments, ySegments) {}
+        SphereUV(int xSegments, int ySegments) : SphereGeometry<VertexUV>(xSegments, ySegments) {}
     };
 
-    struct SphereTBN : Sphere<VertexTBN> {
+    struct SphereTBN : SphereGeometry<VertexTBN> {
         SphereTBN() = default;
-        SphereTBN(int xSegments, int ySegments) : Sphere<VertexTBN>(xSegments, ySegments) {
+        SphereTBN(int xSegments, int ySegments) : SphereGeometry<VertexTBN>(xSegments, ySegments) {
             generateTBN();
         }
 
@@ -45,7 +45,7 @@ namespace gl {
     };
 
     template<typename T>
-    void Sphere<T>::generate() {
+    void SphereGeometry<T>::generate() {
         this->vertices.init((xSegments + 1) * (ySegments + 1));
 
         int i = 0;
@@ -93,7 +93,7 @@ namespace gl {
     }
 
     template<typename T>
-    void Sphere<T>::init(DrawableElements &drawable) {
+    void SphereGeometry<T>::init(DrawableElements &drawable) {
         drawable.type = DrawType::TRIANGLE_STRIP;
         drawable.strips = 1;
         drawable.verticesPerStrip = this->indices.count;

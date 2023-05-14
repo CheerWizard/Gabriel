@@ -109,31 +109,31 @@ namespace gl {
         return ImGui::Checkbox(IMGUI_ID(label), &v);
     }
 
-    bool ImguiCore::InputUInt(const char* label, u32 &v, u32 step, const char* fmt) {
+    bool ImguiCore::InputUInt(const char* label, u32 &v, const char* fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputInt(IMGUI_ID(label), (int*) &v);
     }
 
-    bool ImguiCore::InputInt(const char* label, int &v, int step, const char* fmt) {
+    bool ImguiCore::InputInt(const char* label, int &v, const char* fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputInt(IMGUI_ID(label), &v);
     }
 
-    bool ImguiCore::InputInt2(const char* label, glm::ivec2 &v, float step, const char *fmt) {
+    bool ImguiCore::InputInt2(const char* label, glm::ivec2 &v, const char *fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputInt2(IMGUI_ID(label), glm::value_ptr(v));
     }
 
-    bool ImguiCore::InputInt3(const char* label, glm::ivec3 &v, float step, const char *fmt) {
+    bool ImguiCore::InputInt3(const char* label, glm::ivec3 &v, const char *fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputInt3(IMGUI_ID(label), glm::value_ptr(v));
     }
 
-    bool ImguiCore::InputInt4(const char* label, glm::ivec4 &v, float step, const char *fmt) {
+    bool ImguiCore::InputInt4(const char* label, glm::ivec4 &v, const char *fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputInt4(IMGUI_ID(label), glm::value_ptr(v));
@@ -160,19 +160,19 @@ namespace gl {
         return updated;
     }
 
-    bool ImguiCore::InputFloat2(const char* label, glm::fvec2 &v, float step, const char *fmt) {
+    bool ImguiCore::InputFloat2(const char* label, glm::fvec2 &v, const char *fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputFloat2(IMGUI_ID(label), glm::value_ptr(v));
     }
 
-    bool ImguiCore::InputFloat3(const char* label, glm::fvec3 &v, float step, const char *fmt) {
+    bool ImguiCore::InputFloat3(const char* label, glm::fvec3 &v, const char *fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputFloat3(IMGUI_ID(label), glm::value_ptr(v));
     }
 
-    bool ImguiCore::InputFloat4(const char* label, glm::fvec4 &v, float step, const char *fmt) {
+    bool ImguiCore::InputFloat4(const char* label, glm::fvec4 &v, const char *fmt) {
         ImGui::Text(fmt, label);
         ImGui::SameLine();
         return ImGui::InputFloat4(IMGUI_ID(label), glm::value_ptr(v));
@@ -434,6 +434,24 @@ namespace gl {
         DrawVec4Control(label, values, { "R", "G", "B", "A" }, resetValue, columnWidth);
     }
 
+    bool ImguiCore::ColorEdit3(const char* label, glm::vec3 &values, const char* fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::ColorEdit3(IMGUI_ID(label), glm::value_ptr(values));
+    }
+
+    bool ImguiCore::ColorEdit4(const char* label, glm::vec4 &values, const char* fmt) {
+        ImGui::Text(fmt, label);
+        ImGui::SameLine();
+        return ImGui::ColorEdit4(IMGUI_ID(label), glm::value_ptr(values));
+    }
+
+    void ImguiCore::DrawLightColorControl(const std::string& label, LightColor& color, float resetValue, float columnWidth) {
+        ImGui::SeparatorText("Light Color");
+        DrawColor3Control("", color.rgb, resetValue, columnWidth);
+        ImGui::DragFloat(IMGUI_ID("##light_color", label.c_str()), &color.intensity, 0.1f);
+    }
+
     bool ImguiCore::InputText(std::string& text) {
         char buffer[256];
         memset(buffer, 0, sizeof(buffer));
@@ -466,7 +484,7 @@ namespace gl {
         }
         style.font = font;
 
-        InputUInt("Size", font->size, 1);
+        InputUInt("Size", font->size);
         DrawColor4Control("Color", style.color);
         DrawVec2Control("Padding", style.padding);
     }

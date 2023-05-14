@@ -1,5 +1,7 @@
 #pragma once
 
+#include <features/lighting/light_color.h>
+
 #include <ecs/entity.h>
 
 namespace gl {
@@ -7,7 +9,7 @@ namespace gl {
     component(DirectLightComponent) {
         glm::vec3 direction = { 0, 0, 0 };
         glm::vec4 position = { 5, 5, 5, 0 };
-        glm::vec4 color = { 1, 1, 1, 1 };
+        LightColor color = { 1, 1, 1, 1 };
     };
 
     struct DirectLight : Entity {

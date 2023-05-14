@@ -148,7 +148,7 @@ namespace gl {
 
         void bindImage(int slot, AccessMode access, int internalFormat);
 
-        static void setByteAlignment(int alignment);
+        static void setUnpackAlignment(int alignment);
     };
 
 }

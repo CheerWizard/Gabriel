@@ -2,30 +2,24 @@
 
 #include <math/maths.h>
 #include <math/raycast.h>
+#include <math/sphere.h>
 
 #include <ecs/component.h>
 
 namespace gl {
 
     component(RayCollider) {
-        glm::vec3 p0 = { 0, 0, 0 }; // start point
-        glm::vec3 p1 = { 0, 0, 0 }; // end point
+        Ray ray;
 
         RayCollider() = default;
-
-        RayCollider(const glm::vec3 &p0, const glm::vec3 &p1)
-        : p0(p0), p1(p1) {}
-
-        float length() const;
+        RayCollider(const Ray& ray) : ray(ray) {}
     };
 
     component(SphereCollider) {
-        glm::vec3 center = { 0, 0, 0 };
-        float radius = 1.0f;
+        Sphere sphere;
 
         SphereCollider() = default;
-        SphereCollider(const glm::vec3& center, float radius)
-        : center(center), radius(radius) {}
+        SphereCollider(const glm::vec3& center, const float radius) : sphere(center, radius) {}
     };
 
     struct CollisionResponse {
@@ -40,7 +34,7 @@ namespace gl {
     };
 
     struct CollisionDetection final {
-        static RaySphereCollisionResponse test(const RayCollider& ray, const SphereCollider& sphere);
+        static RaySphereCollisionResponse test(const RayCollider& rayCollider, const SphereCollider& sphereCollider);
     };
 
 }

@@ -51,9 +51,9 @@ namespace gl {
         ViewRay entityViewRay = entityWorldRay.viewSpace(cameraView);
         // intersect rays mouse View and entity View by Z plane
         ViewRay intersectViewRay = {
-                mouseViewRay.vector.x * entityViewRay.vector.z,
-                mouseViewRay.vector.y * entityViewRay.vector.z,
-                mouseViewRay.vector.z * entityViewRay.vector.z,
+                mouseViewRay.origin.x * entityViewRay.origin.z,
+                mouseViewRay.origin.y * entityViewRay.origin.z,
+                mouseViewRay.origin.z * entityViewRay.origin.z,
                 1.0f
         };
         // entity View -> World

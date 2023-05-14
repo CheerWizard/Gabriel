@@ -174,6 +174,8 @@ namespace gl {
 
         bool mEnableFullscreen = false;
         bool mEnableVSync = false;
+
+        CursorMode mCurrentCursorMode = CursorMode::NORMAL;
     };
 
     template<typename T>

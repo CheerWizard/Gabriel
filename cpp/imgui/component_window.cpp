@@ -63,6 +63,7 @@ namespace gl {
             displayAddComponent<NormalVisual>("NormalVisual");
             displayAddComponent<LightVisual>("LightVisual");
 
+            displayAddComponent<PhongLightComponent>("PhongLight");
             displayAddComponent<DirectLightComponent>("DirectLight");
             displayAddComponent<PointLightComponent>("PointLight");
             displayAddComponent<SpotLightComponent>("SpotLight");
@@ -88,17 +89,23 @@ namespace gl {
     }
 
     void ComponentWindow::renderLightComponents() {
+        ImguiCore::DrawComponent<PhongLightComponent>("PhongLight", sEntity, [](PhongLightComponent& component)
+        {
+            ImguiCore::DrawVec4Control("Position", component.position);
+            ImguiCore::DrawLightColorControl("PhongLightColor", component.color);
+        });
+
         ImguiCore::DrawComponent<DirectLightComponent>("DirectLight", sEntity, [](DirectLightComponent& component)
         {
             ImguiCore::DrawVec4Control("Position", component.position);
             ImguiCore::DrawVec3Control("Direction", component.direction);
-            ImguiCore::DrawColor4Control("Color", component.color);
+            ImguiCore::DrawLightColorControl("DirectLightColor", component.color);
         });
 
         ImguiCore::DrawComponent<PointLightComponent>("PointLight", sEntity, [](PointLightComponent& component)
         {
             ImguiCore::DrawVec4Control("Position", component.position);
-            ImguiCore::DrawColor4Control("Color", component.color);
+            ImguiCore::DrawLightColorControl("PointLightColor", component.color);
             ImguiCore::InputFloat("Constant", component.constant, 0.1f);
             ImguiCore::InputFloat("Linear", component.linear, 0.1f);
             ImguiCore::InputFloat("Quadratic", component.quadratic, 0.1f);
@@ -108,7 +115,7 @@ namespace gl {
         {
             ImguiCore::DrawVec4Control("Position", component.position);
             ImguiCore::DrawVec4Control("Direction", component.direction);
-            ImguiCore::DrawColor4Control("Color", component.color);
+            ImguiCore::DrawLightColorControl("SpotLightColor", component.color);
             ImguiCore::InputFloat("CutOff", component.cutoff, 0.1f);
             component.setCutOff(component.cutoff);
             ImguiCore::InputFloat("Outer CutOff", component.outer, 0.1f);
@@ -121,23 +128,20 @@ namespace gl {
         ImguiCore::DrawComponent<PolygonVisual>("PolygonVisual", sEntity, [](PolygonVisual& component)
         {
             ImguiCore::InputFloat("Thickness", component.thickness, 0.0001f);
-            ImGui::SeparatorText("Color");
-            ImguiCore::DrawColor3Control("##polygon_color", component.color);
+            ImguiCore::ColorEdit3("Color", component.color);
         });
 
         ImguiCore::DrawComponent<NormalVisual>("NormalVisual", sEntity, [](NormalVisual& component)
         {
             ImguiCore::InputFloat("Length", component.length, 0.1f);
-            ImGui::SeparatorText("Color");
-            ImguiCore::DrawColor3Control("##normal_color", component.color);
+            ImguiCore::ColorEdit3("Color", component.color);
         });
 
         ImguiCore::DrawComponent<LightVisual>("LightVisual", sEntity, [](LightVisual& component)
         {
             ImGui::SeparatorText("Transform");
             ImguiCore::DrawTransform(component.transform);
-            ImGui::SeparatorText("Color");
-            ImguiCore::DrawColor4Control("##light_visual_color", component.color);
+            ImguiCore::ColorEdit4("Color", component.color);
         });
     }
 

@@ -1,14 +1,13 @@
 #version 460 core
 
 #include core.glsl
+#include camera.glsl
 
 in vec2 l_uv;
 
 vec3 w_pos;
 
 layout(location = 0) out vec4 outColor;
-
-uniform vec3 camera_pos;
 
 uniform sampler2D positions;
 uniform sampler2D normals;

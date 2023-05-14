@@ -11,8 +11,9 @@ namespace gl {
 
     void ScreenShader::update() {
         bindSampler(params.sceneSampler, params.sceneBuffer);
+        bindSampler(params.raytraceSampler, params.raytraceBuffer);
+#ifdef IMGUI
         bindSampler(params.uiSampler, params.uiBuffer);
-#ifdef DEBUG
         bindSampler(params.visualsSampler, params.visualsBuffer);
 #endif
     }

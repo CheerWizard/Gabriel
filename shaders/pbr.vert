@@ -1,5 +1,8 @@
 #version 460 core
 
+#include core.glsl
+#include camera.glsl
+
 layout (location = 0) in vec3 a_pos;
 layout (location = 1) in vec2 a_uv;
 layout (location = 2) in vec3 a_normal;
@@ -9,11 +12,6 @@ out vec2 l_uv;
 out vec3 w_pos;
 out vec3 w_normal;
 out vec4 dls_pos;
-
-layout (std140, binding = 0) uniform Camera {
-    mat4 perspective;
-    mat4 view;
-};
 
 uniform mat4 model;
 uniform mat4 direct_light_space;

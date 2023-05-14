@@ -136,11 +136,11 @@ namespace gl {
                 if (ImGui::CollapsingHeader("SSAO")) {
                     auto& ssaoParams = ImguiCore::ssaoRenderer->getParams();
                     ImguiCore::Checkbox("Enable SSAO", ImguiCore::ssaoRenderer->isEnabled);
-                    ImguiCore::InputInt("Noise Size", ssaoParams.noiseSize.value, 1.0f);
-                    ImguiCore::InputInt("Samples Size", ssaoParams.samplesSize.value, 1.0f);
+                    ImguiCore::InputInt("Noise Size", ssaoParams.noiseSize.value);
+                    ImguiCore::InputInt("Samples Size", ssaoParams.samplesSize.value);
                     ImguiCore::InputFloat("Sample Radius", ssaoParams.sampleRadius.value, 0.1f);
                     ImguiCore::InputFloat("Sample Bias", ssaoParams.sampleBias.value, 0.001f);
-                    ImguiCore::InputInt("Occlusion Power", ssaoParams.occlusionPower.value, 1.0f);
+                    ImguiCore::InputInt("Occlusion Power", ssaoParams.occlusionPower.value);
                 }
 
                 ImGui::EndTabItem();

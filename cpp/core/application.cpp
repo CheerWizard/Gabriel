@@ -319,7 +319,7 @@ namespace gl {
         shinyBuffer.load(shinyImage);
         shinyImage.free();
         mHdrRenderer->getParams().shinyBuffer = shinyBuffer;
-        mHdrRenderer->getParams().exposure.value = 2.0f;
+        mHdrRenderer->getParams().exposure.value = 1.0f;
         mHdrRenderer->updateExposure();
 
         mBlurRenderer = new BlurRenderer(mWidth, mHeight);
@@ -341,6 +341,8 @@ namespace gl {
 
         mUiPipeline = new UI_Pipeline(&mScene, mWidth, mHeight);
         mVisualsPipeline = new VisualsPipeline(&mScene, mWidth, mHeight);
+
+        mRayTraceRenderer = new RayTraceRenderer(mWidth, mHeight);
     }
 
     void Application::initCamera() {
@@ -362,7 +364,7 @@ namespace gl {
         mPbrPipeline->generateEnv();
         // setup mSunlight
         mSunlight = &mScene;
-        mSunlight.value().color = { 244, 233, 155, 1 };
+        mSunlight.value().color = { 244, 233, 155, 0.5f };
         mSunlight.value().position = { 10, 10, 10, 0 };
         mSunlight.value().direction = { 0, 0, 0 };
         // setup point lights
@@ -370,13 +372,13 @@ namespace gl {
             pointLight = &mScene;
         }
         mPointLights[0].value().position = {-4, 2, 0, 1 };
-        mPointLights[0].value().color = glm::vec4 {1, 0, 0, 0 };
+        mPointLights[0].value().color = {1, 0, 0, 0 };
         mPointLights[1].value().position = {4, 3, 0, 1 };
-        mPointLights[1].value().color = glm::vec4 {0, 1, 0, 0 };
+        mPointLights[1].value().color = {0, 1, 0, 0 };
         mPointLights[2].value().position = {-4, 4, 8, 1 };
-        mPointLights[2].value().color = glm::vec4 {0, 0, 1, 0 };
+        mPointLights[2].value().color = {0, 0, 1, 0 };
         mPointLights[3].value().position = {4, 5, 8, 1 };
-        mPointLights[3].value().color = glm::vec4 {1, 0, 1, 0 };
+        mPointLights[3].value().color = {1, 0, 1, 0 };
         // setup mFlashlight
         mFlashlight = &mScene;
         mFlashlight.value().position = { mCamera->position, 0 };
@@ -385,6 +387,8 @@ namespace gl {
     }
 
     void Application::free() {
+        delete mRayTraceRenderer;
+
         LightStorage::free();
 
         FontAtlas::free();
@@ -447,7 +451,6 @@ namespace gl {
         float t = Timer::getBeginMillis();
 
         mCamera->move(mWindow, Timer::getDeltaMillis());
-        mPbrPipeline->setCameraPos(mCamera->position);
 
         // bind flashlight to camera
         mFlashlight.value().position = { mCamera->position, 0 };
@@ -515,6 +518,8 @@ namespace gl {
         mPbrPipeline->resize(w, h);
         mUiPipeline->resize(w, h);
         mVisualsPipeline->resize(w, h);
+
+        mRayTraceRenderer->resize(w, h);
     }
 
     void Application::onKeyPress(int key) {
@@ -647,6 +652,10 @@ namespace gl {
         else if (mWindow->isKeyPress(KEY::T)) {
             mScreenRenderer->getParams().sceneBuffer = mFontRobotoRegular->buffer;
         }
+
+        else if (mWindow->isKeyPress(KEY::C)) {
+            mScreenRenderer->getParams().sceneBuffer = mRayTraceRenderer->getRenderTarget();
+        }
     }
 
     void Application::render() {
@@ -655,17 +664,22 @@ namespace gl {
         mPbrPipeline->render();
         mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getRenderTarget();
 
+        mRayTraceRenderer->render();
+        mScreenRenderer->getParams().raytraceBuffer = mRayTraceRenderer->getRenderTarget();
+
+        renderPostFX();
+
+#ifdef DEBUG
+        renderDebugScreen();
+#endif
+
+#ifdef IMGUI
         mUiPipeline->render();
         mScreenRenderer->getParams().uiBuffer = mUiPipeline->getRenderTarget();
 
         mVisualsPipeline->render();
         mScreenRenderer->getParams().visualsBuffer = mVisualsPipeline->getRenderTarget();
 
-        renderPostFX();
-
-        renderDebugScreen();
-
-#ifdef IMGUI
         mScreenRenderer->render();
         renderImgui();
 #else

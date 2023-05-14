@@ -1,12 +1,10 @@
 #version 460 core
 
+#include core.glsl
+#include camera.glsl
+
 layout (location = 0) in vec3 a_pos;
 layout (location = 1) in vec3 a_normal;
-
-layout (std140, binding = 0) uniform Camera {
-    mat4 perspective;
-    mat4 view;
-};
 
 uniform mat4 model;
 

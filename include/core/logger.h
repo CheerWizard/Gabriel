@@ -22,6 +22,8 @@ struct Logger final {
 
 };
 
+#ifdef DEBUG
+
 #define trace(...) SPDLOG_LOGGER_TRACE(Logger::getTracer(), __VA_ARGS__)
 #define verbose(...) SPDLOG_LOGGER_TRACE(Logger::getLogger(), __VA_ARGS__)
 #define info(...) SPDLOG_LOGGER_INFO(Logger::getLogger(), __VA_ARGS__)
@@ -36,3 +38,16 @@ info("Delta time: {} ms, FPS: {}", dt, 1000 / dt)
 
 #define printVec4(name, v) \
 info("{}:{}", name, glm::to_string(v))
+
+#else
+
+#define trace(...)
+#define verbose(...)
+#define info(...)
+#define warning(...)
+#define error(...)
+#define error_trace(...)
+#define printFPS(dt)
+#define printVec4(name, v)
+
+#endif

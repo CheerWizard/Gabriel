@@ -17,54 +17,55 @@ Derived(const glm::vec4& vector) : Ray(vector) {} \
 namespace gl {
 
     struct Ray {
-        glm::vec4 vector = { 0, 0, 0, 1 };
+        glm::vec4 origin = {0, 0, 0, 1 };
+        glm::vec4 direction = { 0, 0, 0, 1 };
 
         Ray() = default;
 
-        Ray(float x) {
-            vector.x = x;
+        Ray(const float x) {
+            origin.x = x;
         }
 
-        Ray(float x, float y) {
-            vector.x = x;
-            vector.y = y;
+        Ray(const float x, const float y) {
+            origin.x = x;
+            origin.y = y;
         }
 
-        Ray(float x, float y, float z) {
-            vector.x = x;
-            vector.y = y;
-            vector.z = z;
+        Ray(const float x, const float y, const float z) {
+            origin.x = x;
+            origin.y = y;
+            origin.z = z;
         }
 
-        Ray(float x, float y, float z, float w) {
-            vector.x = x;
-            vector.y = y;
-            vector.z = z;
-            vector.w = w;
+        Ray(const float x, const float y, const float z, const float w) {
+            origin.x = x;
+            origin.y = y;
+            origin.z = z;
+            origin.w = w;
         }
 
         Ray(const glm::vec2& vector) {
-            this->vector.x = vector.x;
-            this->vector.y = vector.y;
+            this->origin.x = vector.x;
+            this->origin.y = vector.y;
         }
 
         Ray(const glm::vec3& vector) {
-            this->vector.x = vector.x;
-            this->vector.y = vector.y;
-            this->vector.z = vector.z;
+            this->origin.x = vector.x;
+            this->origin.y = vector.y;
+            this->origin.z = vector.z;
         }
 
         Ray(const glm::vec4& vector) {
-            this->vector = vector;
+            this->origin = vector;
         }
 
-        inline float& x() { return vector.x; }
-        inline float& y() { return vector.y; }
-        inline float& z() { return vector.z; }
-        inline float& w() { return vector.w; }
+        inline float& x() { return origin.x; }
+        inline float& y() { return origin.y; }
+        inline float& z() { return origin.z; }
+        inline float& w() { return origin.w; }
 
-        inline glm::vec2 vec2() const { return { vector.x, vector.y }; }
-        inline glm::vec3 vec3() const { return { vector.x, vector.y, vector.z }; }
+        [[nodiscard]] inline glm::vec2 vec2() const { return {origin.x, origin.y }; }
+        [[nodiscard]] inline glm::vec3 vec3() const { return {origin.x, origin.y, origin.z }; }
     };
 
     struct LocalRay;

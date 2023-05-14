@@ -83,7 +83,6 @@ namespace gl {
 
         void resize(int w, int h);
 
-        void setCameraPos(glm::vec3& camera_pos);
         void setSamples(int samples);
 
         void readPixel(PBR_Pixel& pixel, int x, int y);
@@ -137,7 +136,6 @@ namespace gl {
 
         void resize(int w, int h);
 
-        void setCameraPos(glm::vec3& camera_pos);
         void setSamples(int samples);
 
         void readPixel(PBR_Pixel& pixel, int x, int y);
@@ -210,8 +208,6 @@ namespace gl {
         void generateEnv();
 
         void resize(int width, int height);
-
-        void setCameraPos(glm::vec3& cameraPos);
 
         void readPixel(PBR_Pixel& pixel, int x, int y);
 

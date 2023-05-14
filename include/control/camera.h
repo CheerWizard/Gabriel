@@ -9,8 +9,16 @@
 
 #include <math/matrices.h>
 #include <math/collisions.h>
+#include <math/frustrum.h>
 
 namespace gl {
+
+    struct CameraUniform final {
+        glm::mat4 perspective;
+        glm::mat4 view;
+        glm::vec3 position;
+        float pad = 0;
+    };
 
     struct Camera final {
         glm::vec3 position = { 0, 0, 10 };
@@ -22,8 +30,9 @@ namespace gl {
         float roll = 0;
 
         float moveSpeed = 1.0f;
-        float horizontalSensitivity = 0.01f;
-        float verticalSensitivity = 0.01f;
+        float zoomSpeed = 3.0f;
+        float horizontalSensitivity = 1.0f;
+        float verticalSensitivity = 1.0f;
 
         float fov = 45;
         float zNear = 0.1f;
@@ -59,6 +68,8 @@ namespace gl {
             return ViewMat { position, position + front, up };
         }
 
+        void updatePosition();
+
         void update();
 
         inline float getAspectRatio() const {
@@ -69,6 +80,8 @@ namespace gl {
         ViewRay raycastView(const double x, const double y);
         WorldRay raycastWorld(const double x, const double y);
 
+        Frustum frustrum();
+
     private:
         Window* mWindow;
         UniformBuffer mUbo;
@@ -76,7 +89,6 @@ namespace gl {
         float mLastCursorY = 300;
         bool mFirstCameraLook = true;
         float mZoomedFOV = fov;
-        CursorMode mCurrentCursorMode = CursorMode::NORMAL;
     };
 
 }

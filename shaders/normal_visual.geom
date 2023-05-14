@@ -1,4 +1,7 @@
-#version 460
+#version 460 core
+
+#include core.glsl
+#include camera.glsl
 
 layout (triangles) in;
 layout (line_strip, max_vertices = 6) out;
@@ -6,11 +9,6 @@ layout (line_strip, max_vertices = 6) out;
 in NormalVertex {
     vec3 a_normal;
 } vertex_in[];
-
-layout (std140, binding = 0) uniform Camera {
-    mat4 perspective;
-    mat4 view;
-};
 
 uniform float length = 0.05f;
 

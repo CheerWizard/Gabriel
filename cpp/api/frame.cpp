@@ -201,6 +201,7 @@ namespace gl {
 
     void ColorAttachment::resize(int w, int h) {
         image.resize(w, h);
+        buffer.bind();
         buffer.store(image);
     }
 

@@ -4,10 +4,7 @@ out float out_color;
 
 in vec2 l_uv;
 
-layout (std140, binding = 0) uniform Camera {
-    mat4 perspective;
-    mat4 view;
-};
+#include camera.glsl
 
 uniform sampler2D v_positions;
 uniform sampler2D v_normals;

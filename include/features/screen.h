@@ -16,6 +16,9 @@ namespace gl {
         const ImageSampler visualsSampler = { "visuals", 2 };
         ImageBuffer visualsBuffer;
 
+        const ImageSampler raytraceSampler = { "raytrace", 3 };
+        ImageBuffer raytraceBuffer;
+
         UniformF gamma = { "gamma", 2.2f };
     };
 
@@ -33,7 +36,7 @@ namespace gl {
         ScreenRenderer(int width, int height);
         ~ScreenRenderer();
 
-        inline const ImageBuffer& getRenderTarget() const {
+        [[nodiscard]] inline const ImageBuffer& getRenderTarget() const {
             return mRenderTarget;
         }
 

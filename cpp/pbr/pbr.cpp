@@ -100,11 +100,6 @@ namespace gl {
         mMsaaFrame.resize(w, h);
     }
 
-    void PBR_ForwardRenderer::setCameraPos(glm::vec3 &camera_pos) {
-        mShader.use();
-        mShader.setUniformArgs("camera_pos", camera_pos);
-    }
-
     void PBR_ForwardRenderer::setSamples(int samples) {
         this->samples = samples;
         mCurrentFrame = samples > 1 ? mMsaaFrame : mFrame;
@@ -326,14 +321,6 @@ namespace gl {
         mLightFrame.resize(w, h);
     }
 
-    void PBR_DeferredRenderer::setCameraPos(glm::vec3 &camera_pos) {
-        mGeometryShader.use();
-        mGeometryShader.setUniformArgs("camera_pos", camera_pos);
-
-        mLightShader.use();
-        mLightShader.setUniformArgs("camera_pos", camera_pos);
-    }
-
     void PBR_DeferredRenderer::setSamples(int samples) {
         this->samples = samples;
         mCurrentGeometryFrame = samples > 1 ? mGeometryMsaaFrame : mGeometryFrame;
@@ -497,14 +484,6 @@ namespace gl {
         mPbrDeferredRenderer->resize(width, height);
 
         mTransparentRenderer->resize(width, height);
-    }
-
-    void PBR_Pipeline::setCameraPos(glm::vec3& camera_pos) {
-        mPbrForwardRenderer->setCameraPos(camera_pos);
-        mPbrDeferredRenderer->setCameraPos(camera_pos);
-
-        mSkeletalForwardRenderer->setCameraPos(camera_pos);
-        mSkeletalDeferredRenderer->setCameraPos(camera_pos);
     }
 
     void PBR_Pipeline::readPixel(PBR_Pixel& pixel, int x, int y) {
