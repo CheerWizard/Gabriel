@@ -28,3 +28,7 @@
 ![Знімок екрана (50)](https://github.com/CheerWizard/Gabriel/assets/37471793/30ddf023-fa3a-488b-ae46-37aa8dcc162b)
 ### UI Entity, Components panels
 ![Знімок екрана (52)](https://github.com/CheerWizard/Gabriel/assets/37471793/03a30862-8ce9-40c4-9b1f-857fb45e66ad)
+### Emission Material
+![Знімок екрана (58)](https://github.com/CheerWizard/Gabriel/assets/37471793/67667e1a-edbd-4b2a-8e44-dbfe9837e812)
+![Знімок екрана (59)](https://github.com/CheerWizard/Gabriel/assets/37471793/312430d3-a8f3-4e76-b13f-92401555e003)
+![Знімок екрана (60)](https://github.com/CheerWizard/Gabriel/assets/37471793/091902bc-7ec4-4128-99f0-50b933a2247b)
