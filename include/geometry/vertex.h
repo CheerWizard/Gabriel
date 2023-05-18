@@ -1,12 +1,6 @@
 #pragma once
 
-#include <core/common.h>
-
 #include <api/shader.h>
-
-#include <glm/glm.hpp>
-
-#include <vector>
 
 namespace gl {
 

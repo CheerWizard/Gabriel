@@ -1,13 +1,6 @@
 #pragma once
 
-#include <ecs/component.h>
-
 #include <api/shader.h>
-
-#include <math/matrices.h>
-
-#include <glm/glm.hpp>
-#include <gtc/type_ptr.hpp>
 
 namespace gl {
 

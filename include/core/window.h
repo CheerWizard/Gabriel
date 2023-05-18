@@ -6,10 +6,6 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include <functional>
-
-#include <unordered_map>
-
 namespace gl {
 
     struct Cursor final {
@@ -109,6 +105,7 @@ namespace gl {
         bool isMouseRelease(int key);
 
         void resize(int w, int h);
+        void resizeFrame(int w, int h);
         void move(int x, int y);
 
         void getFrameSize(int& w, int& h);
@@ -116,7 +113,6 @@ namespace gl {
         void onResized(int w, int h);
         void onMoved(int x, int y);
         void onFrameResized(int w, int h);
-
         static void setWindowErrorCallback(GLFWerrorfun errorFun);
 
         static const char** getExtensions(u32* count);

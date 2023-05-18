@@ -167,6 +167,12 @@ namespace gl {
         glfwSetWindowSize(mHandle, w, h);
     }
 
+    void Window::resizeFrame(int w, int h) {
+        Viewport::resize(0, 0, w, h);
+        mFrameWidth = w;
+        mFrameHeight = h;
+    }
+
     void Window::move(int x, int y) {
         glfwSetWindowPos(mHandle, x, y);
     }

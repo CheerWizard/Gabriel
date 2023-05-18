@@ -16,6 +16,7 @@ namespace gl {
     bool ImguiCore::close = false;
     ImFont* ImguiCore::regularFont = null;
     ImFont* ImguiCore::boldFont = null;
+    ImguiCoreCallback* ImguiCore::callback = null;
 
     ImGuiID ImguiCore::dockspaceId;
     ImGuiDockNodeFlags ImguiCore::dockspaceFlags = ImGuiDockNodeFlags_None;
@@ -27,10 +28,9 @@ namespace gl {
     SsaoRenderer* ImguiCore::ssaoRenderer = null;
 
     UI_Pipeline* ImguiCore::uiPipeline = null;
-
     Camera* ImguiCore::camera = null;
-
     Scene* ImguiCore::scene = null;
+    Environment* ImguiCore::environment = null;
 
     Entity ImguiCore::selectedEntity;
 
@@ -76,6 +76,12 @@ namespace gl {
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
         glfwMakeContextCurrent(backupWindow);
+    }
+
+    void ImguiCore::resize(int w, int h) {
+        window->resizeFrame(w, h);
+        if (callback)
+            callback->resize(w, h);
     }
 
     void ImguiCore::addRegularFont(const char* filepath, float size) {

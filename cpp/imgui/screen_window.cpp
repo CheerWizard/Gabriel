@@ -1,8 +1,10 @@
+#include <core/imgui_core.h>
 #include <imgui/screen_window.h>
+#include <imgui/image_window.h>
 
 namespace gl {
 
-    static ImageWindow screenImage = {"Screen", InvalidImageBuffer };
+    static ImageWindow screenImage = { "Screen", InvalidImageBuffer };
 
     static bool pInitialized = false;
 

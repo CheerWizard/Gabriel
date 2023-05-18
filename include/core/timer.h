@@ -1,7 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
 namespace gl {
 
     struct Timer final {

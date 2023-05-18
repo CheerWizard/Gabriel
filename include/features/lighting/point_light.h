@@ -2,8 +2,6 @@
 
 #include <features/lighting/light_color.h>
 
-#include <ecs/entity.h>
-
 namespace gl {
 
     component(PointLightComponent) {

@@ -1,5 +1,4 @@
 #include <features/displacement.h>
-#include <math/maths.h>
 
 namespace gl {
 

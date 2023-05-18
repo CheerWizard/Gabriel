@@ -1,7 +1,3 @@
-#include <core/logger.h>
-
-#include <sstream>
-
 static Ref<spdlog::logger> pLogger;
 static Ref<spdlog::logger> pTracer;
 // [DateTime][Hours:Minutes:Seconds:Milliseconds]: Message

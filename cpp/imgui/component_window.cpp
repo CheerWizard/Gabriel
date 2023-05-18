@@ -1,10 +1,11 @@
 #include <imgui/component_window.h>
 
-#include <features/lighting/light.h>
+#include <core/imgui_core.h>
 
 #include <debugging/visuals.h>
 
-#include <text/text.h>
+#include <features/lighting/light.h>
+#include <features/material.h>
 
 namespace gl {
 
@@ -86,6 +87,8 @@ namespace gl {
         renderVisualComponents();
 
         renderTextComponents();
+
+        renderMaterialComponents();
     }
 
     void ComponentWindow::renderLightComponents() {
@@ -166,6 +169,56 @@ namespace gl {
             ImguiCore::DrawFontStyle(component.style);
             ImGui::SeparatorText("Transform");
             ImguiCore::DrawTransform(component.transform);
+        });
+    }
+
+    void ComponentWindow::renderMaterialComponents() {
+        ImguiCore::DrawComponent<Material>("Material", sEntity, [](Material& component) {
+            if (ImGui::CollapsingHeader("Base Color")) {
+                ImGui::PushID("##base_color");
+                ImguiCore::ColorEdit4("Color", component.color);
+                ImGui::PopID();
+                ImguiCore::Checkbox("Albedo Mapping", component.enableAlbedo);
+            }
+
+            if (ImGui::CollapsingHeader("Bumping")) {
+                ImguiCore::Checkbox("Normal Mapping", component.enableNormal);
+            }
+
+            if (ImGui::CollapsingHeader("Parallax Occlusion")) {
+                ImguiCore::Checkbox("Parallax Mapping", component.enableParallax);
+                ImGui::SliderFloat("Height Scale", &component.heightScale, 0.0f, 2.0f);
+                ImGui::SliderFloat("Min Layers", &component.parallaxMinLayers, 0, 8);
+                ImGui::SliderFloat("Max Layers", &component.parallaxMaxLayers, 8, 32);
+            }
+
+            if (ImGui::CollapsingHeader("Metallic")) {
+                ImguiCore::Checkbox("Metallic Mapping", component.enableMetallic);
+                ImGui::PushID("##metallic_factor");
+                ImGui::SliderFloat("Intensity", &component.metallicFactor, 0.0f, 1.0f);
+                ImGui::PopID();
+            }
+
+            if (ImGui::CollapsingHeader("Roughness")) {
+                ImguiCore::Checkbox("Roughness Mapping", component.enableRoughness);
+                ImGui::PushID("##roughness_factor");
+                ImGui::SliderFloat("Intensity", &component.roughnessFactor, 0.0f, 1.0f);
+                ImGui::PopID();
+            }
+
+            if (ImGui::CollapsingHeader("Ambient Occlusion")) {
+                ImguiCore::Checkbox("AO Mapping", component.enableAO);
+                ImGui::PushID("##ao_factor");
+                ImGui::SliderFloat("Intensity", &component.aoFactor, 0.0f, 1.0f);
+                ImGui::PopID();
+            }
+
+            if (ImGui::CollapsingHeader("Emission")) {
+                ImguiCore::Checkbox("Emission Mapping", component.enableEmission);
+                ImGui::PushID("##emission_factor");
+                ImguiCore::DrawColor3Control("Intensity", component.emissionFactor);
+                ImGui::PopID();
+            }
         });
     }
 

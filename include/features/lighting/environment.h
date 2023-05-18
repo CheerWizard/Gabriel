@@ -26,13 +26,14 @@ namespace gl {
                 GL_LINEAR,
                 -0.4f
         };
+        bool enable = true;
 
         void init();
         void free();
     };
 
     struct EnvRenderer final {
-        Environment* environment;
+        Environment* environment = null;
 
         EnvRenderer(int width, int height);
         ~EnvRenderer();

@@ -2,10 +2,6 @@
 
 #include <ecs/component.h>
 
-#include <unordered_map>
-#include <vector>
-#include <functional>
-
 namespace gl {
 
     struct ComponentVector final {
@@ -167,6 +163,8 @@ namespace gl {
         void invalidateComponentAddresses();
 
     private:
+        static constexpr float RESERVE_WEIGHT = 0.75;
+
         EntityID mEntityIdGenerator = 0;
         std::vector<EntityID> mEntities;
         std::unordered_map<EntityID, std::unordered_map<ComponentID, ComponentAddress>> mComponentAddresses;
@@ -181,7 +179,6 @@ namespace gl {
 
     template<typename T, typename... Args>
     T* Scene::addComponent(EntityID entityId, Args&&... args) {
-        ComponentID cid = T::ID;
         T* component = (T*) mComponentAddresses[entityId][T::ID];
         // update component if it already exists
         if (component) {
@@ -193,7 +190,9 @@ namespace gl {
             auto& componentVector = mComponentTable[T::ID];
             if (!componentVector.hasCapacity()) {
                 componentVector.reserve<T>(componentVector.getSize<T>() * 2 + 1);
-                // because component storage memory changed, we need to invalidate all addresses that use it
+                // because component storage memory changed, we need to invalidate all addresses that use it.
+                // it may be expensive operation when scene has a lot of entities,
+                // but it depends only on component storage capacity and reserve weight variables.
                 invalidateComponentAddresses<T>();
             }
             component = componentVector.emplace<T>(std::forward<Args>(args)...);
@@ -207,14 +206,14 @@ namespace gl {
 
     template<typename T>
     void Scene::removeComponent(EntityID entityId) {
-        ComponentAddress componentAddress = mComponentAddresses[entityId][T::ID];
+        ComponentAddress& componentAddress = mComponentAddresses[entityId][T::ID];
         if (componentAddress == null) {
             error("Component for entity {0} does not exist", entityId);
             return;
         }
         // remove component from storage
         mComponentTable[T::ID].erase<T>(entityId);
-        mComponentAddresses[entityId][T::ID] = null;
+        componentAddress = null;
     }
 
     template<typename T>
@@ -234,7 +233,7 @@ namespace gl {
 
     template<typename T>
     void Scene::invalidateComponentAddresses() {
-        for (EntityID entityId : mEntities) {
+        for (const EntityID entityId : mEntities) {
             mComponentAddresses[entityId][T::ID] = mComponentTable[T::ID].get<T>(entityId);
         }
     }

@@ -15,6 +15,7 @@ namespace gl {
         initApi();
         initCamera();
         initLight();
+        initEnvironment();
         initScene();
         initText();
 #ifdef IMGUI
@@ -82,6 +83,7 @@ namespace gl {
         ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 18.0f);
         ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 18.0f);
         ImguiCore::setFont(ImguiCore::regularFont);
+        ImguiCore::callback = this;
         ImguiCore::screenRenderer = mScreenRenderer;
         ImguiCore::hdrRenderer = mHdrRenderer;
         ImguiCore::blurRenderer = mBlurRenderer;
@@ -170,7 +172,7 @@ namespace gl {
         mBackpackModel.generate("models/backpack/backpack.obj");
         mBackpackModel.init(*mBackpack.getComponent<DrawableElements>());
 //        model_shadow.init(model);
-        mBackpack.material()->init(
+        mBackpack.material()->load(
                 true,
                 "models/backpack/diffuse.jpg",
                 "models/backpack/normal.png",
@@ -186,7 +188,7 @@ namespace gl {
         // setup mHuman model
         mHumanModel.generate("models/dancing-stormtrooper/source/silly_dancing.fbx");
         mHumanModel.init(*mHuman.getComponent<DrawableElements>());
-        mHuman.material()->init(
+        mHuman.material()->load(
                 false,
                 "models/dancing-stormtrooper/textures/Stormtrooper_D.png",
                 null,
@@ -201,7 +203,7 @@ namespace gl {
         mHumanAnimator = Animator(&mHumanModel.animation);
 
         // setup horizontal plane
-        mTerrainBuilder.terrain.material.init(
+        mTerrainBuilder.terrain.material.load(
                 false,
                 null,
                 "images/bumpy-rockface1-bl/normal.png",
@@ -228,30 +230,32 @@ namespace gl {
 //        sphere_rock_shadow_geometry.init_default(sphere_rock_shadow);
 
         {
-            mRockSphere.material()->init(
+            mRockSphere.material()->color = {1, 1, 1, 1 };
+            mRockSphere.material()->load(
                     false,
-                    "images/bumpy-rockface1-bl/albedo.png",
-                    "images/bumpy-rockface1-bl/normal.png",
+                    "images/columned_lava/albedo.png",
+                    "images/columned_lava/normal.png",
                     null,
-                    "images/bumpy-rockface1-bl/metallic.png",
-                    "images/bumpy-rockface1-bl/roughness.png",
-                    "images/bumpy-rockface1-bl/ao.png"
+                    "images/columned_lava/metallic.png",
+                    "images/columned_lava/roughness.png",
+                    "images/columned_lava/ao.png",
+                    "images/columned_lava/emission.png"
             );
             mRockSphere.material()->metallicFactor = 1;
             mRockSphere.material()->roughnessFactor = 1;
             mRockSphere.material()->aoFactor = 1;
-            mRockSphere.material()->color = {1, 1, 1, 1 };
+            mRockSphere.material()->emissionFactor = { 1, 1, 1 };
 
             // displacement
             {
                 // displace rock sphere
-                Image rock_height_map = ImageReader::read("images/bumpy-rockface1-bl/height.png");
+                Image rock_height_map = ImageReader::read("images/columned_lava/height.png");
                 rock_height_map.resize(mRockSphereGeometry.xSegments + 1, mRockSphereGeometry.ySegments + 1);
 
                 mRockSphere.addComponent<DisplacementTBN>();
                 auto* rock_sphere_displacement = mRockSphere.getComponent<DisplacementTBN>();
                 rock_sphere_displacement->setOriginVertices(&mRockSphereGeometry.vertices);
-                rock_sphere_displacement->scale = 1.0f;
+                rock_sphere_displacement->scale = 0.1f;
                 rock_sphere_displacement->map = HeightMap(rock_height_map);
                 rock_sphere_displacement->displace(*mRockSphere.getComponent<DrawableElements>());
 
@@ -280,7 +284,7 @@ namespace gl {
                 mTerrainBuilder.terrain.material.enableAlbedo = mTerrainBuilder.terrain.material.albedo.id != InvalidImageBuffer;
             }
 
-            mWoodSphere.material()->init(
+            mWoodSphere.material()->load(
                     false,
                     "images/cheap-plywood1-bl/albedo.png",
                     "images/cheap-plywood1-bl/normal.png",
@@ -293,7 +297,7 @@ namespace gl {
             mWoodSphere.material()->roughnessFactor = 1;
             mWoodSphere.material()->aoFactor = 1;
 
-            mMetalSphere.material()->init(
+            mMetalSphere.material()->load(
                     false,
                     "images/light-gold-bl/albedo.png",
                     "images/light-gold-bl/normal.png",
@@ -306,6 +310,12 @@ namespace gl {
             mMetalSphere.material()->roughnessFactor = 1;
             mMetalSphere.material()->aoFactor = 1;
         }
+
+        mRay.direction = { 0, 0, 0, 0 };
+        mSphere.center = { 0, 0, 0 };
+        mSphere.radius = 0.0f;
+        mRayTraceRenderer->update(mRay);
+        mRayTraceRenderer->update(mSphere);
     }
 
     void Application::initApi() {
@@ -319,7 +329,7 @@ namespace gl {
         shinyBuffer.load(shinyImage);
         shinyImage.free();
         mHdrRenderer->getParams().shinyBuffer = shinyBuffer;
-        mHdrRenderer->getParams().exposure.value = 1.0f;
+        mHdrRenderer->getParams().exposure.value = 1.2f;
         mHdrRenderer->updateExposure();
 
         mBlurRenderer = new BlurRenderer(mWidth, mHeight);
@@ -345,6 +355,16 @@ namespace gl {
         mRayTraceRenderer = new RayTraceRenderer(mWidth, mHeight);
     }
 
+    void Application::initEnvironment() {
+        mEnvironment.enable = true;
+        mEnvironment.resolution = { 1024, 1024 };
+        mEnvironment.prefilterResolution = {512, 512 };
+        mEnvironment.hdr.loadHDR("images/hdr/Arches_E_PineTree_3k.hdr", true);
+        mEnvironment.init();
+        mPbrPipeline->setEnvironment(&mEnvironment);
+        mPbrPipeline->generateEnv();
+    }
+
     void Application::initCamera() {
         mCamera = new Camera(0, mWindow);
         mCamera->zFar = 1000.0f;
@@ -356,23 +376,17 @@ namespace gl {
         LightStorage::init();
         // setup light presentation
         CubeDefault().init(mPointLightVisual.drawable);
-        // setup environment
-        mPbrPipeline->env.resolution = { 1024, 1024 };
-        mPbrPipeline->env.prefilterResolution = { 512, 512 };
-        mPbrPipeline->env.init();
-        mPbrPipeline->initHdrEnv("images/hdr/Arches_E_PineTree_3k.hdr", true);
-        mPbrPipeline->generateEnv();
         // setup mSunlight
         mSunlight = &mScene;
-        mSunlight.value().color = { 244, 233, 155, 0.5f };
-        mSunlight.value().position = { 10, 10, 10, 0 };
+        mSunlight.value().color = { 244, 233, 155, 0.1f };
+        mSunlight.value().position = { 0, 10, 0, 0 };
         mSunlight.value().direction = { 0, 0, 0 };
         // setup point lights
         for (auto& pointLight : mPointLights) {
             pointLight = &mScene;
         }
-        mPointLights[0].value().position = {-4, 2, 0, 1 };
-        mPointLights[0].value().color = {1, 0, 0, 0 };
+        mPointLights[0].value().position = { 0, 0, 0, 1.0f };
+        mPointLights[0].value().color = { 0, 0, 0, 1.0f };
         mPointLights[1].value().position = {4, 3, 0, 1 };
         mPointLights[1].value().color = {0, 1, 0, 0 };
         mPointLights[2].value().position = {-4, 4, 8, 1 };
@@ -387,6 +401,8 @@ namespace gl {
     }
 
     void Application::free() {
+        mEnvironment.free();
+
         delete mRayTraceRenderer;
 
         LightStorage::free();
@@ -448,8 +464,6 @@ namespace gl {
     }
 
     void Application::simulate() {
-        float t = Timer::getBeginMillis();
-
         mCamera->move(mWindow, Timer::getDeltaMillis());
 
         // bind flashlight to camera
@@ -463,18 +477,15 @@ namespace gl {
         mMetalSphere.transform()->rotation.y += f * 4;
         mHuman.transform()->rotation.y += f * 4;
 
-        // translate sunlight
-//        float sunlightTranslate = 10 * sin(t);
-//        mSunlight.value().position.x = sunlightTranslate;
-//        mSunlight.value().position.z = sunlightTranslate;
-//        mPbrPipeline->updateSunlight(mSunlight.value());
-
         // skeletal animations
         {
             // animate human
 //            mHumanAnimator.update(dt / 1000.0f);
 //            pbr.update_bones(mHumanAnimator.bone_transforms);
         }
+
+        // bind first point light to rock sphere position and emission color
+        mPointLights[0].value().position = { mRockSphere.transform()->translation, 1.0 };
 
         LightStorage::update();
     }
@@ -561,17 +572,21 @@ namespace gl {
         mCamera->zoom(y, Timer::getDeltaMillis());
     }
 
+    void Application::resize(int w, int h) {
+        onFramebufferResized(w, h);
+    }
+
     void Application::onEntitySelected(Entity entity, double x, double y) {
         info("onEntitySelected: [{0}, {1}]", x, y);
         auto& selected = entity.getComponent<Selectable>()->enable;
         selected = !selected;
-        if (selected) {
-            entity.addComponent<PolygonVisual>();
-            entity.addComponent<NormalVisual>();
-        } else {
-            entity.removeComponent<PolygonVisual>();
-            entity.removeComponent<NormalVisual>();
-        }
+//        if (selected) {
+//            entity.addComponent<PolygonVisual>();
+//            entity.addComponent<NormalVisual>();
+//        } else {
+//            entity.removeComponent<PolygonVisual>();
+//            entity.removeComponent<NormalVisual>();
+//        }
     }
 
     void Application::onEntityDragged(Entity entity, double x, double y) {
@@ -626,15 +641,15 @@ namespace gl {
         }
 
         else if (mWindow->isKeyPress(KEY::D6)) {
-            mScreenRenderer->getParams().sceneBuffer = mShadowPipeline->directShadow.map.buffer;
+            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getGBuffer().emission;
         }
 
         else if (mWindow->isKeyPress(KEY::D7)) {
-            mScreenRenderer->getParams().sceneBuffer = mSsaoRenderer->getRenderTarget();
+            mScreenRenderer->getParams().sceneBuffer = mShadowPipeline->directShadow.map.buffer;
         }
 
         else if (mWindow->isKeyPress(KEY::D8)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->env.brdfConvolution;
+            mScreenRenderer->getParams().sceneBuffer = mSsaoRenderer->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::D9)) {

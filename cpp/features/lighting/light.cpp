@@ -1,7 +1,5 @@
 #include <features/lighting/light.h>
 
-#include <math/maths.h>
-
 namespace gl {
 
     Scene* LightStorage::scene = null;

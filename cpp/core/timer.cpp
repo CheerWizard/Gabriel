@@ -2,9 +2,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include <sstream>
-#include <ctime>
-
 namespace gl {
 
     static float pBeginTime = 0;

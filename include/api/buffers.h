@@ -4,8 +4,6 @@
 
 #include <glad/glad.h>
 
-#include <vector>
-
 namespace gl {
 
     struct VertexArray final {

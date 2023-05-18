@@ -1,7 +1,5 @@
 #include <io/model_loader.h>
 
-#include <unordered_map>
-
 namespace gl {
 
     VertexFormat VertexMesh::format = {

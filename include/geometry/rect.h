@@ -1,15 +1,6 @@
 #pragma once
 
-#include <api/shader.h>
-#include <api/buffers.h>
-#include <api/draw.h>
-
 #include <geometry/geometry.h>
-
-#include <gtc/type_ptr.hpp>
-
-#include <vector>
-#include <functional>
 
 namespace gl {
 

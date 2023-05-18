@@ -3,8 +3,6 @@
 #include <api/image.h>
 #include <api/viewport.h>
 
-#include <vector>
-
 namespace gl {
 
     struct ColorAttachment final {

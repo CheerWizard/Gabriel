@@ -2,16 +2,12 @@
 
 #include <api/buffers.h>
 
-#include <ecs/entity.h>
-
 #include <features/transform.h>
 #include <features/material.h>
 #include <features/lighting/light.h>
 #include <features/outline.h>
 #include <features/transparency.h>
 #include <features/shadow/shadow.h>
-
-#include <pbr/environment.h>
 
 #include <animation/skeletal_renderer.h>
 
@@ -92,13 +88,12 @@ namespace gl {
 
         void begin();
 
-        void render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material);
-        void render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& lightSpace);
+        void render(Transform& transform, DrawableElements& drawable, Material& material);
+        void render(Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& lightSpace);
 
         void update(Environment* env);
 
         void blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame);
-        void blitEntityId(int w, int h, u32 srcFrame, int srcEntityId);
 
     private:
         ImageBuffer mRenderTarget;
@@ -114,8 +109,8 @@ namespace gl {
         ImageBuffer normal;
         ImageBuffer albedo;
         ImageBuffer pbrParams;
+        ImageBuffer emission;
         ImageBuffer shadowProjCoords;
-        ImageBuffer objectId;
         ImageBuffer viewPosition;
         ImageBuffer viewNormal;
     };
@@ -127,7 +122,7 @@ namespace gl {
         PointShadow* pointShadow = null;
 
         inline const ImageBuffer& getRenderTarget() const { return mRenderTarget; }
-        inline const PBR_GBuffer& getGBuffer() const { return mGBuffer; }
+        inline const PBR_GBuffer& getGBuffer() const { return mGbuffer; }
         inline FrameBuffer& getGeometryFbo() { return mGeometryFrame; }
         inline FrameBuffer& getLightFbo() { return mLightFrame; }
 
@@ -145,13 +140,13 @@ namespace gl {
 
         void begin();
 
-        void render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material);
+        void render(Transform& transform, DrawableElements& drawable, Material& material);
 
         void update(Environment* env);
 
     private:
         ImageBuffer mRenderTarget;
-        PBR_GBuffer mGBuffer;
+        PBR_GBuffer mGbuffer;
         DrawableQuad mDrawable;
         Shader mGeometryShader;
         FrameBuffer mGeometryFrame;
@@ -174,7 +169,6 @@ namespace gl {
 
     struct PBR_Pipeline final {
         Scene* scene;
-        Environment env;
         Terrain* terrain = null;
 
         PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer);
@@ -202,9 +196,10 @@ namespace gl {
             mPbrDeferredRenderer->pointShadow = pointShadow;
         }
 
+        void setEnvironment(Environment* environment);
+
         void setSamples(int samples);
 
-        void initHdrEnv(const char* filepath, bool flipUV);
         void generateEnv();
 
         void resize(int width, int height);

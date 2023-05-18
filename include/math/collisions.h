@@ -1,11 +1,5 @@
 #pragma once
 
-#include <math/maths.h>
-#include <math/raycast.h>
-#include <math/sphere.h>
-
-#include <ecs/component.h>
-
 namespace gl {
 
     component(RayCollider) {

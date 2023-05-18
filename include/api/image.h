@@ -1,14 +1,6 @@
 #pragma once
 
-#include <core/common.h>
-
-#include <array>
-#include <fstream>
-
 #include <glad/glad.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <stb_image.h>
 #include <stb_image_resize.h>
@@ -60,7 +52,7 @@ namespace gl {
     };
 
     struct ImageReader final {
-        static Image read(const char* filepath, bool flipUV = false, PixelType pixelType = PixelType::U8, bool srgb = false);
+        static Image read(const char* filepath, const bool flipUV = false, const PixelType pixelType = PixelType::U8, const bool srgb = false);
         static std::array<Image, 6> read(const std::array<ImageFace, 6> &faces);
     };
 
@@ -149,6 +141,8 @@ namespace gl {
         void bindImage(int slot, AccessMode access, int internalFormat);
 
         static void setUnpackAlignment(int alignment);
+
+        void loadHDR(const char* filepath, const bool uv);
     };
 
 }

@@ -2,9 +2,6 @@
 
 #include <api/shader.h>
 
-#include <math/raycast.h>
-#include <math/sphere.h>
-
 namespace gl {
 
     struct RayTraceRenderer final {

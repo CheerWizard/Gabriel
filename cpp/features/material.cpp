@@ -2,77 +2,25 @@
 
 namespace gl {
 
-    void Material::init(
-            bool flipUV,
+    void Material::load(
+            const bool flipUV,
             const char* albedoPath,
             const char* normalPath,
             const char* parallaxPath,
             const char* metallicPath,
             const char* roughnessPath,
-            const char* aoPath
+            const char* aoPath,
+            const char* emissionPath
     ) {
         ImageParams params;
         params.minFilter = GL_LINEAR_MIPMAP_LINEAR;
-
-        if (albedoPath) {
-            Image image = ImageReader::read(albedoPath, flipUV);
-
-            albedo.init();
-            albedo.load(image, params);
-            enableAlbedo = albedo.id != InvalidImageBuffer;
-
-            image.free();
-        }
-
-        if (normalPath) {
-            Image image = ImageReader::read(normalPath, flipUV);
-
-            normal.init();
-            normal.load(image, params);
-            enableNormal = normal.id != InvalidImageBuffer;
-
-            image.free();
-        }
-
-        if (parallaxPath) {
-            Image image = ImageReader::read(parallaxPath, flipUV);
-
-            parallax.init();
-            parallax.load(image, params);
-            enableParallax = parallax.id != InvalidImageBuffer;
-
-            image.free();
-        }
-
-        if (metallicPath) {
-            Image image = ImageReader::read(metallicPath, flipUV);
-
-            metallic.init();
-            metallic.load(image, params);
-            enableMetallic = metallic.id != InvalidImageBuffer;
-
-            image.free();
-        }
-
-        if (roughnessPath) {
-            Image image = ImageReader::read(roughnessPath, flipUV);
-
-            roughness.init();
-            roughness.load(image, params);
-            enableRoughness = roughness.id != InvalidImageBuffer;
-
-            image.free();
-        }
-
-        if (aoPath) {
-            Image image = ImageReader::read(aoPath, flipUV);
-
-            ao.init();
-            ao.load(image, params);
-            enableAO = ao.id != InvalidImageBuffer;
-
-            image.free();
-        }
+        load(albedoPath, flipUV, params, albedo, enableAlbedo);
+        load(normalPath, flipUV, params, normal, enableNormal);
+        load(parallaxPath, flipUV, params, parallax, enableParallax);
+        load(metallicPath, flipUV, params, metallic, enableMetallic);
+        load(roughnessPath, flipUV, params, roughness, enableRoughness);
+        load(aoPath, flipUV, params, ao, enableAO);
+        load(emissionPath, flipUV, params, emission, enableEmission);
     }
 
     void Material::free() {
@@ -82,6 +30,7 @@ namespace gl {
         metallic.free();
         roughness.free();
         ao.free();
+        emission.free();
     }
 
     void Material::free(std::vector<Material>& materials) {
@@ -115,6 +64,10 @@ namespace gl {
             shader.bindSamplerStruct("material", "ao", slot++, ao);
         }
 
+        if (enableEmission) {
+            shader.bindSamplerStruct("material", "emission", slot++, emission);
+        }
+
         shader.setUniformStructArgs("material", "color", color);
         shader.setUniformStructArgs("material", "enable_albedo", enableAlbedo);
 
@@ -133,6 +86,21 @@ namespace gl {
 
         shader.setUniformStructArgs("material", "enable_ao", enableAO);
         shader.setUniformStructArgs("material", "ao_factor", aoFactor);
+
+        shader.setUniformStructArgs("material", "enable_emission", enableEmission);
+        shader.setUniformStructArgs("material", "emission_factor", emissionFactor);
+    }
+
+    void Material::load(const char* filepath, const bool uv, const ImageParams& params, ImageBuffer &outBuffer, bool &outEnable) {
+        if (filepath) {
+            Image image = ImageReader::read(filepath, uv);
+
+            outBuffer.init();
+            outBuffer.load(image, params);
+            outEnable = outBuffer.id != InvalidImageBuffer;
+
+            image.free();
+        }
     }
 
 }

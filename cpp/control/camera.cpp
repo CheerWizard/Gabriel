@@ -1,7 +1,5 @@
 #include <control/camera.h>
 
-#include <glm/gtx/quaternion.hpp>
-
 namespace gl {
 
     Camera::Camera(const u32 binding, Window* window) : mWindow(window) {

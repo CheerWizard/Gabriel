@@ -14,15 +14,12 @@ layout(location = 0) out vec4 out_position; // position
 layout(location = 1) out vec4 out_normal; // normal
 layout(location = 2) out vec4 out_albedo; // albedo + transparency
 layout(location = 3) out vec4 out_pbr_params; // metalness + roughness + occlusion
-layout(location = 4) out vec4 out_shadow_proj_coords; // shadow proj coords
-layout(location = 5) out uint out_entity_id;
+layout(location = 4) out vec4 out_emission;
+layout(location = 5) out vec4 out_shadow_proj_coords; // shadow proj coords
 layout(location = 6) out vec4 out_view_position;
 layout(location = 7) out vec4 out_view_normal;
 
-uniform uint entity_id;
-
 #include features/material.glsl
-
 #include features/parallax.glsl
 
 void main()
@@ -73,6 +70,7 @@ void main()
     if (material.enable_albedo) {
         albedo *= texture(material.albedo, UV);
     }
+    // tone mapping
     albedo = vec4(pow(albedo.rgb, vec3(2.2)), albedo.a);
 
     // metal mapping
@@ -93,13 +91,20 @@ void main()
         ao *= texture(material.ao, UV).r;
     }
 
+    // emission mapping
+    vec3 emission = material.emission_factor;
+    if (material.enable_emission) {
+        emission *= texture(material.emission, UV).rgb;
+    }
+    // tone mapping
+    emission = vec3(pow(emission.rgb, vec3(2.2)));
+
     out_position = vec4(w_pos, 1.0);
     out_normal = vec4(world_normal, 1.0);
     out_albedo = albedo;
     out_pbr_params = vec4(metallic, roughness, ao, 1.0);
+    out_emission = vec4(emission, 1.0);
     out_shadow_proj_coords = vec4((dls_pos.xyz / dls_pos.w) * 0.5 + 0.5, 1.0);
     out_view_position = vec4(v_pos, 1.0);
     out_view_normal = vec4(view_normal, 1.0);
-
-    out_entity_id = entity_id;
 }

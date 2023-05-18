@@ -42,7 +42,7 @@
 
 namespace gl {
 
-    class Application final {
+    class Application : ImguiCoreCallback {
 
     public:
         Application(const char* title, int width, int height, const char* logoName);
@@ -63,6 +63,8 @@ namespace gl {
         void onMouseCursor(double x, double y);
         void onMouseScroll(double x, double y);
 
+        void resize(int w, int h) override;
+
     private:
         void initLogger();
         void initWindow();
@@ -72,6 +74,7 @@ namespace gl {
         void initLight();
         void initText();
         void initImgui();
+        void initEnvironment();
 
         void free();
 
@@ -130,7 +133,7 @@ namespace gl {
         SkeletalModel mHumanModel;
         PBR_Entity mHuman;
 
-        SphereTBN mRockSphereGeometry = {128, 128 };
+        SphereTBN mRockSphereGeometry = {256, 256 };
         PBR_Entity mRockSphere;
 
         PBR_Entity mWoodSphere;
@@ -149,6 +152,11 @@ namespace gl {
         SpotLight mFlashlight;
 
         RayTraceRenderer* mRayTraceRenderer = null;
+
+        Environment mEnvironment;
+
+        Ray mRay = { 0, 0, 0 };
+        Sphere mSphere;
     };
 
 }

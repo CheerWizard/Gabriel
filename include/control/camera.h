@@ -1,15 +1,9 @@
 #pragma once
 
-#include <core/common.h>
 #include <core/window.h>
-#include <core/keycodes.h>
 
 #include <api/shader.h>
 #include <api/buffers.h>
-
-#include <math/matrices.h>
-#include <math/collisions.h>
-#include <math/frustrum.h>
 
 namespace gl {
 
@@ -72,7 +66,7 @@ namespace gl {
 
         void update();
 
-        inline float getAspectRatio() const {
+        [[nodiscard]] inline float getAspectRatio() const {
             return mWindow->getAspectRatio();
         }
 

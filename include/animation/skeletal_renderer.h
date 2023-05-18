@@ -1,6 +1,5 @@
 #pragma once
 
-#include <api/shader.h>
 #include <api/draw.h>
 
 #include <features/transform.h>
@@ -16,8 +15,8 @@ namespace gl {
 
         void updateBones(std::vector<glm::mat4>& bones);
 
-        void render(EntityID entityId, Transform& transform, DrawableElements& drawable);
-        void render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material);
+        void render(Transform& transform, DrawableElements& drawable);
+        void render(Transform& transform, DrawableElements& drawable, Material& material);
 
     protected:
         Shader mShader;

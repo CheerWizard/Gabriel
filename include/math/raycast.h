@@ -1,9 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
-#include <glm/glm.hpp>
-
 #define RAY(Derived) \
 Derived() : Ray() {} \
 Derived(float x) : Ray(x) {} \

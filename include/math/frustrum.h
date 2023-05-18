@@ -1,8 +1,5 @@
 #pragma once
 
-#include <math/aabb.h>
-#include <math/plane.h>
-
 namespace gl {
 
     struct Frustum final {

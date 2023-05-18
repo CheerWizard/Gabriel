@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/imgui_core.h>
+#include <imgui.h>
 
 namespace gl {
 

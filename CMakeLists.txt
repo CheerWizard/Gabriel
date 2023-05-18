@@ -30,8 +30,6 @@ file(GLOB_RECURSE SRC
         vendor/imgui/misc/cpp/imgui_stdlib.cpp
 )
 
-add_executable(${PROJECT_NAME} ${SRC})
-
 include_directories(
         include
         vendor/glfw/include
@@ -43,6 +41,9 @@ include_directories(
         vendor/imgui
         vendor/spdlog/include
 )
+
+add_executable(${PROJECT_NAME} ${SRC})
+target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:pch.h>")
 
 add_subdirectory(vendor/glfw)
 add_subdirectory(vendor/glm)

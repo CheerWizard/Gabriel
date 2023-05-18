@@ -1,12 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
-#include <glm/glm.hpp>
-#include <gtc/type_ptr.hpp>
-
-#include <vector>
-
 namespace gl {
 
     template<typename T>

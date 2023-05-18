@@ -2,10 +2,6 @@
 
 #include <io/writers.h>
 
-#include <unordered_map>
-#include <sstream>
-#include <filesystem>
-
 namespace gl {
 
     std::string ShaderReader::read(const std::string& path, std::string includeIdentifier) {
@@ -79,6 +75,12 @@ namespace gl {
         std::string generatedFilepath = "generated/" + std::string(filepath);
         std::filesystem::create_directory("generated");
         std::filesystem::create_directory("generated/shaders");
+        std::filesystem::create_directory("generated/shaders/bloom");
+        std::filesystem::create_directory("generated/shaders/features");
+        std::filesystem::create_directory("generated/shaders/features/lighting");
+        std::filesystem::create_directory("generated/shaders/features/shadow");
+        std::filesystem::create_directory("generated/shaders/pbr");
+        std::filesystem::create_directory("generated/shaders/text");
         FileWriter::write(generatedFilepath.c_str(), src);
 #endif
 

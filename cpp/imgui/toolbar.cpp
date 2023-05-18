@@ -1,6 +1,8 @@
 #include <imgui/toolbar.h>
 
-#include <imgui_internal.h>
+#include <core/imgui_core.h>
+
+#include <imgui/image_window.h>
 
 namespace gl {
 

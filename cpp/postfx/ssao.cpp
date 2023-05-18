@@ -161,7 +161,7 @@ namespace gl {
         noiseParams.t = GL_REPEAT;
         noiseParams.r = GL_REPEAT;
         noise.init();
-        Image noiseImage = {noiseSize.value, noiseSize.value, 3, GL_RGBA32F, GL_RGB, PixelType::FLOAT, &noises[0] };
+        Image noiseImage = { noiseSize.value, noiseSize.value, 3, GL_RGBA32F, GL_RGB, PixelType::FLOAT, &noises[0] };
         noise.load(noiseImage, noiseParams);
     }
 

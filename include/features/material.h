@@ -1,7 +1,6 @@
 #pragma once
 
 #include <api/shader.h>
-#include <ecs/component.h>
 
 namespace gl {
 
@@ -40,23 +39,31 @@ namespace gl {
         float aoFactor = 0.5f;
         ImageBuffer ao;
         bool enableAO = false;
+        // emission
+        glm::vec3 emissionFactor = { 0, 0, 0 };
+        ImageBuffer emission;
+        bool enableEmission = false;
 
         Material() = default;
 
-        void init(
-            bool flipUV = false,
+        void load(
+            const bool flipUV = false,
             const char* albedoPath = null,
             const char* normalPath = null,
             const char* parallaxPath = null,
             const char* metallicPath = null,
             const char* roughnessPath = null,
-            const char* aoPath = null
+            const char* aoPath = null,
+            const char* emissionPath = null
         );
 
         void free();
         static void free(std::vector<Material>& materials);
 
         void update(Shader& shader, int slot);
+
+    private:
+        void load(const char* filepath, const bool uv, const ImageParams& params, ImageBuffer& outBuffer, bool& outEnable);
     };
 
 }

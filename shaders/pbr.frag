@@ -8,14 +8,10 @@ in vec3 w_pos;
 in vec3 w_normal;
 in vec4 dls_pos;
 
-layout(location = 0) out vec4 out_color;
-layout(location = 1) out float out_reveal;
-layout(location = 2) out uint out_entity_id;
-
-uniform uint entity_id;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out float outReveal;
 
 #include features/material.glsl
-
 #include features/parallax.glsl
 
 #include features/lighting/direct.glsl
@@ -27,7 +23,7 @@ uniform uint entity_id;
 
 #include pbr/core.glsl
 #include pbr/direct.glsl
-#include pbr/ibl.glsl
+#include features/lighting/env.glsl
 
 void main()
 {
@@ -66,6 +62,7 @@ void main()
     if (material.enable_albedo) {
         albedo *= texture(material.albedo, UV);
     }
+    // tone mapping
     albedo = vec4(pow(albedo.rgb, vec3(2.2)), albedo.a);
 
     // metal mapping
@@ -85,6 +82,14 @@ void main()
     if (material.enable_ao) {
         ao *= texture(material.ao, UV).r;
     }
+
+    // emission mapping
+    vec3 emission = material.emission_factor;
+    if (material.enable_emission) {
+        emission *= texture(material.emission, UV).rgb;
+    }
+    // tone mapping
+    emission = vec3(pow(emission, vec3(2.2)));
 
     // PBR
     vec3 Lo = vec3(0);
@@ -107,9 +112,10 @@ void main()
         Lo += pbr(spotLights[i], albedo.rgb, metallic, roughness);
     }
 
+    // apply emissive light
+    Lo += pbr(N, emission, 1.0, albedo.rgb, metallic, roughness);
+
     vec3 ambient = ibl(NdotV, N, R, albedo.rgb, metallic, roughness);
 
-    out_color = vec4((ambient + Lo) * ao, albedo.a);
-
-    out_entity_id = entity_id;
+    outColor = vec4((ambient + Lo) * ao, albedo.a);
 }

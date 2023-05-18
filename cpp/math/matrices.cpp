@@ -1,4 +1,3 @@
-#include <math/matrices.h>
 
 namespace gl {
 
@@ -23,4 +22,14 @@ namespace gl {
         result = glm::scale(result, scale);
         return result;
     }
+
+    glm::mat4 RigidBody::init() const {
+        glm::mat4 result(1.0f);
+        result = glm::translate(result, translation);
+        result = glm::rotate(result, rotation.x, glm::vec3(1, 0, 0));
+        result = glm::rotate(result, rotation.x, glm::vec3(0, 1, 0));
+        result = glm::rotate(result, rotation.x, glm::vec3(0, 0, 1));
+        return result;
+    }
+
 }

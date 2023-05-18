@@ -10,8 +10,6 @@
 
 #include <control/camera.h>
 
-#include <ecs/entity.h>
-
 #include <postfx/hdr.h>
 #include <postfx/blur.h>
 #include <postfx/bloom.h>
@@ -21,12 +19,18 @@
 
 #include <ui/ui.h>
 
+#include <features/lighting/environment.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
 #define IMGUI_ID(...) ImguiCore::ID({__VA_ARGS__}).c_str()
 
 namespace gl {
+
+    struct ImguiCoreCallback {
+        virtual void resize(int w, int h) = 0;
+    };
 
     struct ImguiCore final {
 
@@ -36,10 +40,12 @@ namespace gl {
         static ImGuiDockNodeFlags dockspaceFlags;
         static ImFont* regularFont;
         static ImFont* boldFont;
+        static ImguiCoreCallback* callback;
 
         static Window* window;
         static Camera* camera;
         static Scene* scene;
+        static Environment* environment;
         static Entity selectedEntity;
 
         static ScreenRenderer* screenRenderer;
@@ -57,6 +63,8 @@ namespace gl {
         static void begin();
 
         static void end();
+
+        static void resize(int w, int h);
 
         static void addRegularFont(const char* filepath, float size);
 

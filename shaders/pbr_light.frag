@@ -13,6 +13,7 @@ uniform sampler2D positions;
 uniform sampler2D normals;
 uniform sampler2D albedos;
 uniform sampler2D pbr_params;
+uniform sampler2D emissions;
 
 uniform sampler2D ssao;
 uniform bool enable_ssao;
@@ -26,7 +27,7 @@ uniform bool enable_ssao;
 
 #include pbr/core.glsl
 #include pbr/direct.glsl
-#include pbr/ibl.glsl
+#include features/lighting/env.glsl
 
 void main()
 {
@@ -34,6 +35,7 @@ void main()
     vec4 w_normals = texture(normals, l_uv);
     vec4 albedo = texture(albedos, l_uv);
     vec4 pbr_param = texture(pbr_params, l_uv);
+    vec3 emission = texture(emissions, l_uv).rgb;
 
     w_pos = w_positions.xyz;
     N = w_normals.xyz;
@@ -68,6 +70,9 @@ void main()
     for (int i = 0 ; i < spotLightSize ; i++) {
         Lo += pbr(spotLights[i], albedo.rgb, metallic, roughness);
     }
+
+    // apply emissive light
+    Lo += pbr(N, emission, 1.0, albedo.rgb, metallic, roughness);
 
     vec3 ambient = ibl(NdotV, N, R, albedo.rgb, metallic, roughness);
 

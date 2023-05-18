@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ecs/scene.h>
-
 #include <features/shadow/shadow_direct.h>
 #include <features/shadow/shadow_point.h>
 

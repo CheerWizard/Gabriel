@@ -1,9 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
-#include <random>
-
 #define PI 3.1415926535897932384626433832795f
 
 #define EPSILON 1e-21f

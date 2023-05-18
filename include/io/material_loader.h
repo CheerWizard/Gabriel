@@ -1,11 +1,8 @@
 #pragma once
 
-#include <core/common.h>
 #include <core/assimp_core.h>
 
 #include <features/material.h>
-
-#include <sstream>
 
 namespace gl {
 

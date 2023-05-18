@@ -1,11 +1,5 @@
 #pragma once
 
-#include <core/logger.h>
-
-#include <cstdint>
-#include <cassert>
-#include <cstdarg>
-
 #define null nullptr
 
 typedef uint8_t u8;

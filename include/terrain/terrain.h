@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ecs/entity.h>
-
 #include <geometry/plane.h>
 
 #include <features/displacement.h>

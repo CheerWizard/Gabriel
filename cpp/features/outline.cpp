@@ -12,17 +12,20 @@ namespace gl {
         mShader.free();
     }
 
-    void OutlineRenderer::begin() {
+    void OutlineRenderer::bind() {
         glStencilMask(GL_FALSE);
         glStencilFunc(GL_NOTEQUAL, 1, GL_TRUE);
         glDisable(GL_DEPTH_TEST);
-        mShader.use();
     }
 
-    void OutlineRenderer::end() {
+    void OutlineRenderer::unbind() {
         glStencilMask(GL_TRUE);
         glStencilFunc(GL_ALWAYS, 1, GL_TRUE);
         glEnable(GL_DEPTH_TEST);
+    }
+
+    void OutlineRenderer::use() {
+        mShader.use();
     }
 
     void OutlineRenderer::render(Outline& outline, Transform& transform, DrawableElements& drawable) {

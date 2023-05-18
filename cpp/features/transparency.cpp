@@ -100,14 +100,12 @@ namespace gl {
         glDepthFunc(GL_LESS);
     }
 
-    void TransparentRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable) {
-        mShader.setUniformArgs("entity_id", entityId);
+    void TransparentRenderer::render(Transform& transform, DrawableElements& drawable) {
         transform.update(mShader);
         drawable.draw();
     }
 
-    void TransparentRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material) {
-        mShader.setUniformArgs("entity_id", entityId);
+    void TransparentRenderer::render(Transform& transform, DrawableElements& drawable, Material& material) {
         transform.update(mShader);
         material.update(mShader, 0);
         drawable.draw();

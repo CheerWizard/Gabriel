@@ -1,7 +1,6 @@
 #pragma once
 
 #include <api/frame.h>
-#include <api/shader.h>
 #include <api/draw.h>
 
 #include <features/transform.h>
@@ -34,8 +33,8 @@ namespace gl {
 
         void resize(int w, int h);
 
-        void render(EntityID entityId, Transform& transform, DrawableElements& drawable);
-        void render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material);
+        void render(Transform& transform, DrawableElements& drawable);
+        void render(Transform& transform, DrawableElements& drawable, Material& material);
 
     private:
         ImageBuffer mRenderTarget;

@@ -40,7 +40,7 @@ vec3 pbr(LightPoint lightPoint, vec3 albedo, float metallic, float roughness)
     float quadratic = lightPoint.quadratic;
     float A = pointAttenuation(lightPos, quadratic, linear, constant);
     float pointShadow = point_shadow_function(lightPos);
-    float radianceFactor = A * (1.0 - pointShadow);
+    float radianceFactor = A * (1.0);
 
     return pbr(lightDir, lightColor, radianceFactor, albedo, metallic, roughness);
 }

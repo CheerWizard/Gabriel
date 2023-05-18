@@ -14,6 +14,10 @@ namespace gl {
         setUniform(filterRadius);
     }
 
+    void BloomUpsampleShader::update() {
+        setUniform(filterRadius);
+    }
+
     void BloomDownsampleShader::init(const glm::ivec2& resolution) {
         this->resolution.value = resolution;
         addVertexStage("shaders/fullscreen_quad.vert");
@@ -42,6 +46,7 @@ namespace gl {
     void BloomMixShader::update() {
         bindSampler(hdrSampler, hdrBuffer);
         bindSampler(bloomSampler, bloomBuffer);
+        setUniform(bloomStrength);
     }
 
     BloomRenderer::BloomRenderer(int width, int height) {
@@ -128,7 +133,7 @@ namespace gl {
     }
 
     void BloomRenderer::resize(int w, int h) {
-        mResolution = {w, h };
+        mResolution = { w, h };
 
         mFrame.bind();
 
@@ -192,6 +197,7 @@ namespace gl {
         glBlendEquation(GL_FUNC_ADD);
 
         mUpsampleShader.use();
+        mUpsampleShader.update();
 
         for (int i = mipLevels - 1 ; i > 0 ; i--) {
             auto& mip = mMips[i];

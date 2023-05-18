@@ -1,5 +1,7 @@
 #include <imgui/entity_window.h>
 
+#include <core/imgui_core.h>
+
 namespace gl {
 
     const char* EntityWindow::title = "Entities";

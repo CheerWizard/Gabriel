@@ -2,8 +2,6 @@
 
 #include <api/frame.h>
 
-#include <ecs/entity.h>
-
 #include <debugging/normal_visual.h>
 #include <debugging/polygon_visual.h>
 #include <debugging/light_visual.h>

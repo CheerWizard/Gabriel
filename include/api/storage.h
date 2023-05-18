@@ -1,7 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
 #include <glad/glad.h>
 
 namespace gl {

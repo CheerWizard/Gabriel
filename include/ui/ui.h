@@ -4,8 +4,6 @@
 
 #include <text/text.h>
 
-#include <ecs/entity.h>
-
 namespace gl {
 
     struct UI_Pipeline final {

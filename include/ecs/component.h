@@ -1,7 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
 namespace gl {
 
     typedef u32 EntityID;

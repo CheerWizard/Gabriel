@@ -1,10 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
-#include <fstream>
-#include <string>
-
 namespace gl {
 
     struct FileWriter final {

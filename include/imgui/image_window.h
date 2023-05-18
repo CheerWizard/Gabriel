@@ -1,6 +1,8 @@
 #pragma once
 
-#include <core/imgui_core.h>
+#include <api/image.h>
+
+#include <imgui.h>
 
 namespace gl {
 
@@ -26,6 +28,7 @@ namespace gl {
 
     private:
         bool mInitialized = false;
+        ImVec2 mCurrentFrameSize = { 800, 600 };
     };
 
 }

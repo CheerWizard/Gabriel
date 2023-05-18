@@ -1,12 +1,11 @@
+#include <core/imgui_core.h>
 #include <imgui/properties_window.h>
-
-#include <core/timer.h>
 
 namespace gl {
 
     static const char* title = "Properties";
-    static glm::vec2 resolution = {256, 256 };
-    static glm::vec2 position = {0, 0 };
+    static glm::vec2 resolution = { 256, 256 };
+    static glm::vec2 position = { 0, 0 };
     static bool pInitialized = false;
 
     static KEY keys[] = {
@@ -129,8 +128,12 @@ namespace gl {
 
                 if (ImGui::CollapsingHeader("Bloom")) {
                     ImguiCore::Checkbox("Enable Bloom", ImguiCore::bloomRenderer->isEnabled);
-                    ImguiCore::InputFloat("Strength", ImguiCore::bloomRenderer->getBloomStrength(), 0.01f);
-                    ImguiCore::InputFloat("Filter Radius", ImguiCore::bloomRenderer->getFilterRadius(), 0.001f);
+                    ImGui::PushID("##bloom_strength");
+                    ImGui::SliderFloat("Strength", &ImguiCore::bloomRenderer->getBloomStrength(), 0.0f, 1.0f);
+                    ImGui::PopID();
+                    ImGui::PushID("##bloom_filter_radius");
+                    ImGui::SliderFloat("Filter Radius", &ImguiCore::bloomRenderer->getFilterRadius(), 0.0f, 1.0f);
+                    ImGui::PopID();
                 }
 
                 if (ImGui::CollapsingHeader("SSAO")) {
@@ -141,6 +144,14 @@ namespace gl {
                     ImguiCore::InputFloat("Sample Radius", ssaoParams.sampleRadius.value, 0.1f);
                     ImguiCore::InputFloat("Sample Bias", ssaoParams.sampleBias.value, 0.001f);
                     ImguiCore::InputInt("Occlusion Power", ssaoParams.occlusionPower.value);
+                }
+
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Global")) {
+
+                if (ImGui::CollapsingHeader("Environment")) {
                 }
 
                 ImGui::EndTabItem();

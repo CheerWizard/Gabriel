@@ -2,19 +2,17 @@
 
 #include <api/draw.h>
 
-#include <ecs/scene.h>
-
-#include <control/camera.h>
-
 #include <features/transform.h>
-
-#include <unordered_map>
 
 namespace gl {
 
     component(Outline) {
         glm::vec4 color = { 1, 1, 0, 1 };
         float thickness = 0.02f;
+
+        Outline(const float r = 1, const float g = 1, const float b = 0, const float a = 1.0f,
+                const float thickness = 0.02f
+        ) : color(r, g, b, a), thickness(thickness) {}
     };
 
     struct OutlineRenderer final {
@@ -22,8 +20,9 @@ namespace gl {
         OutlineRenderer();
         ~OutlineRenderer();
 
-        void begin();
-        void end();
+        void bind();
+        void unbind();
+        void use();
 
         void render(Outline& outline, Transform& transform, DrawableElements& drawable);
 

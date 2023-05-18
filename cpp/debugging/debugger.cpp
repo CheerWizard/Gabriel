@@ -1,11 +1,8 @@
 #include <debugging/debugger.h>
-#include <debugging/debug_break.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
-
-#include <sstream>
 
 namespace gl {
 

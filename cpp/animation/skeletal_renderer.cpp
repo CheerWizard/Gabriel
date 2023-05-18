@@ -16,14 +16,12 @@ namespace gl {
         mShader.free();
     }
 
-    void SkeletalRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable) {
-        mShader.setUniformArgs("entity_id", entityId);
+    void SkeletalRenderer::render(Transform& transform, DrawableElements& drawable) {
         transform.update(mShader);
         drawable.draw();
     }
 
-    void SkeletalRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material) {
-        mShader.setUniformArgs("entity_id", entityId);
+    void SkeletalRenderer::render(Transform& transform, DrawableElements& drawable, Material& material) {
         transform.update(mShader);
         material.update(mShader, 0);
         drawable.draw();

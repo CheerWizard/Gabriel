@@ -1,7 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
 enum KEY : u16 {
     None                = 0,
     Space               = 32,

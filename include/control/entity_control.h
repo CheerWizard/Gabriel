@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ecs/entity.h>
-
 #include <debugging/polygon_visual.h>
 #include <debugging/normal_visual.h>
 

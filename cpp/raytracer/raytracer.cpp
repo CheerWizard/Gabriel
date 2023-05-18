@@ -24,15 +24,6 @@ namespace gl {
 
         mSphereBuffer.init(10, sizeof(Sphere));
         mRayBuffer.init(11, sizeof(Ray));
-
-        Ray ray = { 2, 2, 2 };
-        ray.direction = { 1, 1, 0, 0 };
-        update(ray);
-
-        Sphere sphere;
-        sphere.center = { 0, 0, -5 };
-        sphere.radius = 1.0f;
-        update(sphere);
     }
 
     RayTraceRenderer::~RayTraceRenderer() {

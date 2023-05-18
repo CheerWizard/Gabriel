@@ -1,6 +1,5 @@
 #pragma once
 
-#include <api/shader.h>
 #include <api/draw.h>
 #include <api/frame.h>
 

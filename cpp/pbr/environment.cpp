@@ -1,5 +1,4 @@
-#include <pbr/environment.h>
-
+#include <features/lighting/environment.h>
 #include <geometry/cube.h>
 
 namespace gl {
@@ -88,6 +87,8 @@ namespace gl {
     }
 
     void EnvRenderer::generate() {
+        if (!environment) return;
+
         mFrame.bind();
         // create HDR skybox cube map
         glViewport(0, 0, environment->resolution.x, environment->resolution.y);
@@ -163,12 +164,14 @@ namespace gl {
     }
 
     void EnvRenderer::render() {
-        glDepthFunc(GL_LEQUAL);
-        mEnvShader.use();
-        environment->skybox.activate(0);
-        environment->skybox.bind();
-        mEnvCube.draw();
-        glDepthFunc(GL_LESS);
+        if (environment && environment->enable) {
+            glDepthFunc(GL_LEQUAL);
+            mEnvShader.use();
+            environment->skybox.activate(0);
+            environment->skybox.bind();
+            mEnvCube.draw();
+            glDepthFunc(GL_LESS);
+        }
     }
 
 }

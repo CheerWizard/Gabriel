@@ -4,8 +4,6 @@
 #include <api/shader.h>
 #include <api/commands.h>
 
-#include <ecs/component.h>
-
 namespace gl {
 
     enum DrawType : u32 {

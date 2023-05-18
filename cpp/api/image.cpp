@@ -11,7 +11,7 @@ namespace gl {
     static int INTERNAL_FORMATS[4] = {GL_RED, GL_RG, GL_RGB, GL_RGBA };
     static int INTERNAL_FORMATS_SRGB[2] = {GL_SRGB, GL_SRGB_ALPHA };
 
-    Image ImageReader::read(const char *filepath, bool flipUV, PixelType pixelType, bool srgb) {
+    Image ImageReader::read(const char *filepath, const bool flipUV, const PixelType pixelType, const bool srgb) {
         Image image;
 
         stbi_set_flip_vertically_on_load(flipUV);
@@ -294,6 +294,24 @@ namespace gl {
     void ImageBuffer::bindImage(int slot, AccessMode access, int internalFormat) {
         ImageBuffer::bindActivate(type, id, slot);
         glBindImageTexture(slot, id, 0, GL_FALSE, 0, access, internalFormat);
+    }
+
+    void ImageBuffer::loadHDR(const char* filepath, const bool uv) {
+        Image hdrImage = ImageReader::read(filepath, uv, PixelType::FLOAT);
+        hdrImage.internalFormat = GL_RGB16F;
+        hdrImage.pixelFormat = GL_RGB;
+
+        ImageParams params;
+        params.minFilter = GL_LINEAR;
+        params.magFilter = GL_LINEAR;
+        params.s = GL_CLAMP_TO_EDGE;
+        params.t = GL_CLAMP_TO_EDGE;
+        params.r = GL_CLAMP_TO_EDGE;
+
+        init();
+        load(hdrImage, params);
+
+        hdrImage.free();
     }
 
     void ImageWriter::write(const char* filepath, const Image &image) {

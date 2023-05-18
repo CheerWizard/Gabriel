@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/imgui_core.h>
+#include <imgui.h>
 
 namespace gl {
 
@@ -26,6 +26,8 @@ namespace gl {
         static void renderLightComponents();
 
         static void renderTextComponents();
+
+        static void renderMaterialComponents();
 
     private:
         static Entity sEntity;

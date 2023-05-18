@@ -7,8 +7,6 @@
 #include <io/readers.h>
 #include <io/writers.h>
 
-#include <map>
-
 #include <ft2build.h>
 #include FT_FREETYPE_H"freetype/freetype.h"
 

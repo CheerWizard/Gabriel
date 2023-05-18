@@ -1,8 +1,5 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <gtc/matrix_transform.hpp>
-
 namespace gl {
 
     struct OrthoMat {
@@ -37,6 +34,13 @@ namespace gl {
         glm::fvec3 translation = { 0, 0, 0 };
         glm::fvec3 rotation = { 0, 0, 0 };
         glm::fvec3 scale = { 1, 1, 1 };
+
+        glm::mat4 init() const;
+    };
+
+    struct RigidBody {
+        glm::fvec3 translation = { 0, 0, 0 };
+        glm::fvec3 rotation = { 0, 0, 0 };
 
         glm::mat4 init() const;
     };

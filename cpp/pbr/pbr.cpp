@@ -4,13 +4,14 @@
 
 namespace gl {
 
-    static std::array<ImageSampler, 6> samplers = {
+    static std::array<ImageSampler, 7> samplers = {
             ImageSampler { "positions", 2 },
             ImageSampler { "normals", 3 },
             ImageSampler { "albedos", 4 },
             ImageSampler { "pbr_params", 5 },
-            ImageSampler { "shadow_proj_coords", 6 },
-            ImageSampler { "ssao", 7 }
+            ImageSampler { "emissions", 6 },
+            ImageSampler { "shadow_proj_coords", 7 },
+            ImageSampler { "ssao", 8 }
     };
 
     PBR_Skeletal_ForwardRenderer::PBR_Skeletal_ForwardRenderer() {
@@ -55,14 +56,8 @@ namespace gl {
         pbrColor.params.minFilter = GL_LINEAR;
         pbrColor.params.magFilter = GL_LINEAR;
         pbrColor.init();
-        // setup PBR object ID
-        ColorAttachment pbrEntityId = {2, width, height };
-        pbrEntityId.image.internalFormat = GL_R32UI;
-        pbrEntityId.image.pixelFormat = GL_RED_INTEGER;
-        pbrEntityId.image.pixelType = PixelType::U32;
-        pbrEntityId.init();
         // setup PBR frame
-        mFrame.colors = { pbrColor, pbrEntityId };
+        mFrame.colors = { pbrColor };
         mFrame.rbo = { width, height };
         mFrame.rbo.init();
         mFrame.init();
@@ -139,9 +134,7 @@ namespace gl {
         mShader.bindSamplerStruct("envlight", "brdf_convolution", 10, env->brdfConvolution);
     }
 
-    void PBR_ForwardRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material) {
-        mShader.setUniformArgs("entity_id", entityId);
-
+    void PBR_ForwardRenderer::render(Transform& transform, DrawableElements& drawable, Material& material) {
         if (!directShadow->lightSpaces.empty()) {
             mShader.bindSampler("direct_shadow_sampler", 0, directShadow->map.buffer);
             mShader.setUniformArgs("direct_light_space", directShadow->lightSpaces[0]);
@@ -156,8 +149,8 @@ namespace gl {
         drawable.draw();
     }
 
-    void PBR_ForwardRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& lightSpace) {
-        render(entityId, transform, drawable, material);
+    void PBR_ForwardRenderer::render(Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& lightSpace) {
+        render(transform, drawable, material);
     }
 
     PBR_DeferredRenderer::PBR_DeferredRenderer(int w, int h, SsaoRenderer* ssaoRenderer) : mSsaoRenderer(ssaoRenderer) {
@@ -170,6 +163,7 @@ namespace gl {
         mLightShader.complete();
 
         mDrawable.init();
+
         // setup PBR positions
         ColorAttachment pbrPos = { 0, w, h };
         pbrPos.image.internalFormat = GL_RGBA32F;
@@ -181,46 +175,54 @@ namespace gl {
         pbrPos.params.t = GL_CLAMP_TO_EDGE;
         pbrPos.params.r = GL_CLAMP_TO_EDGE;
         pbrPos.init();
+
         // setup PBR normals
-        ColorAttachment pbrNormal = {1, w, h };
+        ColorAttachment pbrNormal = { 1, w, h };
         pbrNormal.image.internalFormat = GL_RGBA32F;
         pbrNormal.image.pixelFormat = GL_RGBA;
         pbrNormal.image.pixelType = PixelType::FLOAT;
         pbrNormal.params.minFilter = GL_NEAREST;
         pbrNormal.params.magFilter= GL_NEAREST;
         pbrNormal.init();
+
         // setup PBR albedos
-        ColorAttachment pbrAlbedo = {2, w, h };
+        ColorAttachment pbrAlbedo = { 2, w, h };
         pbrAlbedo.image.internalFormat = GL_RGBA;
         pbrAlbedo.image.pixelFormat = GL_RGBA;
         pbrAlbedo.image.pixelType = PixelType::U8;
         pbrAlbedo.params.minFilter = GL_NEAREST;
         pbrAlbedo.params.magFilter= GL_NEAREST;
         pbrAlbedo.init();
+
         // setup PBR params
-        ColorAttachment pbrParams = {3, w, h };
+        ColorAttachment pbrParams = { 3, w, h };
         pbrParams.image.internalFormat = GL_RGBA;
         pbrParams.image.pixelFormat = GL_RGBA;
         pbrParams.image.pixelType = PixelType::U8;
         pbrParams.params.minFilter = GL_NEAREST;
         pbrParams.params.magFilter= GL_NEAREST;
         pbrParams.init();
+
+        // setup PBR emission
+        ColorAttachment pbrEmission = { 4, w, h };
+        pbrEmission.image.internalFormat = GL_RGB16F;
+        pbrEmission.image.pixelFormat = GL_RGB;
+        pbrEmission.image.pixelType = PixelType::FLOAT;
+        pbrEmission.params.minFilter = GL_NEAREST;
+        pbrEmission.params.magFilter = GL_NEAREST;
+        pbrEmission.init();
+
         // setup PBR shadow projection coords
-        ColorAttachment pbrShadowProj = {4, w, h };
+        ColorAttachment pbrShadowProj = { 5, w, h };
         pbrShadowProj.image.internalFormat = GL_RGBA32F;
         pbrShadowProj.image.pixelFormat = GL_RGBA;
         pbrShadowProj.image.pixelType = PixelType::FLOAT;
         pbrShadowProj.params.minFilter = GL_NEAREST;
         pbrShadowProj.params.magFilter= GL_NEAREST;
         pbrShadowProj.init();
-        // setup PBR object ID
-        ColorAttachment pbrEntityId = {5, w, h };
-        pbrEntityId.image.internalFormat = GL_R32UI;
-        pbrEntityId.image.pixelFormat = GL_RED_INTEGER;
-        pbrEntityId.image.pixelType = PixelType::U32;
-        pbrEntityId.init();
+
         // setup PBR view positions
-        ColorAttachment pbrViewPos = {6, w, h };
+        ColorAttachment pbrViewPos = { 6, w, h };
         pbrViewPos.image.internalFormat = GL_RGBA32F;
         pbrViewPos.image.pixelFormat = GL_RGBA;
         pbrViewPos.image.pixelType = PixelType::FLOAT;
@@ -230,6 +232,7 @@ namespace gl {
         pbrViewPos.params.t = GL_CLAMP_TO_EDGE;
         pbrViewPos.params.r = GL_CLAMP_TO_EDGE;
         pbrViewPos.init();
+
         // setup PBR view normals
         ColorAttachment pbrViewNormal = {7, w, h };
         pbrViewNormal.image.internalFormat = GL_RGBA32F;
@@ -238,14 +241,15 @@ namespace gl {
         pbrViewNormal.params.minFilter = GL_NEAREST;
         pbrViewNormal.params.magFilter = GL_NEAREST;
         pbrViewNormal.init();
+
         // setup PBR material frame
         mGeometryFrame.colors = {
                 pbrPos,
                 pbrNormal,
                 pbrAlbedo,
                 pbrParams,
+                pbrEmission,
                 pbrShadowProj,
-                pbrEntityId,
                 pbrViewPos,
                 pbrViewNormal
         };
@@ -255,6 +259,7 @@ namespace gl {
         mGeometryFrame.attachColors();
         mGeometryFrame.attachRenderBuffer();
         mGeometryFrame.complete();
+
         // setup PBR material MSAA frame
         mGeometryMsaaFrame = mGeometryFrame;
         for (auto& color : mGeometryMsaaFrame.colors) {
@@ -268,8 +273,9 @@ namespace gl {
         mGeometryMsaaFrame.attachColors();
         mGeometryMsaaFrame.attachRenderBuffer();
         mGeometryMsaaFrame.complete();
+
         // setup PBR light color
-        ColorAttachment pbrLightColor = {0, w, h };
+        ColorAttachment pbrLightColor = { 0, w, h };
         pbrLightColor.image.internalFormat = GL_RGBA16F;
         pbrLightColor.image.pixelFormat = GL_RGBA;
         pbrLightColor.image.pixelType = PixelType::FLOAT;
@@ -293,7 +299,7 @@ namespace gl {
         }
 
         mRenderTarget = mLightFrame.colors[0].buffer;
-        mGBuffer = {
+        mGbuffer = {
                 mGeometryFrame.colors[0].buffer,
                 mGeometryFrame.colors[1].buffer,
                 mGeometryFrame.colors[2].buffer,
@@ -348,8 +354,8 @@ namespace gl {
 
         // render SSAO
         if (mSsaoRenderer->isEnabled) {
-            mSsaoRenderer->getParams().positions = mGBuffer.viewPosition;
-            mSsaoRenderer->getParams().normals = mGBuffer.viewNormal;
+            mSsaoRenderer->getParams().positions = mGbuffer.viewPosition;
+            mSsaoRenderer->getParams().normals = mGbuffer.viewNormal;
             mSsaoRenderer->render();
         }
 
@@ -385,9 +391,7 @@ namespace gl {
         mGeometryShader.use();
     }
 
-    void PBR_DeferredRenderer::render(EntityID entityId, Transform& transform, DrawableElements& drawable, Material& material) {
-        mGeometryShader.setUniformArgs("entity_id", entityId);
-
+    void PBR_DeferredRenderer::render(Transform& transform, DrawableElements& drawable, Material& material) {
         if (!directShadow->lightSpaces.empty()) {
             mGeometryShader.setUniformArgs("direct_light_space", directShadow->lightSpaces[0]);
         }
@@ -410,10 +414,6 @@ namespace gl {
         FrameBuffer::blit(srcDepthFrame, w, h, mCurrentFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
     }
 
-    void PBR_ForwardRenderer::blitEntityId(int w, int h, u32 srcFrame, int srcEntityId) {
-        FrameBuffer::blit(srcFrame, w, h, 5, mCurrentFrame.id, w, h, 2);
-    }
-
     PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer) : scene(scene) {
         mResolution = {width, height };
 
@@ -432,7 +432,6 @@ namespace gl {
 
     PBR_Pipeline::~PBR_Pipeline() {
         delete mEnvRenderer;
-        env.free();
 
         delete mPbrForwardRenderer;
         delete mPbrDeferredRenderer;
@@ -445,36 +444,23 @@ namespace gl {
         delete mOutlineRenderer;
     }
 
+    void PBR_Pipeline::setEnvironment(Environment *environment) {
+        mEnvRenderer->environment = environment;
+        if (environment) {
+            mPbrForwardRenderer->update(environment);
+            mPbrDeferredRenderer->update(environment);
+            mSkeletalForwardRenderer->update(environment);
+            mSkeletalDeferredRenderer->update(environment);
+        }
+    }
+
     void PBR_Pipeline::setSamples(int samples) {
         mPbrForwardRenderer->setSamples(samples);
         mPbrDeferredRenderer->setSamples(samples);
     }
 
-    void PBR_Pipeline::initHdrEnv(const char* filepath, bool flipUV) {
-        Image hdrImage = ImageReader::read(filepath, flipUV, PixelType::FLOAT);
-        hdrImage.internalFormat = GL_RGB16F;
-        hdrImage.pixelFormat = GL_RGB;
-
-        ImageParams params;
-        params.minFilter = GL_LINEAR;
-        params.magFilter = GL_LINEAR;
-        params.s = GL_CLAMP_TO_EDGE;
-        params.t = GL_CLAMP_TO_EDGE;
-        params.r = GL_CLAMP_TO_EDGE;
-
-        env.hdr.init();
-        env.hdr.load(hdrImage, params);
-
-        hdrImage.free();
-    }
-
     void PBR_Pipeline::generateEnv() {
-        mEnvRenderer->environment = &env;
         mEnvRenderer->generate();
-        mPbrForwardRenderer->update(mEnvRenderer->environment);
-        mPbrDeferredRenderer->update(mEnvRenderer->environment);
-        mSkeletalForwardRenderer->update(mEnvRenderer->environment);
-        mSkeletalDeferredRenderer->update(mEnvRenderer->environment);
     }
 
     void PBR_Pipeline::resize(int width, int height) {
@@ -508,7 +494,6 @@ namespace gl {
         scene->eachComponent<PBR_Component_ForwardCull>([this](PBR_Component_ForwardCull* component) {
             EntityID entityId = component->entityId;
             mPbrForwardRenderer->render(
-                    entityId,
                     *scene->getComponent<Transform>(entityId),
                     *scene->getComponent<DrawableElements>(entityId),
                     *scene->getComponent<Material>(entityId)
@@ -519,7 +504,6 @@ namespace gl {
         scene->eachComponent<PBR_SkeletalComponent_ForwardCull>([this](PBR_SkeletalComponent_ForwardCull* component) {
             EntityID entityId = component->entityId;
             mSkeletalForwardRenderer->render(
-                    entityId,
                     *scene->getComponent<Transform>(entityId),
                     *scene->getComponent<DrawableElements>(entityId),
                     *scene->getComponent<Material>(entityId)
@@ -533,18 +517,27 @@ namespace gl {
         // render environment
         mEnvRenderer->render();
 
-        mOutlineRenderer->end();
+        mOutlineRenderer->unbind();
 
         // render static objects
-        mPbrForwardRenderer->begin();
         scene->eachComponent<PBR_Component_Forward>([this](PBR_Component_Forward* component) {
             EntityID entityId = component->entityId;
-            mPbrForwardRenderer->render(
-                    entityId,
-                    *scene->getComponent<Transform>(entityId),
-                    *scene->getComponent<DrawableElements>(entityId),
-                    *scene->getComponent<Material>(entityId)
-            );
+            auto* outline = scene->getComponent<Outline>(entityId);
+            auto& transform = *scene->getComponent<Transform>(entityId);
+            auto& drawable = *scene->getComponent<DrawableElements>(entityId);
+            auto& material = *scene->getComponent<Material>(entityId);
+            mPbrForwardRenderer->begin();
+            if (outline) {
+                mOutlineRenderer->unbind();
+                mPbrForwardRenderer->render(transform, drawable, material);
+                // render outline objects
+                mOutlineRenderer->bind();
+                mOutlineRenderer->use();
+                mOutlineRenderer->render(*outline, transform, drawable);
+                mOutlineRenderer->unbind();
+            } else {
+                mPbrForwardRenderer->render(transform, drawable, material);
+            }
         });
 
         // render dynamic objects
@@ -552,31 +545,17 @@ namespace gl {
         scene->eachComponent<PBR_SkeletalComponent_Forward>([this](PBR_SkeletalComponent_Forward* component) {
             EntityID entityId = component->entityId;
             mSkeletalForwardRenderer->render(
-                    entityId,
                     *scene->getComponent<Transform>(entityId),
                     *scene->getComponent<DrawableElements>(entityId),
                     *scene->getComponent<Material>(entityId)
             );
         });
 
-        // render outline objects
-        mOutlineRenderer->begin();
-        scene->eachComponent<Outline>([this](Outline* component) {
-            EntityID entityId = component->entityId;
-            mOutlineRenderer->render(
-                    *component,
-                    *scene->getComponent<Transform>(entityId),
-                    *scene->getComponent<DrawableElements>(entityId)
-            );
-        });
-        mOutlineRenderer->end();
-
         // render transparent objects
         mTransparentRenderer->begin();
         scene->eachComponent<Transparency>([this](Transparency* transparency) {
             EntityID entityId = transparency->entityId;
             mTransparentRenderer->render(
-                    entityId,
                     *scene->getComponent<Transform>(entityId),
                     *scene->getComponent<DrawableElements>(entityId),
                     *scene->getComponent<Material>(entityId)
@@ -596,7 +575,6 @@ namespace gl {
             scene->eachComponent<PBR_Component_Deferred>([this](PBR_Component_Deferred* component) {
                 EntityID entityId = component->entityId;
                 mPbrDeferredRenderer->render(
-                        entityId,
                         *scene->getComponent<Transform>(entityId),
                         *scene->getComponent<DrawableElements>(entityId),
                         *scene->getComponent<Material>(entityId)
@@ -607,7 +585,6 @@ namespace gl {
             scene->eachComponent<PBR_SkeletalComponent_Deferred>([this](PBR_SkeletalComponent_Deferred* component) {
                 EntityID entityId = component->entityId;
                 mSkeletalDeferredRenderer->render(
-                        entityId,
                         *scene->getComponent<Transform>(entityId),
                         *scene->getComponent<DrawableElements>(entityId),
                         *scene->getComponent<Material>(entityId)
@@ -624,7 +601,6 @@ namespace gl {
             if (terrain) {
                 glCullFace(GL_FRONT);
                 mPbrDeferredRenderer->render(
-                        terrain->entityId,
                         terrain->transform,
                         terrain->drawable,
                         terrain->material
@@ -635,7 +611,6 @@ namespace gl {
             scene->eachComponent<PBR_Component_DeferredCull>([this](PBR_Component_DeferredCull* component) {
                 EntityID entityId = component->entityId;
                 mPbrDeferredRenderer->render(
-                        entityId,
                         *scene->getComponent<Transform>(entityId),
                         *scene->getComponent<DrawableElements>(entityId),
                         *scene->getComponent<Material>(entityId)
@@ -646,7 +621,6 @@ namespace gl {
             scene->eachComponent<PBR_SkeletalComponent_DeferredCull>([this](PBR_SkeletalComponent_DeferredCull* component) {
                 EntityID entityId = component->entityId;
                 mSkeletalDeferredRenderer->render(
-                        entityId,
                         *scene->getComponent<Transform>(entityId),
                         *scene->getComponent<DrawableElements>(entityId),
                         *scene->getComponent<Material>(entityId)
@@ -673,12 +647,6 @@ namespace gl {
                 mPbrDeferredRenderer->getGeometryFbo().id
         );
         renderForward();
-        mPbrForwardRenderer->blitEntityId(
-                mResolution.x,
-                mResolution.y,
-                mPbrDeferredRenderer->getGeometryFbo().id,
-                5
-        );
 
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_STENCIL_TEST);

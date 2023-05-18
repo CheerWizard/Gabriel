@@ -12,6 +12,7 @@ namespace gl {
         void init();
 
         void updateFilterRadius();
+        void update();
     };
 
     struct BloomDownsampleShader : Shader {

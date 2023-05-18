@@ -1,10 +1,6 @@
 #pragma once
 
-#include <api/buffers.h>
-
 #include <geometry/geometry.h>
-
-#include <functional>
 
 namespace gl {
 

@@ -6,6 +6,7 @@
 #include <features/lighting/direct_light.h>
 #include <features/lighting/point_light.h>
 #include <features/lighting/spot_light.h>
+#include <features/lighting/environment.h>
 
 #include <glad/glad.h>
 

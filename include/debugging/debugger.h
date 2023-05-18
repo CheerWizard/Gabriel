@@ -1,7 +1,5 @@
 #pragma once
 
-#include <core/common.h>
-
 #ifdef DEBUG
     #define debugCheckError() gl::Debugger::checkError()
 #else

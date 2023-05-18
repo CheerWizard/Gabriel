@@ -2,8 +2,6 @@
 
 #include <io/skeletal_loader.h>
 
-#include <map>
-
 namespace gl {
 
     struct BoneAnimator final {

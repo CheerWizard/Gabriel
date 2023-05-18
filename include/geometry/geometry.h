@@ -2,8 +2,6 @@
 
 #include <api/draw.h>
 
-#include <glm/glm.hpp>
-
 namespace gl {
 
     template<typename T>
