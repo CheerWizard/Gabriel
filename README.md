@@ -33,3 +33,6 @@
 ![Знімок екрана (66)](https://github.com/CheerWizard/Gabriel/assets/37471793/01c5f52f-97a7-40e9-9d30-8766b73281e2)
 ![Знімок екрана (58)](https://github.com/CheerWizard/Gabriel/assets/37471793/67667e1a-edbd-4b2a-8e44-dbfe9837e812)
 ![Знімок екрана (60)](https://github.com/CheerWizard/Gabriel/assets/37471793/091902bc-7ec4-4128-99f0-50b933a2247b)
+### FXAA
+![Знімок екрана (75)](https://github.com/CheerWizard/Gabriel/assets/37471793/8a61648e-f4e3-4fd8-b190-d3164af27dda)
+![Знімок екрана (76)](https://github.com/CheerWizard/Gabriel/assets/37471793/0b83ce7e-f42d-4460-9639-7fa221cdcc32)
