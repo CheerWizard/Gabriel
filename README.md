@@ -2,7 +2,7 @@
 
 ![FullLogo_Transparent](https://user-images.githubusercontent.com/37471793/236649204-6807e8b6-7fc0-478b-9d2c-68d40dc3e595.png)
 
-## Intro Screenshots
+## Features Gallery
 ### PBR and IBL
 ![Знімок екрана (39)](https://github.com/CheerWizard/Gabriel/assets/37471793/d294cd7a-2551-439e-98b7-b0b7b96f2b79)
 ### Blur and Bloom
