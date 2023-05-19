@@ -58,3 +58,21 @@ configure_file(Gabriel_Logo.png Gabriel_Logo.png COPYONLY)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm spdlog)
 dynamic_link(${PROJECT_NAME} vendor/libs)
+
+if(IMGUI)
+
+    if(DEBUG)
+        configure_file(shaders/build_imgui_debug/core.glsl shaders/core.glsl COPYONLY)
+    else()
+        configure_file(shaders/build_imgui_release/core.glsl shaders/core.glsl COPYONLY)
+    endif(DEBUG)
+
+else()
+
+    if(DEBUG)
+        configure_file(shaders/build_debug/core.glsl shaders/core.glsl COPYONLY)
+    else()
+        configure_file(shaders/build_release/core.glsl shaders/core.glsl COPYONLY)
+    endif(DEBUG)
+
+endif(IMGUI)

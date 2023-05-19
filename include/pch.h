@@ -33,7 +33,7 @@
 #include <gtc/type_ptr.hpp>
 #include <gtc/matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
-#include "glm/gtx/string_cast.hpp"
+#include <glm/gtx/string_cast.hpp>
 
 // Core
 #include <core/common.h>

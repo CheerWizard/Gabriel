@@ -27,15 +27,7 @@ namespace gl {
         mShader.init();
         mDrawable.init();
 
-        ColorAttachment color;
-        color.image.internalFormat = GL_RGB;
-        color.image.pixelFormat = GL_RGB;
-        color.image.pixelType = PixelType::U8;
-        color.image.width = width;
-        color.image.height = height;
-        color.init();
-
-        mFrame.colors = { color };
+        mFrame.colors = { initColor(width, height) };
         mFrame.init();
         mFrame.attachColors();
         mFrame.complete();
@@ -66,6 +58,25 @@ namespace gl {
         mFrame.bind();
         renderInternal();
         FrameBuffer::unbind();
+    }
+
+    ColorAttachment ScreenRenderer::initColor(int width, int height) {
+        ColorAttachment color;
+
+        // filters
+        color.params.minFilter = GL_LINEAR;
+        color.params.magFilter = GL_LINEAR;
+
+        // data
+        color.image.width = width;
+        color.image.height = height;
+        color.image.internalFormat = GL_RGB16F;
+        color.image.pixelFormat = GL_RGB;
+        color.image.pixelType = PixelType::FLOAT;
+
+        color.init();
+
+        return color;
     }
 
     void ScreenRenderer::renderInternal() {

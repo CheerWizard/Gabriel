@@ -51,6 +51,7 @@ namespace gl {
         void renderBackBuffer();
 
     private:
+        ColorAttachment initColor(int width, int height);
         void renderInternal();
 
     private:
