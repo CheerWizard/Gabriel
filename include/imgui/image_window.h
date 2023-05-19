@@ -13,6 +13,7 @@ namespace gl {
         ImageBuffer imageBuffer;
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
         bool show = false;
+        bool resizeFramebuffer = false;
 
         ImageWindow(
                 const char* title,

@@ -48,6 +48,7 @@ namespace gl {
         mShader.complete();
         // setup VAO
         mVao.init();
+
         // setup PBR color
         ColorAttachment pbrColor = {0, width, height };
         pbrColor.image.internalFormat = GL_RGBA16F;
@@ -56,6 +57,7 @@ namespace gl {
         pbrColor.params.minFilter = GL_LINEAR;
         pbrColor.params.magFilter = GL_LINEAR;
         pbrColor.init();
+
         // setup PBR frame
         mFrame.colors = { pbrColor };
         mFrame.rbo = { width, height };
@@ -64,40 +66,18 @@ namespace gl {
         mFrame.attachColors();
         mFrame.attachRenderBuffer();
         mFrame.complete();
-        // setup PBR MSAA frame
-        mMsaaFrame = mFrame;
-        for (auto& color : mMsaaFrame.colors) {
-            color.image.samples = samples;
-            color.buffer.type = GL_TEXTURE_2D_MULTISAMPLE;
-            color.init();
-        }
-        mMsaaFrame.rbo.samples = samples;
-        mMsaaFrame.rbo.init();
-        mMsaaFrame.init();
-        mMsaaFrame.attachColors();
-        mMsaaFrame.attachRenderBuffer();
-        mMsaaFrame.complete();
 
         mRenderTarget = mFrame.colors[0].buffer;
-
-        setSamples(samples);
     }
 
     PBR_ForwardRenderer::~PBR_ForwardRenderer() {
         mVao.free();
         mShader.free();
         mFrame.free();
-        mMsaaFrame.free();
     }
 
     void PBR_ForwardRenderer::resize(int w, int h) {
         mFrame.resize(w, h);
-        mMsaaFrame.resize(w, h);
-    }
-
-    void PBR_ForwardRenderer::setSamples(int samples) {
-        this->samples = samples;
-        mCurrentFrame = samples > 1 ? mMsaaFrame : mFrame;
     }
 
     void PBR_ForwardRenderer::readPixel(PBR_Pixel& pixel, int x, int y) {
@@ -105,7 +85,7 @@ namespace gl {
     }
 
     void PBR_ForwardRenderer::bind() {
-        mCurrentFrame.bind();
+        mFrame.bind();
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);
@@ -114,12 +94,6 @@ namespace gl {
 
     void PBR_ForwardRenderer::unbind() {
 //        compose_transparency();
-        if (samples > 1) {
-            int w = mMsaaFrame.colors[0].image.width;
-            int h = mMsaaFrame.colors[0].image.height;
-            FrameBuffer::blit(mMsaaFrame.id, w, h, mFrame.id, w, h, 1, GL_COLOR_BUFFER_BIT);
-            FrameBuffer::blit(mMsaaFrame.id, w, h, mFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
-        }
     }
 
     void PBR_ForwardRenderer::begin() {
@@ -153,7 +127,8 @@ namespace gl {
         render(transform, drawable, material);
     }
 
-    PBR_DeferredRenderer::PBR_DeferredRenderer(int w, int h, SsaoRenderer* ssaoRenderer) : mSsaoRenderer(ssaoRenderer) {
+    PBR_DeferredRenderer::PBR_DeferredRenderer(int width, int height, SsaoRenderer* ssaoRenderer)
+    : mSsaoRenderer(ssaoRenderer) {
         mGeometryShader.addVertexStage("shaders/pbr_material.vert");
         mGeometryShader.addFragmentStage("shaders/pbr_material.frag");
         mGeometryShader.complete();
@@ -165,7 +140,7 @@ namespace gl {
         mDrawable.init();
 
         // setup PBR positions
-        ColorAttachment pbrPos = { 0, w, h };
+        ColorAttachment pbrPos = { 0, width, height };
         pbrPos.image.internalFormat = GL_RGBA32F;
         pbrPos.image.pixelFormat = GL_RGBA;
         pbrPos.image.pixelType = PixelType::FLOAT;
@@ -177,7 +152,7 @@ namespace gl {
         pbrPos.init();
 
         // setup PBR normals
-        ColorAttachment pbrNormal = { 1, w, h };
+        ColorAttachment pbrNormal = { 1, width, height };
         pbrNormal.image.internalFormat = GL_RGBA32F;
         pbrNormal.image.pixelFormat = GL_RGBA;
         pbrNormal.image.pixelType = PixelType::FLOAT;
@@ -186,7 +161,7 @@ namespace gl {
         pbrNormal.init();
 
         // setup PBR albedos
-        ColorAttachment pbrAlbedo = { 2, w, h };
+        ColorAttachment pbrAlbedo = { 2, width, height };
         pbrAlbedo.image.internalFormat = GL_RGBA;
         pbrAlbedo.image.pixelFormat = GL_RGBA;
         pbrAlbedo.image.pixelType = PixelType::U8;
@@ -195,7 +170,7 @@ namespace gl {
         pbrAlbedo.init();
 
         // setup PBR params
-        ColorAttachment pbrParams = { 3, w, h };
+        ColorAttachment pbrParams = { 3, width, height };
         pbrParams.image.internalFormat = GL_RGBA;
         pbrParams.image.pixelFormat = GL_RGBA;
         pbrParams.image.pixelType = PixelType::U8;
@@ -204,7 +179,7 @@ namespace gl {
         pbrParams.init();
 
         // setup PBR emission
-        ColorAttachment pbrEmission = { 4, w, h };
+        ColorAttachment pbrEmission = { 4, width, height };
         pbrEmission.image.internalFormat = GL_RGB16F;
         pbrEmission.image.pixelFormat = GL_RGB;
         pbrEmission.image.pixelType = PixelType::FLOAT;
@@ -213,7 +188,7 @@ namespace gl {
         pbrEmission.init();
 
         // setup PBR shadow projection coords
-        ColorAttachment pbrShadowProj = { 5, w, h };
+        ColorAttachment pbrShadowProj = { 5, width, height };
         pbrShadowProj.image.internalFormat = GL_RGBA32F;
         pbrShadowProj.image.pixelFormat = GL_RGBA;
         pbrShadowProj.image.pixelType = PixelType::FLOAT;
@@ -222,7 +197,7 @@ namespace gl {
         pbrShadowProj.init();
 
         // setup PBR view positions
-        ColorAttachment pbrViewPos = { 6, w, h };
+        ColorAttachment pbrViewPos = { 6, width, height };
         pbrViewPos.image.internalFormat = GL_RGBA32F;
         pbrViewPos.image.pixelFormat = GL_RGBA;
         pbrViewPos.image.pixelType = PixelType::FLOAT;
@@ -234,7 +209,7 @@ namespace gl {
         pbrViewPos.init();
 
         // setup PBR view normals
-        ColorAttachment pbrViewNormal = {7, w, h };
+        ColorAttachment pbrViewNormal = {7, width, height };
         pbrViewNormal.image.internalFormat = GL_RGBA32F;
         pbrViewNormal.image.pixelFormat = GL_RGBA;
         pbrViewNormal.image.pixelType = PixelType::FLOAT;
@@ -253,38 +228,25 @@ namespace gl {
                 pbrViewPos,
                 pbrViewNormal
         };
-        mGeometryFrame.rbo = { w, h };
+        mGeometryFrame.rbo = { width, height };
         mGeometryFrame.rbo.init();
         mGeometryFrame.init();
         mGeometryFrame.attachColors();
         mGeometryFrame.attachRenderBuffer();
         mGeometryFrame.complete();
 
-        // setup PBR material MSAA frame
-        mGeometryMsaaFrame = mGeometryFrame;
-        for (auto& color : mGeometryMsaaFrame.colors) {
-            color.image.samples = samples;
-            color.buffer.type = GL_TEXTURE_2D_MULTISAMPLE;
-            color.init();
-        }
-        mGeometryMsaaFrame.rbo.samples = samples;
-        mGeometryMsaaFrame.rbo.init();
-        mGeometryMsaaFrame.init();
-        mGeometryMsaaFrame.attachColors();
-        mGeometryMsaaFrame.attachRenderBuffer();
-        mGeometryMsaaFrame.complete();
-
         // setup PBR light color
-        ColorAttachment pbrLightColor = { 0, w, h };
+        ColorAttachment pbrLightColor = { 0, width, height };
         pbrLightColor.image.internalFormat = GL_RGBA16F;
         pbrLightColor.image.pixelFormat = GL_RGBA;
         pbrLightColor.image.pixelType = PixelType::FLOAT;
         pbrLightColor.params.minFilter = GL_LINEAR;
         pbrLightColor.params.magFilter = GL_LINEAR;
         pbrLightColor.init();
+
         // setup PBR light frame
         mLightFrame.colors = { pbrLightColor };
-        mLightFrame.rbo = { w, h };
+        mLightFrame.rbo = { width, height };
         mLightFrame.rbo.init();
         mLightFrame.init();
         mLightFrame.attachColors();
@@ -299,7 +261,7 @@ namespace gl {
         }
 
         mRenderTarget = mLightFrame.colors[0].buffer;
-        mGbuffer = {
+        mGBuffer = {
                 mGeometryFrame.colors[0].buffer,
                 mGeometryFrame.colors[1].buffer,
                 mGeometryFrame.colors[2].buffer,
@@ -309,27 +271,18 @@ namespace gl {
                 mGeometryFrame.colors[6].buffer,
                 mGeometryFrame.colors[7].buffer
         };
-
-        setSamples(samples);
     }
 
     PBR_DeferredRenderer::~PBR_DeferredRenderer() {
         mGeometryShader.free();
         mGeometryFrame.free();
-        mGeometryMsaaFrame.free();
         mLightShader.free();
         mLightFrame.free();
     }
 
     void PBR_DeferredRenderer::resize(int w, int h) {
         mGeometryFrame.resize(w, h);
-        mGeometryMsaaFrame.resize(w, h);
         mLightFrame.resize(w, h);
-    }
-
-    void PBR_DeferredRenderer::setSamples(int samples) {
-        this->samples = samples;
-        mCurrentGeometryFrame = samples > 1 ? mGeometryMsaaFrame : mGeometryFrame;
     }
 
     void PBR_DeferredRenderer::readPixel(PBR_Pixel& pixel, int x, int y) {
@@ -337,7 +290,7 @@ namespace gl {
     }
 
     void PBR_DeferredRenderer::bind() {
-        mCurrentGeometryFrame.bind();
+        mGeometryFrame.bind();
         clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     }
 
@@ -345,17 +298,10 @@ namespace gl {
         glDisable(GL_STENCIL_TEST);
         glDisable(GL_BLEND);
 
-        if (samples > 1) {
-            int w = mGeometryFrame.rbo.width;
-            int h = mGeometryFrame.rbo.height;
-            FrameBuffer::blit(mGeometryMsaaFrame.id, w, h, mGeometryFrame.id, w, h, mGeometryMsaaFrame.colors.size(), GL_COLOR_BUFFER_BIT);
-            FrameBuffer::blit(mGeometryMsaaFrame.id, w, h, mGeometryFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
-        }
-
         // render SSAO
         if (mSsaoRenderer->isEnabled) {
-            mSsaoRenderer->getParams().positions = mGbuffer.viewPosition;
-            mSsaoRenderer->getParams().normals = mGbuffer.viewNormal;
+            mSsaoRenderer->getParams().positions = mGBuffer.viewPosition;
+            mSsaoRenderer->getParams().normals = mGBuffer.viewNormal;
             mSsaoRenderer->render();
         }
 
@@ -365,15 +311,13 @@ namespace gl {
         mLightShader.use();
 
         int samplers_size = samplers.size();
-        FrameBuffer current_geometry_fbo = samples > 1 ? mGeometryMsaaFrame : mGeometryFrame;
-
         mLightShader.bindSampler("direct_shadow_sampler", 0, directShadow->map.buffer);
         mLightShader.bindSampler("point_shadow_sampler", 1, pointShadow->map.buffer);
         mLightShader.setUniformArgs("far_plane", pointShadow->zFar);
         mLightShader.setUniformArgs("shadow_filter_size", directShadow->filterSize);
 
         for (int i = 0 ; i < samplers_size - 1 ; i++) {
-            mLightShader.bindSampler(samplers[i], current_geometry_fbo.colors[i].buffer);
+            mLightShader.bindSampler(samplers[i], mGeometryFrame.colors[i].buffer);
         }
 
         if (mSsaoRenderer->isEnabled) {
@@ -410,11 +354,12 @@ namespace gl {
     }
 
     void PBR_ForwardRenderer::blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) {
-        FrameBuffer::blit(srcColorFrame, w, h, mCurrentFrame.id, w, h, 1, GL_COLOR_BUFFER_BIT);
-        FrameBuffer::blit(srcDepthFrame, w, h, mCurrentFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
+        FrameBuffer::blit(srcColorFrame, w, h, mFrame.id, w, h, 1, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::blit(srcDepthFrame, w, h, mFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
     }
 
-    PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer) : scene(scene) {
+    PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer)
+    : scene(scene) {
         mResolution = {width, height };
 
         mEnvRenderer = new EnvRenderer(width, height);
@@ -454,11 +399,6 @@ namespace gl {
         }
     }
 
-    void PBR_Pipeline::setSamples(int samples) {
-        mPbrForwardRenderer->setSamples(samples);
-        mPbrDeferredRenderer->setSamples(samples);
-    }
-
     void PBR_Pipeline::generateEnv() {
         mEnvRenderer->generate();
     }
@@ -488,9 +428,21 @@ namespace gl {
     }
 
     void PBR_Pipeline::renderForwardCulling() {
-        glEnable(GL_CULL_FACE);
-        // render static objects
         mPbrForwardRenderer->begin();
+        glEnable(GL_CULL_FACE);
+
+        // terrain
+//        if (terrain) {
+//            glCullFace(GL_FRONT);
+//            mPbrForwardRenderer->render(
+//                    terrain->transform,
+//                    terrain->drawable,
+//                    terrain->material
+//            );
+//            glCullFace(GL_BACK);
+//        }
+
+        // render static objects
         scene->eachComponent<PBR_Component_ForwardCull>([this](PBR_Component_ForwardCull* component) {
             EntityID entityId = component->entityId;
             mPbrForwardRenderer->render(

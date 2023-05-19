@@ -83,15 +83,21 @@ namespace gl {
         ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 18.0f);
         ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 18.0f);
         ImguiCore::setFont(ImguiCore::regularFont);
+
         ImguiCore::callback = this;
+        ImguiCore::camera = mCamera;
+        ImguiCore::scene = &mScene;
+
+        ImguiCore::shadowPipeline = mShadowPipeline;
+        ImguiCore::pbrPipeline = mPbrPipeline;
+        ImguiCore::uiPipeline = mUiPipeline;
+
         ImguiCore::screenRenderer = mScreenRenderer;
         ImguiCore::hdrRenderer = mHdrRenderer;
         ImguiCore::blurRenderer = mBlurRenderer;
         ImguiCore::bloomRenderer = mBloomRenderer;
         ImguiCore::ssaoRenderer = mSsaoRenderer;
-        ImguiCore::camera = mCamera;
-        ImguiCore::scene = &mScene;
-        ImguiCore::uiPipeline = mUiPipeline;
+        ImguiCore::fxaaRenderer = mFxaaRenderer;
     }
 
     void Application::initScene() {
@@ -341,6 +347,9 @@ namespace gl {
         mSsaoRenderer = new SsaoRenderer(mWidth, mHeight);
         mSsaoRenderer->isEnabled = true;
 
+        mFxaaRenderer = new FXAARenderer(mWidth, mHeight);
+        mFxaaRenderer->isEnabled = true;
+
         mShadowPipeline = new ShadowPipeline(&mScene, mWidth, mHeight, mCamera);
         mShadowPipeline->directShadow.filterSize = 9;
 
@@ -524,6 +533,7 @@ namespace gl {
         mBlurRenderer->resize(w, h);
         mBloomRenderer->resize(w, h);
         mSsaoRenderer->resize(w, h);
+        mFxaaRenderer->resize(w, h);
 
         mShadowPipeline->resize(w, h);
         mPbrPipeline->resize(w, h);
@@ -576,6 +586,9 @@ namespace gl {
         onFramebufferResized(w, h);
     }
 
+    void Application::resample(int samples) {
+    }
+
     void Application::onEntitySelected(Entity entity, double x, double y) {
         info("onEntitySelected: [{0}, {1}]", x, y);
         auto& selected = entity.getComponent<Selectable>()->enable;
@@ -610,6 +623,12 @@ namespace gl {
             mHdrRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().sceneBuffer;
             mHdrRenderer->render();
             mScreenRenderer->getParams().sceneBuffer = mHdrRenderer->getRenderTarget();
+        }
+        // FXAA effect
+        if (mFxaaRenderer->isEnabled) {
+            mFxaaRenderer->getParams().srcBuffer = mScreenRenderer->getParams().sceneBuffer;
+            mFxaaRenderer->render();
+            mScreenRenderer->getParams().sceneBuffer = mFxaaRenderer->getRenderTarget();
         }
         // Blur effect
         if (mBlurRenderer->isEnabled) {

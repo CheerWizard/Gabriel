@@ -49,6 +49,9 @@ namespace gl {
         void updateShinyStrength();
 
     private:
+        ColorAttachment initColor(int width, int height);
+
+    private:
         ImageBuffer mRenderTarget;
         FrameBuffer mFrame;
         HdrShader mShader;

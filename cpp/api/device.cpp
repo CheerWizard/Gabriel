@@ -44,6 +44,8 @@ namespace gl {
         glGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, &MAX_COMPUTE_SHADER_STORAGE_BLOCKS);
         glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &MAX_COMBINED_SHADER_STORAGE_BLOCKS);
 
+        glGetIntegerv(GL_MAX_SAMPLES, &MAX_SAMPLES);
+
         setPolygonOffset(1, 1);
     }
 

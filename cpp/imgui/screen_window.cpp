@@ -16,6 +16,7 @@ namespace gl {
             screenImage.windowFlags |= ImGuiWindowFlags_NoScrollbar;
             screenImage.windowFlags |= ImGuiWindowFlags_DockNodeHost;
             screenImage.show = true;
+            screenImage.resizeFramebuffer = true;
             ImGui::SetNextWindowDockID(ImguiCore::dockspaceId);
         }
         screenImage.render();

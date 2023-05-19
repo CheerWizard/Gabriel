@@ -20,7 +20,7 @@ namespace gl {
         }
 
         ImVec2 frameSize = ImGui::GetContentRegionAvail();
-        if (mCurrentFrameSize.x != frameSize.x || mCurrentFrameSize.y != frameSize.y) {
+        if (resizeFramebuffer && (mCurrentFrameSize.x != frameSize.x || mCurrentFrameSize.y != frameSize.y)) {
             ImguiCore::resize(frameSize.x, frameSize.y);
         }
         mCurrentFrameSize = frameSize;

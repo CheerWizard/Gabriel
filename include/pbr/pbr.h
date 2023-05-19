@@ -57,15 +57,13 @@ namespace gl {
     };
 
     struct PBR_ForwardRenderer final {
-        int samples = 1;
-
         DirectShadow* directShadow = null;
         PointShadow* pointShadow = null;
 
         PBR_ForwardRenderer(int width, int height);
         ~PBR_ForwardRenderer();
 
-        inline const ImageBuffer& getRenderTarget() const {
+        [[nodiscard]] inline const ImageBuffer& getRenderTarget() const {
             return mRenderTarget;
         }
 
@@ -73,13 +71,7 @@ namespace gl {
             return mShader;
         }
 
-        inline FrameBuffer& getCurrentFrame() {
-            return mCurrentFrame;
-        }
-
         void resize(int w, int h);
-
-        void setSamples(int samples);
 
         void readPixel(PBR_Pixel& pixel, int x, int y);
 
@@ -100,8 +92,6 @@ namespace gl {
         VertexArray mVao;
         Shader mShader;
         FrameBuffer mFrame;
-        FrameBuffer mMsaaFrame;
-        FrameBuffer mCurrentFrame;
     };
 
     struct PBR_GBuffer final {
@@ -116,13 +106,11 @@ namespace gl {
     };
 
     struct PBR_DeferredRenderer final {
-        int samples = 1;
-
         DirectShadow* directShadow = null;
         PointShadow* pointShadow = null;
 
         inline const ImageBuffer& getRenderTarget() const { return mRenderTarget; }
-        inline const PBR_GBuffer& getGBuffer() const { return mGbuffer; }
+        inline const PBR_GBuffer& getGBuffer() const { return mGBuffer; }
         inline FrameBuffer& getGeometryFbo() { return mGeometryFrame; }
         inline FrameBuffer& getLightFbo() { return mLightFrame; }
 
@@ -130,8 +118,6 @@ namespace gl {
         ~PBR_DeferredRenderer();
 
         void resize(int w, int h);
-
-        void setSamples(int samples);
 
         void readPixel(PBR_Pixel& pixel, int x, int y);
 
@@ -146,14 +132,12 @@ namespace gl {
 
     private:
         ImageBuffer mRenderTarget;
-        PBR_GBuffer mGbuffer;
+        PBR_GBuffer mGBuffer;
         DrawableQuad mDrawable;
-        Shader mGeometryShader;
         FrameBuffer mGeometryFrame;
-        FrameBuffer mGeometryMsaaFrame;
-        FrameBuffer mCurrentGeometryFrame;
-        Shader mLightShader;
+        Shader mGeometryShader;
         FrameBuffer mLightFrame;
+        Shader mLightShader;
         SsaoRenderer* mSsaoRenderer;
     };
 
@@ -178,11 +162,11 @@ namespace gl {
             return mPbrForwardRenderer->getRenderTarget();
         }
 
-        inline const PBR_GBuffer& getGBuffer() const {
+        [[nodiscard]] inline const PBR_GBuffer& getGBuffer() const {
             return mPbrDeferredRenderer->getGBuffer();
         }
 
-        inline const TransparentBuffer& getTransparentBuffer() const {
+        [[nodiscard]] inline const TransparentBuffer& getTransparentBuffer() const {
             return mTransparentRenderer->getTransparentBuffer();
         }
 
@@ -197,8 +181,6 @@ namespace gl {
         }
 
         void setEnvironment(Environment* environment);
-
-        void setSamples(int samples);
 
         void generateEnv();
 

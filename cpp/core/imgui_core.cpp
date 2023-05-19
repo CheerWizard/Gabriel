@@ -26,8 +26,12 @@ namespace gl {
     BlurRenderer* ImguiCore::blurRenderer = null;
     BloomRenderer* ImguiCore::bloomRenderer = null;
     SsaoRenderer* ImguiCore::ssaoRenderer = null;
+    FXAARenderer* ImguiCore::fxaaRenderer = null;
 
+    ShadowPipeline* ImguiCore::shadowPipeline = null;
+    PBR_Pipeline* ImguiCore::pbrPipeline = null;
     UI_Pipeline* ImguiCore::uiPipeline = null;
+
     Camera* ImguiCore::camera = null;
     Scene* ImguiCore::scene = null;
     Environment* ImguiCore::environment = null;
@@ -82,6 +86,11 @@ namespace gl {
         window->resizeFrame(w, h);
         if (callback)
             callback->resize(w, h);
+    }
+
+    void ImguiCore::resample(int samples) {
+        if (callback)
+            callback->resample(samples);
     }
 
     void ImguiCore::addRegularFont(const char* filepath, float size) {

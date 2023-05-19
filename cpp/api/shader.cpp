@@ -81,6 +81,7 @@ namespace gl {
         std::filesystem::create_directory("generated/shaders/features/shadow");
         std::filesystem::create_directory("generated/shaders/pbr");
         std::filesystem::create_directory("generated/shaders/text");
+        std::filesystem::create_directory("generated/shaders/postfx");
         FileWriter::write(generatedFilepath.c_str(), src);
 #endif
 

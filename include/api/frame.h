@@ -105,6 +105,8 @@ namespace gl {
 
         void resize(int w, int h);
 
+        void resample(int samples);
+
         template<typename T>
         void readPixel(T& pixel, int attachment_index, int x, int y);
 

@@ -14,12 +14,15 @@
 #include <postfx/blur.h>
 #include <postfx/bloom.h>
 #include <postfx/ssao.h>
+#include <postfx/fxaa.h>
 
 #include <text/text.h>
 
 #include <ui/ui.h>
 
 #include <features/lighting/environment.h>
+
+#include <pbr/pbr.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -30,6 +33,7 @@ namespace gl {
 
     struct ImguiCoreCallback {
         virtual void resize(int w, int h) = 0;
+        virtual void resample(int samples) = 0;
     };
 
     struct ImguiCore final {
@@ -53,7 +57,10 @@ namespace gl {
         static BlurRenderer* blurRenderer;
         static BloomRenderer* bloomRenderer;
         static SsaoRenderer* ssaoRenderer;
+        static FXAARenderer* fxaaRenderer;
 
+        static ShadowPipeline* shadowPipeline;
+        static PBR_Pipeline* pbrPipeline;
         static UI_Pipeline* uiPipeline;
 
         static void init(Window *window, const char *shaderLangVersion = "#version 460 core");
@@ -65,6 +72,8 @@ namespace gl {
         static void end();
 
         static void resize(int w, int h);
+
+        static void resample(int samples);
 
         static void addRegularFont(const char* filepath, float size);
 

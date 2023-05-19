@@ -167,6 +167,29 @@ namespace gl {
         }
     }
 
+    void FrameBuffer::resample(int samples) {
+        u32 type = samples > 1 ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+        bind();
+
+        int color_size = colors.size();
+        for (int i = 0 ; i < color_size ; i++) {
+            auto& color = colors[i];
+            color.buffer.type = type;
+            color.image.samples = samples;
+            color.free();
+            color.init();
+        }
+
+        if (rbo.id != 0) {
+            rbo.samples = samples;
+            rbo.free();
+            rbo.init();
+        }
+
+        attachColors();
+        attachRenderBuffer();
+    }
+
     void ColorAttachment::init() {
         buffer.init();
         buffer.bind();

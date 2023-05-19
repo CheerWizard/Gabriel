@@ -58,6 +58,29 @@ namespace gl {
                     ImguiCore::screenRenderer->updateGamma();
                 }
 
+                if (ImGui::CollapsingHeader("Anti-Aliasing")) {
+                    auto* fxaaRenderer = ImguiCore::fxaaRenderer;
+                    if (fxaaRenderer) {
+                        ImGui::SeparatorText("FXAA");
+
+                        ImGui::PushID("##fxaa_enable");
+                        ImguiCore::Checkbox("Enable", fxaaRenderer->isEnabled);
+                        ImGui::PopID();
+
+                        ImGui::PushID("##fxaa_span_max");
+                        ImGui::SliderFloat("Span Max", &fxaaRenderer->getParams().spanMax.value, 0, 16);
+                        ImGui::PopID();
+
+                        ImGui::PushID("##fxaa_reduce_min");
+                        ImGui::SliderFloat("Reduce Min", &fxaaRenderer->getParams().reduceMin.value, 0, 1);
+                        ImGui::PopID();
+
+                        ImGui::PushID("##fxaa_reduce_mul");
+                        ImGui::SliderFloat("Reduce Mul", &fxaaRenderer->getParams().reduceMul.value, 0, 1);
+                        ImGui::PopID();
+                    }
+                }
+
                 ImGui::EndTabItem();
             }
 

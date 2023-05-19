@@ -83,18 +83,18 @@ namespace gl {
     }
 
     void BloomRenderer::initMixColor() {
+        // data
+        mMixColor.image.width = mResolution.x;
+        mMixColor.image.height = mResolution.y;
+        mMixColor.image.internalFormat = GL_RGB16F;
+        mMixColor.image.pixelFormat = GL_RGB;
+        mMixColor.image.pixelType = PixelType::FLOAT;
         // filter
         mMixColor.params.s = GL_CLAMP_TO_EDGE;
         mMixColor.params.t = GL_CLAMP_TO_EDGE;
         mMixColor.params.r = GL_CLAMP_TO_EDGE;
         mMixColor.params.minFilter = GL_LINEAR;
         mMixColor.params.magFilter = GL_LINEAR;
-        // data
-        mMixColor.image.internalFormat = GL_RGB16F;
-        mMixColor.image.pixelFormat = GL_RGB;
-        mMixColor.image.pixelType = PixelType::FLOAT;
-        mMixColor.image.width = mResolution.x;
-        mMixColor.image.height = mResolution.y;
 
         mMixColor.init();
     }

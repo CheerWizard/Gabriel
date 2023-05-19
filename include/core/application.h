@@ -64,6 +64,7 @@ namespace gl {
         void onMouseScroll(double x, double y);
 
         void resize(int w, int h) override;
+        void resample(int samples) override;
 
     private:
         void initLogger();
@@ -128,6 +129,7 @@ namespace gl {
         BloomRenderer* mBloomRenderer;
         BlurRenderer* mBlurRenderer;
         SsaoRenderer* mSsaoRenderer;
+        FXAARenderer* mFxaaRenderer;
 
         Animator mHumanAnimator;
         SkeletalModel mHumanModel;

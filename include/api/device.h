@@ -19,6 +19,7 @@ namespace gl {
         int MAX_TESS_EVALUATION_SHADER_STORAGE_BLOCKS;
         int MAX_COMPUTE_SHADER_STORAGE_BLOCKS;
         int MAX_COMBINED_SHADER_STORAGE_BLOCKS;
+        int MAX_SAMPLES;
 
         Device(int width, int height);
         ~Device();

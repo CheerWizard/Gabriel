@@ -1,6 +1,8 @@
 #version 460 core
 
-out vec3 out_color;
+#include core.glsl
+
+layout(location = 0) out vec3 outColor;
 
 in vec2 l_uv;
 
@@ -21,5 +23,5 @@ void main()
     vec3 shiny_color = texture(shiny, vec2(l_uv.x, 1.0f - l_uv.y)).rgb;
     color = mix(color, shiny_color, color * vec3(shiny_strength / 100.0f));
 
-    out_color = color;
+    outColor = color;
 }

@@ -6,13 +6,53 @@
 
 namespace gl {
 
-    static ImageWindow hdrImage = { "HDR Preview", InvalidImageBuffer };
-    static ImageWindow blurImage = { "Blur Preview", InvalidImageBuffer };
-    static ImageWindow bloomImage = { "Bloom Preview", InvalidImageBuffer };
-    static ImageWindow ssaoImage = { "SSAO Preview", InvalidImageBuffer };
-    static ImageWindow uiImage = { "UI Preview", InvalidImageBuffer };
+    static ImageWindow positionsImage = { "Positions", InvalidImageBuffer };
+    static ImageWindow normalsImage = { "Normals", InvalidImageBuffer };
+    static ImageWindow albedosImage = { "Albedos", InvalidImageBuffer };
+    static ImageWindow pbrParamsImage = { "PBR", InvalidImageBuffer };
+    static ImageWindow emissionImage = { "Emission", InvalidImageBuffer };
+
+    static ImageWindow pcfDirectShadowImage = { "PCF Direct Shadow", InvalidImageBuffer };
+
+    static ImageWindow hdrImage = { "HDR", InvalidImageBuffer };
+    static ImageWindow blurImage = { "Blur", InvalidImageBuffer };
+    static ImageWindow bloomImage = { "Bloom", InvalidImageBuffer };
+    static ImageWindow ssaoImage = { "SSAO", InvalidImageBuffer };
+    static ImageWindow fxaaImage = { "FXAA", InvalidImageBuffer };
+
+    static ImageWindow uiImage = { "UI", InvalidImageBuffer };
 
     void Viewports::render() {
+        if (positionsImage.show) {
+            positionsImage.imageBuffer = ImguiCore::pbrPipeline->getGBuffer().position;
+            positionsImage.render();
+        }
+
+        if (normalsImage.show) {
+            normalsImage.imageBuffer = ImguiCore::pbrPipeline->getGBuffer().normal;
+            normalsImage.render();
+        }
+
+        if (albedosImage.show) {
+            albedosImage.imageBuffer = ImguiCore::pbrPipeline->getGBuffer().albedo;
+            albedosImage.render();
+        }
+
+        if (pbrParamsImage.show) {
+            pbrParamsImage.imageBuffer = ImguiCore::pbrPipeline->getGBuffer().pbrParams;
+            pbrParamsImage.render();
+        }
+
+        if (emissionImage.show) {
+            emissionImage.imageBuffer = ImguiCore::pbrPipeline->getGBuffer().emission;
+            emissionImage.render();
+        }
+
+        if (pcfDirectShadowImage.show) {
+            pcfDirectShadowImage.imageBuffer = ImguiCore::shadowPipeline->directShadow.map.buffer;
+            pcfDirectShadowImage.render();
+        }
+
         if (hdrImage.show) {
             hdrImage.imageBuffer = ImguiCore::hdrRenderer->getRenderTarget();
             hdrImage.render();
@@ -33,6 +73,11 @@ namespace gl {
             ssaoImage.render();
         }
 
+        if (fxaaImage.show) {
+            fxaaImage.imageBuffer = ImguiCore::fxaaRenderer->getRenderTarget();
+            fxaaImage.render();
+        }
+
         if (uiImage.show) {
             uiImage.imageBuffer = ImguiCore::uiPipeline->getRenderTarget();
             uiImage.render();
@@ -41,11 +86,22 @@ namespace gl {
 
     void ViewportsMenu::render() {
         if (ImGui::BeginMenu("Viewports")) {
+            ImGui::MenuItem(positionsImage.title, null, &positionsImage.show);
+            ImGui::MenuItem(normalsImage.title, null, &normalsImage.show);
+            ImGui::MenuItem(albedosImage.title, null, &albedosImage.show);
+            ImGui::MenuItem(pbrParamsImage.title, null, &pbrParamsImage.show);
+            ImGui::MenuItem(emissionImage.title, null, &emissionImage.show);
+
+            ImGui::MenuItem(pcfDirectShadowImage.title, null, &pcfDirectShadowImage.show);
+
             ImGui::MenuItem(hdrImage.title, null, &hdrImage.show);
             ImGui::MenuItem(blurImage.title, null, &blurImage.show);
             ImGui::MenuItem(bloomImage.title, null, &bloomImage.show);
             ImGui::MenuItem(ssaoImage.title, null, &ssaoImage.show);
+            ImGui::MenuItem(fxaaImage.title, null, &fxaaImage.show);
+
             ImGui::MenuItem(uiImage.title, null, &uiImage.show);
+
             ImGui::EndMenu();
         }
     }

@@ -1,31 +1,22 @@
-#include <postfx/hdr.h>
+#include <postfx/fxaa.h>
 
 namespace gl {
 
-    void HdrShader::init() {
+    void FXAAShader::init() {
         addVertexStage("shaders/fullscreen_quad.vert");
-        addFragmentStage("shaders/hdr.frag");
+        addFragmentStage("shaders/postfx/fxaa.frag");
         complete();
-        updateExposure();
-        updateShinyStrength();
     }
 
-    void HdrShader::update() {
-        bindSampler(params.sceneSampler, params.sceneBuffer);
-        bindSampler(params.shinySampler, params.shinyBuffer);
+    void FXAAShader::update() {
+        params.srcBuffer.bindActivate(0);
+        setUniform(params.inverseFilterSize);
+        setUniform(params.spanMax);
+        setUniform(params.reduceMin);
+        setUniform(params.reduceMul);
     }
 
-    void HdrShader::updateExposure() {
-        use();
-        setUniform(params.exposure);
-    }
-
-    void HdrShader::updateShinyStrength() {
-        use();
-        setUniform(params.shinyStrength);
-    }
-
-    HdrRenderer::HdrRenderer(int width, int height) {
+    FXAARenderer::FXAARenderer(int width, int height) {
         mShader.init();
         mDrawable.init();
 
@@ -35,20 +26,30 @@ namespace gl {
         mFrame.complete();
 
         mRenderTarget = mFrame.colors[0].buffer;
+
+        mShader.params.inverseFilterSize.value = {
+                1.0f / static_cast<float>(width),
+                1.0f / static_cast<float>(height),
+                0.0f
+        };
     }
 
-    HdrRenderer::~HdrRenderer() {
+    FXAARenderer::~FXAARenderer() {
         mDrawable.free();
         mShader.free();
         mFrame.free();
-        mShader.params.shinyBuffer.free();
     }
 
-    void HdrRenderer::resize(int w, int h) {
-        mFrame.resize(w, h);
+    void FXAARenderer::resize(int width, int height) {
+        mFrame.resize(width, height);
+        mShader.params.inverseFilterSize.value = {
+                1.0f / static_cast<float>(width),
+                1.0f / static_cast<float>(height),
+                0.0f
+        };
     }
 
-    void HdrRenderer::render() {
+    void FXAARenderer::render() {
         mFrame.bind();
         clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
@@ -58,15 +59,7 @@ namespace gl {
         mDrawable.draw();
     }
 
-    void HdrRenderer::updateExposure() {
-        mShader.updateExposure();
-    }
-
-    void HdrRenderer::updateShinyStrength() {
-        mShader.updateShinyStrength();
-    }
-
-    ColorAttachment HdrRenderer::initColor(int width, int height) {
+    ColorAttachment FXAARenderer::initColor(int width, int height) {
         ColorAttachment color;
 
         // data
