@@ -96,7 +96,7 @@ spdlog | https://github.com/gabime/spdlog
   - [x] FXAA (Fast Approximate Anti-Aliasing)    
   - [x] SSAO (Screen Space Ambient Occlusion) 
 
-## Features Gallery
+## Gallery
 
 ### PBR and IBL
 ![Знімок екрана (39)](https://github.com/CheerWizard/Gabriel/assets/37471793/d294cd7a-2551-439e-98b7-b0b7b96f2b79)
