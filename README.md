@@ -96,6 +96,13 @@ spdlog | https://github.com/gabime/spdlog
   - [x] FXAA (Fast Approximate Anti-Aliasing)    
   - [x] SSAO (Screen Space Ambient Occlusion) 
 
+#### Transparency
+  - [x] Sorted Scene
+  - [x] Weighted Blended
+
+#### Animations
+  - [x] 3D Skeletal
+
 ## Gallery
 
 ### PBR and IBL
