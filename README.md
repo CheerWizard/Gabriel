@@ -103,6 +103,19 @@ spdlog | https://github.com/gabime/spdlog
 #### Animations
   - [x] 3D Skeletal
 
+#### UI
+  - [x] Text 2D
+  - [x] Text 3D
+
+#### ImGui
+  - [x] Debug windows
+  - [x] Screen window
+  - [x] Entity panel
+  - [x] Component panel
+  - [x] Camera tab
+  - [x] PostFX tab
+  - [x] Monitor tab    
+
 ## Gallery
 
 ### PBR and IBL
