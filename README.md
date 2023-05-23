@@ -115,6 +115,12 @@ spdlog | https://github.com/gabime/spdlog
   - [x] Camera tab
   - [x] PostFX tab
   - [x] Monitor tab    
+  - [x] Custom title bar with icon and menus
+  - [x] Gizmo for translating, rotating, scaling 3D objects
+  - [x] Viewports
+  - [x] Transform tab for updating gizmo modes
+  - [x] Play, Pause, Sync buttons
+  - [x] Fullscreen viewport button
 
 ## Gallery
 
