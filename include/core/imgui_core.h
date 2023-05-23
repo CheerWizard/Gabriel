@@ -4,6 +4,8 @@
 
 #include <api/image.h>
 
+#include <debugging/visuals.h>
+
 #include <features/screen.h>
 #include <features/transform.h>
 #include <features/lighting/light_color.h>
@@ -24,14 +26,21 @@
 
 #include <pbr/pbr.h>
 
+#include <imgui/codicons.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <ImGuizmo.h>
 
 #define IMGUI_ID(...) ImguiCore::ID({__VA_ARGS__}).c_str()
 
 namespace gl {
 
     struct ImguiCoreCallback {
+        bool enablePolygonMode = false;
+        PolygonFace polygonFace = PolygonFace::FRONT;
+        PolygonType polygonType = PolygonType::LINE;
+
         virtual void resize(int w, int h) = 0;
         virtual void resample(int samples) = 0;
     };
@@ -45,6 +54,7 @@ namespace gl {
         static ImFont* regularFont;
         static ImFont* boldFont;
         static ImguiCoreCallback* callback;
+        static bool frameBufferResized;
 
         static Window* window;
         static Camera* camera;
@@ -59,13 +69,18 @@ namespace gl {
         static SsaoRenderer* ssaoRenderer;
         static FXAARenderer* fxaaRenderer;
 
+        static TransparentRenderer* transparentRenderer;
+
         static ShadowPipeline* shadowPipeline;
         static PBR_Pipeline* pbrPipeline;
         static UI_Pipeline* uiPipeline;
+        static VisualsPipeline* visualsPipeline;
 
         static void init(Window *window, const char *shaderLangVersion = "#version 460 core");
 
         static void free();
+
+        static void setDarkTheme();
 
         static void begin();
 
@@ -79,11 +94,17 @@ namespace gl {
 
         static void addBoldFont(const char* filepath, float size);
 
+        static void addIconFont(const char* filepath, float size);
+
         static void setFont(ImFont* font);
 
         static void setIniFilename(const char *iniFilename);
 
         static std::string ID(const std::vector<const char *> &str);
+
+        static void selectEntity(const Entity& entity);
+
+        static void unselectEntity();
 
         static bool Checkbox(const char *label, bool &v, const char *fmt = "%s");
 
@@ -157,6 +178,16 @@ namespace gl {
         static bool InputText(std::string& text);
 
         static void DrawFontStyle(Style& style);
+
+        static bool IconRadioButton(const char* id, const char* icon, bool& checked);
+
+        static bool IconButton(const char* id, const char* icon);
+
+        static void Spacing(float width, float height);
+
+        static void FullscreenMode();
+
+        static void WindowMode();
 
     };
 

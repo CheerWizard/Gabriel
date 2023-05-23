@@ -1,5 +1,9 @@
 #include <control/camera.h>
 
+#ifdef IMGUI
+#include <imgui.h>
+#endif
+
 namespace gl {
 
     Camera::Camera(const u32 binding, Window* window) : mWindow(window) {
@@ -11,7 +15,7 @@ namespace gl {
         mUbo.free();
     }
 
-    void Camera::look(const double x, const double y, const float dt) {
+    void Camera::onMouseCursor(const double x, const double y, const float dt) {
         if (!enableLook || !mWindow->isMousePress(GLFW_MOUSE_BUTTON_RIGHT)) {
             mWindow->setCursorMode(CursorMode::NORMAL);
             return;
@@ -41,7 +45,44 @@ namespace gl {
         }
     }
 
-    void Camera::zoom(const double y, const float dt) {
+    void Camera::onMouseCursorImgui(const float dt) {
+#ifdef IMGUI
+
+        if (!enableLook || !ImGui::IsMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
+            mWindow->setCursorMode(CursorMode::NORMAL);
+            return;
+        }
+
+        float x = ImGui::GetCursorPosX();
+        float y = ImGui::GetCursorPosY();
+
+        mWindow->setCursorMode(CursorMode::DISABLED);
+        float fx = x;
+        float fy = y;
+
+        if (mFirstCameraLook) {
+            mLastCursorX = fx;
+            mLastCursorY = fy;
+            mFirstCameraLook = false;
+        }
+
+        float xoffset = fx - mLastCursorX;
+        float yoffset = mLastCursorY - fy;
+        mLastCursorX = fx;
+        mLastCursorY = fy;
+
+        if (xoffset != 0 || yoffset != 0) {
+            float pitchDt = yoffset * verticalSensitivity * 0.01f / dt;
+            float yawDt = xoffset * horizontalSensitivity * 0.01f / dt;
+            glm::vec3 right = glm::cross(front, up);
+            glm::quat q = glm::normalize(glm::cross(glm::angleAxis(pitchDt, right), glm::angleAxis(-yawDt, up)));
+            front = glm::rotate(q, front);
+        }
+
+#endif
+    }
+
+    void Camera::onMouseScroll(const double y, const float dt) {
         if (!enableZoom) return;
 
         mZoomedFOV -= (float) y * zoomSpeed / dt;
@@ -84,29 +125,62 @@ namespace gl {
         mUbo.update(sizeof(glm::mat4) * 2, sizeof(glm::vec4), glm::value_ptr(position));
     }
 
-    void Camera::move(Window* window, float dt) {
+    void Camera::onKeyPress(const KEY key, const float dt) {
         if (!enableMove) return;
 
         float distance = moveSpeed / dt;
 
-        if (window->isKeyPress(keyMoveForward)) {
+        if (key == keyMoveForward) {
             position += distance * front;
         }
 
-        else if (window->isKeyPress(keyMoveLeft)) {
+        else if (key == keyMoveLeft) {
             position -= glm::normalize(glm::cross(front, up)) * distance;
         }
 
-        else if (window->isKeyPress(keyMoveBackward)) {
+        else if (key == keyMoveBackward) {
             position -= distance * front;
         }
 
-        else if (window->isKeyPress(keyMoveRight)) {
+        else if (key == keyMoveRight) {
             position += glm::normalize(glm::cross(front, up)) * distance;
         }
 
+        else return;
+
         updateView();
         updatePosition();
+    }
+
+    void Camera::onKeyPressImgui(const float dt) {
+#ifdef IMGUI
+
+        if (!enableMove) return;
+
+        float distance = moveSpeed / dt;
+
+        if (ImGui::IsKeyDown(static_cast<ImGuiKey>(keyMoveForward))) {
+            position += distance * front;
+        }
+
+        else if (ImGui::IsKeyDown(static_cast<ImGuiKey>(keyMoveLeft))) {
+            position -= glm::normalize(glm::cross(front, up)) * distance;
+        }
+
+        else if (ImGui::IsKeyDown(static_cast<ImGuiKey>(keyMoveBackward))) {
+            position -= distance * front;
+        }
+
+        else if (ImGui::IsKeyDown(static_cast<ImGuiKey>(keyMoveRight))) {
+            position += glm::normalize(glm::cross(front, up)) * distance;
+        }
+
+        else return;
+
+        updateView();
+        updatePosition();
+
+#endif
     }
 
     RayCollider Camera::shootRay(const double x, const double y) {

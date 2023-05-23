@@ -10,12 +10,8 @@ namespace gl {
     }
 
     void ScreenShader::update() {
-        bindSampler(params.sceneSampler, params.sceneBuffer);
-        bindSampler(params.raytraceSampler, params.raytraceBuffer);
-#ifdef IMGUI
-        bindSampler(params.uiSampler, params.uiBuffer);
-        bindSampler(params.visualsSampler, params.visualsBuffer);
-#endif
+        params.buffer.bindActivate(0);
+        setUniform(params.gamma);
     }
 
     void ScreenShader::updateGamma() {
@@ -80,7 +76,8 @@ namespace gl {
     }
 
     void ScreenRenderer::renderInternal() {
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         mShader.use();
         mShader.update();
         mDrawable.draw();

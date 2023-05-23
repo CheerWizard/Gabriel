@@ -11,7 +11,7 @@ namespace gl {
 
         ~SkeletalRenderer();
 
-        void begin();
+        void use();
 
         void updateBones(std::vector<glm::mat4>& bones);
 

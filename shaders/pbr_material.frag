@@ -70,7 +70,7 @@ void main()
     if (material.enable_albedo) {
         albedo *= texture(material.albedo, UV);
     }
-    // tone mapping
+    // gamma correction
     albedo = vec4(pow(albedo.rgb, vec3(2.2)), albedo.a);
 
     // metal mapping

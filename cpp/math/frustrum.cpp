@@ -51,9 +51,8 @@ namespace gl {
 //        printVec4("FarBottomRight", farBottomRight);
     }
 
-    Frustum& Frustum::toWorldSpace(const ViewMat& viewMat) {
-        glm::mat4 m = viewMat.init();
-        return *this * glm::inverse(m);
+    Frustum& Frustum::toWorldSpace(ViewMat& viewMat) {
+        return *this * glm::inverse(viewMat.init());
     }
 
 }

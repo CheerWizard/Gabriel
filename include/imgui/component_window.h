@@ -21,13 +21,13 @@ namespace gl {
         template<typename T>
         static void displayAddComponent(const char* name);
 
-        static void renderVisualComponents();
-
         static void renderLightComponents();
 
         static void renderTextComponents();
 
         static void renderMaterialComponents();
+
+        static void renderOutlineComponent();
 
     private:
         static Entity sEntity;

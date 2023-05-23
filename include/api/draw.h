@@ -2,7 +2,6 @@
 
 #include <api/buffers.h>
 #include <api/shader.h>
-#include <api/commands.h>
 
 namespace gl {
 

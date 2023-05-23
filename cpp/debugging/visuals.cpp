@@ -43,8 +43,6 @@ namespace gl {
 
     void VisualsPipeline::render() {
         mFrame.bind();
-        glEnable(GL_DEPTH_TEST);
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // render visual polygons
         mPolygonVisualRenderer->begin();
@@ -74,8 +72,11 @@ namespace gl {
         scene->eachComponent<LightVisual>([this](LightVisual* lightVisual) {
             mLightVisualRenderer->render(*lightVisual);
         });
+    }
 
-        glDisable(GL_DEPTH_TEST);
+    void VisualsPipeline::blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const {
+        FrameBuffer::blit(srcColorFrame, w, h, mFrame.id, w, h, 1, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::blit(srcDepthFrame, w, h, mFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
     }
 
 }

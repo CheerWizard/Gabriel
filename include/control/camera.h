@@ -44,9 +44,14 @@ namespace gl {
         Camera(const u32 binding, Window* window);
         ~Camera();
 
-        void look(const double x, const double y, const float dt);
-        void zoom(const double y, const float dt);
-        void move(Window* window, const float dt);
+        void onMouseCursor(const double x, const double y, const float dt);
+        void onMouseCursorImgui(const float dt);
+
+        void onMouseScroll(const double y, const float dt);
+
+        void onKeyPress(const KEY key, const float dt);
+        void onKeyPressImgui(const float dt);
+
 
         void resize();
 

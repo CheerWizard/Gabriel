@@ -24,12 +24,16 @@ namespace gl {
 
         void render();
 
-    private:
+        void begin();
         void end();
+        void draw();
 
     private:
         bool mInitialized = false;
         ImVec2 mCurrentFrameSize = { 800, 600 };
+        bool mHovered = false;
+        float mScrollX;
+        float mScrollY;
     };
 
 }

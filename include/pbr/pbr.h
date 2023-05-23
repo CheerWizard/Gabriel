@@ -21,16 +21,6 @@ namespace gl {
         EntityID entityId = InvalidEntity;
     };
 
-    component(PBR_Component_Forward) {};
-    component(PBR_Component_Deferred) {};
-    component(PBR_Component_ForwardCull) {};
-    component(PBR_Component_DeferredCull) {};
-
-    component(PBR_SkeletalComponent_Forward) {};
-    component(PBR_SkeletalComponent_Deferred) {};
-    component(PBR_SkeletalComponent_ForwardCull) {};
-    component(PBR_SkeletalComponent_DeferredCull) {};
-
     struct PBR_Entity : Entity {
 
         PBR_Entity() : Entity() {}
@@ -71,21 +61,27 @@ namespace gl {
             return mShader;
         }
 
+        [[nodiscard]] inline const FrameBuffer& getColorFrame() const {
+            return mFrame;
+        }
+
+        [[nodiscard]] inline const FrameBuffer& getDepthFrame() const {
+            return mFrame;
+        }
+
         void resize(int w, int h);
 
         void readPixel(PBR_Pixel& pixel, int x, int y);
 
         void bind();
-        void unbind();
 
-        void begin();
+        void use();
 
         void render(Transform& transform, DrawableElements& drawable, Material& material);
-        void render(Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& lightSpace);
 
         void update(Environment* env);
 
-        void blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame);
+        void blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const;
 
     private:
         ImageBuffer mRenderTarget;
@@ -109,10 +105,10 @@ namespace gl {
         DirectShadow* directShadow = null;
         PointShadow* pointShadow = null;
 
-        inline const ImageBuffer& getRenderTarget() const { return mRenderTarget; }
-        inline const PBR_GBuffer& getGBuffer() const { return mGBuffer; }
-        inline FrameBuffer& getGeometryFbo() { return mGeometryFrame; }
-        inline FrameBuffer& getLightFbo() { return mLightFrame; }
+        [[nodiscard]] inline const ImageBuffer& getRenderTarget() const { return mRenderTarget; }
+        [[nodiscard]] inline const PBR_GBuffer& getGBuffer() const { return mGBuffer; }
+        [[nodiscard]] inline const FrameBuffer& getColorFrame() const { return mLightFrame; }
+        [[nodiscard]] inline const FrameBuffer& getDepthFrame() const { return mGeometryFrame; }
 
         PBR_DeferredRenderer(int w, int h, SsaoRenderer* ssaoRenderer);
         ~PBR_DeferredRenderer();
@@ -124,11 +120,13 @@ namespace gl {
         void bind();
         void unbind();
 
-        void begin();
+        void use();
 
         void render(Transform& transform, DrawableElements& drawable, Material& material);
 
         void update(Environment* env);
+
+        void blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const;
 
     private:
         ImageBuffer mRenderTarget;
@@ -155,10 +153,10 @@ namespace gl {
         Scene* scene;
         Terrain* terrain = null;
 
-        PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer);
+        PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer, TransparentRenderer* transparentRenderer);
         ~PBR_Pipeline();
 
-        inline const ImageBuffer& getRenderTarget() const {
+        [[nodiscard]] inline const ImageBuffer& getRenderTarget() const {
             return mPbrForwardRenderer->getRenderTarget();
         }
 
@@ -166,8 +164,12 @@ namespace gl {
             return mPbrDeferredRenderer->getGBuffer();
         }
 
-        [[nodiscard]] inline const TransparentBuffer& getTransparentBuffer() const {
-            return mTransparentRenderer->getTransparentBuffer();
+        [[nodiscard]] inline const FrameBuffer& getColorFrame() const {
+            return mPbrForwardRenderer->getColorFrame();
+        }
+
+        [[nodiscard]] inline const FrameBuffer& getDepthFrame() const {
+            return mPbrForwardRenderer->getDepthFrame();
         }
 
         inline void setDirectShadow(DirectShadow* directShadow) {
@@ -191,9 +193,8 @@ namespace gl {
         void render();
 
     private:
+        void renderTransparent();
         void renderForward();
-        void renderForwardDefault();
-        void renderForwardCulling();
         void renderDeferred();
 
     private:

@@ -2,6 +2,9 @@
 
 namespace gl {
 
+    PolygonFace PolygonVisualRenderer::polygonFace = PolygonFace::FRONT;
+    PolygonType PolygonVisualRenderer::polygonType = PolygonType::LINE;
+
     PolygonVisualRenderer::PolygonVisualRenderer() {
         mShader.addVertexStage("shaders/polygon_visual.vert");
         mShader.addFragmentStage("shaders/polygon_visual.frag");
@@ -13,12 +16,12 @@ namespace gl {
     }
 
     void PolygonVisualRenderer::begin() {
-        polygonLine();
+        PolygonMode::set(polygonFace, polygonType);
         mShader.use();
     }
 
     void PolygonVisualRenderer::end() {
-        polygonFill();
+        PolygonMode::set(PolygonFace::FRONT, PolygonType::FILL);
     }
 
     void PolygonVisualRenderer::render(PolygonVisual& polygonVisual, Transform& transform, DrawableElements& drawable) {

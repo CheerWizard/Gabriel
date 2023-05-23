@@ -8,4 +8,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 #define STR(s1, s2) s1 ## s2
-#define COLOR_CLEAR 0, 0, 0, 0
+
+constexpr glm::vec4 COLOR_CLEAR = { 0, 0, 0, 0 };
+constexpr glm::vec4 COLOR_ZERO = { 0, 0, 0, 0 };
+constexpr glm::vec4 COLOR_ONE = { 1, 1, 1, 1 };

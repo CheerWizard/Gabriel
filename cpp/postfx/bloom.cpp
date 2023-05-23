@@ -152,7 +152,7 @@ namespace gl {
 
     void BloomRenderer::render() {
         mFrame.bind();
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
         renderDownsample();
         renderUpsample();
         renderMix();
@@ -217,7 +217,7 @@ namespace gl {
     void BloomRenderer::renderMix() {
         mMixColor.attach();
         glViewport(0, 0, mResolution.x, mResolution.y);
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         mMixShader.use();
         mMixShader.update();

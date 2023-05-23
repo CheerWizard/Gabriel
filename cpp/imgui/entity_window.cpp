@@ -39,12 +39,12 @@ namespace gl {
             }
 
             if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
-                ImguiCore::selectedEntity = {};
+                ImguiCore::unselectEntity();
 
             // Right-click on blank space
             if (ImGui::BeginPopupContextWindow("EntityPopupMenu")) {
                 if (ImGui::MenuItem("Create Entity"))
-                    ImguiCore::selectedEntity = Entity(scene);
+                    ImguiCore::selectEntity(Entity(scene));
 
                 ImGui::EndPopup();
             }
@@ -70,7 +70,7 @@ namespace gl {
 
         ImGui::TreeNodeEx((void*)(uint64_t)id, flags, "%s", tag.c_str());
         if (ImGui::IsItemClicked()) {
-            ImguiCore::selectedEntity = entity;
+            ImguiCore::selectEntity(entity);
         }
 
         bool entityDeleted = false;
@@ -83,7 +83,7 @@ namespace gl {
 
         if (entityDeleted) {
             if (ImguiCore::selectedEntity == entity) {
-                ImguiCore::selectedEntity = {};
+                ImguiCore::unselectEntity();
             }
             entity.free();
         }

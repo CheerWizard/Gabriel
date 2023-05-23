@@ -49,7 +49,7 @@ namespace gl {
 
     void BlurRenderer::render() {
         mFrame.bind();
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         mShader.use();
         mShader.update();

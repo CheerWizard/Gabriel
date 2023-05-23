@@ -86,17 +86,11 @@ namespace gl {
 
     void PBR_ForwardRenderer::bind() {
         mFrame.bind();
-        glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);
-        glDisable(GL_BLEND);
     }
 
-    void PBR_ForwardRenderer::unbind() {
-//        compose_transparency();
-    }
-
-    void PBR_ForwardRenderer::begin() {
+    void PBR_ForwardRenderer::use() {
         mShader.use();
     }
 
@@ -115,16 +109,12 @@ namespace gl {
             mShader.setUniformArgs("shadow_filter_size", directShadow->filterSize);
         }
 
-        mShader.bindSampler("point_shadow_sampler", 1, pointShadow->map.buffer);
-        mShader.setUniformArgs("far_plane", pointShadow->zFar);
+//        mShader.bindSampler("point_shadow_sampler", 1, pointShadow->map.buffer);
+//        mShader.setUniformArgs("far_plane", pointShadow->zFar);
 
         transform.update(mShader);
         material.update(mShader, 0);
         drawable.draw();
-    }
-
-    void PBR_ForwardRenderer::render(Transform& transform, DrawableElements& drawable, Material& material, glm::mat4& lightSpace) {
-        render(transform, drawable, material);
     }
 
     PBR_DeferredRenderer::PBR_DeferredRenderer(int width, int height, SsaoRenderer* ssaoRenderer)
@@ -252,6 +242,7 @@ namespace gl {
         mLightFrame.attachColors();
         mLightFrame.attachRenderBuffer();
         mLightFrame.complete();
+
         // PBR light pass upload
         {
             mLightShader.use();
@@ -291,7 +282,7 @@ namespace gl {
 
     void PBR_DeferredRenderer::bind() {
         mGeometryFrame.bind();
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     }
 
     void PBR_DeferredRenderer::unbind() {
@@ -306,7 +297,7 @@ namespace gl {
         }
 
         mLightFrame.bind();
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         mLightShader.use();
 
@@ -331,7 +322,7 @@ namespace gl {
         glEnable(GL_BLEND);
     }
 
-    void PBR_DeferredRenderer::begin() {
+    void PBR_DeferredRenderer::use() {
         mGeometryShader.use();
     }
 
@@ -353,15 +344,18 @@ namespace gl {
         mLightShader.bindSamplerStruct("envlight", "brdf_convolution", 11, env->brdfConvolution);
     }
 
-    void PBR_ForwardRenderer::blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) {
+    void PBR_DeferredRenderer::blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const {
+//        FrameBuffer::blit(srcColorFrame, w, h, mLightFrame.id, w, h, 1, GL_COLOR_BUFFER_BIT);
+//        FrameBuffer::blit(srcDepthFrame, w, h, mGeometryFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
+    }
+
+    void PBR_ForwardRenderer::blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const {
         FrameBuffer::blit(srcColorFrame, w, h, mFrame.id, w, h, 1, GL_COLOR_BUFFER_BIT);
         FrameBuffer::blit(srcDepthFrame, w, h, mFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
     }
 
-    PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer)
-    : scene(scene) {
-        mResolution = {width, height };
-
+    PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer, TransparentRenderer* transparentRenderer)
+    : mResolution(width, height), scene(scene), mTransparentRenderer(transparentRenderer) {
         mEnvRenderer = new EnvRenderer(width, height);
 
         mPbrForwardRenderer = new PBR_ForwardRenderer(width, height);
@@ -369,8 +363,6 @@ namespace gl {
 
         mSkeletalForwardRenderer = new PBR_Skeletal_ForwardRenderer();
         mSkeletalDeferredRenderer = new PBR_Skeletal_DeferredRenderer();
-
-        mTransparentRenderer = new TransparentRenderer(width, height);
 
         mOutlineRenderer = new OutlineRenderer();
     }
@@ -383,8 +375,6 @@ namespace gl {
 
         delete mSkeletalForwardRenderer;
         delete mSkeletalDeferredRenderer;
-
-        delete mTransparentRenderer;
 
         delete mOutlineRenderer;
     }
@@ -405,11 +395,8 @@ namespace gl {
 
     void PBR_Pipeline::resize(int width, int height) {
         mResolution = { width, height };
-
         mPbrForwardRenderer->resize(width, height);
         mPbrDeferredRenderer->resize(width, height);
-
-        mTransparentRenderer->resize(width, height);
     }
 
     void PBR_Pipeline::readPixel(PBR_Pixel& pixel, int x, int y) {
@@ -419,190 +406,106 @@ namespace gl {
     void PBR_Pipeline::renderForward() {
         mPbrForwardRenderer->bind();
 
-        // render face-culled objects
-        renderForwardCulling();
-        // render not face-culled objects
-        renderForwardDefault();
-
-        mPbrForwardRenderer->unbind();
-    }
-
-    void PBR_Pipeline::renderForwardCulling() {
-        mPbrForwardRenderer->begin();
+        glDisable(GL_CULL_FACE);
+        mEnvRenderer->render();
         glEnable(GL_CULL_FACE);
 
-        // terrain
-//        if (terrain) {
-//            glCullFace(GL_FRONT);
-//            mPbrForwardRenderer->render(
-//                    terrain->transform,
-//                    terrain->drawable,
-//                    terrain->material
-//            );
-//            glCullFace(GL_BACK);
-//        }
-
-        // render static objects
-        scene->eachComponent<PBR_Component_ForwardCull>([this](PBR_Component_ForwardCull* component) {
-            EntityID entityId = component->entityId;
-            mPbrForwardRenderer->render(
-                    *scene->getComponent<Transform>(entityId),
-                    *scene->getComponent<DrawableElements>(entityId),
-                    *scene->getComponent<Material>(entityId)
-            );
-        });
-        // render dynamic objects
-        mSkeletalForwardRenderer->begin();
-        scene->eachComponent<PBR_SkeletalComponent_ForwardCull>([this](PBR_SkeletalComponent_ForwardCull* component) {
-            EntityID entityId = component->entityId;
-            mSkeletalForwardRenderer->render(
-                    *scene->getComponent<Transform>(entityId),
-                    *scene->getComponent<DrawableElements>(entityId),
-                    *scene->getComponent<Material>(entityId)
-            );
-        });
+        renderTransparent();
     }
 
-    void PBR_Pipeline::renderForwardDefault() {
-        glDisable(GL_CULL_FACE);
+    void PBR_Pipeline::renderTransparent() {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        // render environment
-        mEnvRenderer->render();
+        mPbrForwardRenderer->use();
 
-        mOutlineRenderer->unbind();
-
-        // render static objects
-        scene->eachComponent<PBR_Component_Forward>([this](PBR_Component_Forward* component) {
-            EntityID entityId = component->entityId;
-            auto* outline = scene->getComponent<Outline>(entityId);
+        scene->eachComponent<Transparent>([this](Transparent* transparent) {
+            EntityID entityId = transparent->entityId;
             auto& transform = *scene->getComponent<Transform>(entityId);
             auto& drawable = *scene->getComponent<DrawableElements>(entityId);
             auto& material = *scene->getComponent<Material>(entityId);
-            mPbrForwardRenderer->begin();
+            auto* outline = scene->getComponent<Outline>(entityId);
+
             if (outline) {
                 mOutlineRenderer->unbind();
+
                 mPbrForwardRenderer->render(transform, drawable, material);
+
                 // render outline objects
                 mOutlineRenderer->bind();
                 mOutlineRenderer->use();
                 mOutlineRenderer->render(*outline, transform, drawable);
+                // reset renderer state
                 mOutlineRenderer->unbind();
+                mPbrForwardRenderer->use();
             } else {
                 mPbrForwardRenderer->render(transform, drawable, material);
             }
         });
-
-        // render dynamic objects
-        mSkeletalForwardRenderer->begin();
-        scene->eachComponent<PBR_SkeletalComponent_Forward>([this](PBR_SkeletalComponent_Forward* component) {
-            EntityID entityId = component->entityId;
-            mSkeletalForwardRenderer->render(
-                    *scene->getComponent<Transform>(entityId),
-                    *scene->getComponent<DrawableElements>(entityId),
-                    *scene->getComponent<Material>(entityId)
-            );
-        });
-
-        // render transparent objects
-        mTransparentRenderer->begin();
-        scene->eachComponent<Transparency>([this](Transparency* transparency) {
-            EntityID entityId = transparency->entityId;
-            mTransparentRenderer->render(
-                    *scene->getComponent<Transform>(entityId),
-                    *scene->getComponent<DrawableElements>(entityId),
-                    *scene->getComponent<Material>(entityId)
-            );
-        });
-        mTransparentRenderer->end();
     }
 
     void PBR_Pipeline::renderDeferred() {
         mPbrDeferredRenderer->bind();
 
-        // render not face-culled objects
-        glDisable(GL_CULL_FACE);
-        {
-            // static objects
-            mPbrDeferredRenderer->begin();
-            scene->eachComponent<PBR_Component_Deferred>([this](PBR_Component_Deferred* component) {
-                EntityID entityId = component->entityId;
-                mPbrDeferredRenderer->render(
-                        *scene->getComponent<Transform>(entityId),
-                        *scene->getComponent<DrawableElements>(entityId),
-                        *scene->getComponent<Material>(entityId)
-                );
-            });
-            // skeletal objects
-            mSkeletalDeferredRenderer->begin();
-            scene->eachComponent<PBR_SkeletalComponent_Deferred>([this](PBR_SkeletalComponent_Deferred* component) {
-                EntityID entityId = component->entityId;
-                mSkeletalDeferredRenderer->render(
-                        *scene->getComponent<Transform>(entityId),
-                        *scene->getComponent<DrawableElements>(entityId),
-                        *scene->getComponent<Material>(entityId)
-                );
-            });
+        mPbrDeferredRenderer->use();
+
+        // render terrain
+        if (terrain) {
+            glCullFace(GL_FRONT);
+            mPbrDeferredRenderer->render(
+                    terrain->transform,
+                    terrain->drawable,
+                    terrain->material
+            );
+            glCullFace(GL_BACK);
         }
 
-        // render face-culled objects
-        glEnable(GL_CULL_FACE);
-        {
-            // static objects
-            mPbrDeferredRenderer->begin();
-            // terrain
-            if (terrain) {
-                glCullFace(GL_FRONT);
-                mPbrDeferredRenderer->render(
-                        terrain->transform,
-                        terrain->drawable,
-                        terrain->material
-                );
-                glCullFace(GL_BACK);
+        // render scene
+        scene->eachComponent<Opaque>([this](Opaque* opaque) {
+            EntityID entityId = opaque->entityId;
+            auto& transform = *scene->getComponent<Transform>(entityId);
+            auto& drawable = *scene->getComponent<DrawableElements>(entityId);
+            auto& material = *scene->getComponent<Material>(entityId);
+            auto* outline = scene->getComponent<Outline>(entityId);
+
+            if (outline) {
+                mOutlineRenderer->unbind();
+
+                mPbrDeferredRenderer->render(transform, drawable, material);
+
+                // render outline objects
+                mOutlineRenderer->bind();
+                mOutlineRenderer->use();
+                mOutlineRenderer->render(*outline, transform, drawable);
+                // reset renderer state
+                mOutlineRenderer->unbind();
+                mPbrDeferredRenderer->use();
+            } else {
+                mPbrDeferredRenderer->render(transform, drawable, material);
             }
-            // world objects
-            scene->eachComponent<PBR_Component_DeferredCull>([this](PBR_Component_DeferredCull* component) {
-                EntityID entityId = component->entityId;
-                mPbrDeferredRenderer->render(
-                        *scene->getComponent<Transform>(entityId),
-                        *scene->getComponent<DrawableElements>(entityId),
-                        *scene->getComponent<Material>(entityId)
-                );
-            });
-            // skeletal world objects
-            mSkeletalDeferredRenderer->begin();
-            scene->eachComponent<PBR_SkeletalComponent_DeferredCull>([this](PBR_SkeletalComponent_DeferredCull* component) {
-                EntityID entityId = component->entityId;
-                mSkeletalDeferredRenderer->render(
-                        *scene->getComponent<Transform>(entityId),
-                        *scene->getComponent<DrawableElements>(entityId),
-                        *scene->getComponent<Material>(entityId)
-                );
-            });
-        }
+        });
+
+        // todo handle skeletal animation rendering
+//        mSkeletalDeferredRenderer->use();
+//        scene->eachComponent<SkeletalComponent>([this](SkeletalComponent* component) {
+//            EntityID entityId = component->entityId;
+//            mSkeletalDeferredRenderer->render(
+//                    *scene->getComponent<Transform>(entityId),
+//                    *scene->getComponent<DrawableElements>(entityId),
+//                    *scene->getComponent<Material>(entityId)
+//            );
+//        });
 
         mPbrDeferredRenderer->unbind();
     }
 
     void PBR_Pipeline::render() {
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_STENCIL_TEST);
-        glEnable(GL_BLEND);
-
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glStencilMask(GL_FALSE);
-
         renderDeferred();
         mPbrForwardRenderer->blitColorDepth(
                 mResolution.x, mResolution.y,
-                mPbrDeferredRenderer->getLightFbo().id,
-                mPbrDeferredRenderer->getGeometryFbo().id
+                mPbrDeferredRenderer->getColorFrame().id,
+                mPbrDeferredRenderer->getDepthFrame().id
         );
         renderForward();
-
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_STENCIL_TEST);
-        glDisable(GL_BLEND);
     }
 
 }

@@ -8,41 +8,61 @@
 
 namespace gl {
 
-    component(Transparency) {};
+    component(Opaque) {};
+    component(Transparent) {};
 
-    struct TransparentBuffer final {
-        ImageBuffer accumulation;
-        ImageBuffer revealage;
+    struct OITParams final {
+        const ImageSampler accumSampler = { "accum", 0 };
+        ImageBuffer accumBuffer;
+        const ImageSampler revealSampler = { "reveal", 1 };
+        ImageBuffer revealBuffer;
+    };
+
+    struct OITCompositeShader : Shader {
+        OITParams params;
+
+        void init();
+        void update();
     };
 
     struct TransparentRenderer final {
+        bool isEnabled = false;
 
         TransparentRenderer(int width, int height);
         ~TransparentRenderer();
 
-        inline const ImageBuffer& getRenderTarget() const {
+        [[nodiscard]] inline const ImageBuffer& getRenderTarget() const {
             return mRenderTarget;
         }
 
-        inline const TransparentBuffer& getTransparentBuffer() const {
-            return mTransparentBuffer;
+        inline OITParams& getParams() {
+            return mShader.params;
         }
 
-        void begin();
-        void end();
+        [[nodiscard]] inline const FrameBuffer& getColorFrame() const {
+            return mCompositeFrame;
+        }
+
+        [[nodiscard]] inline const FrameBuffer& getDepthFrame() const {
+            return mFrame;
+        }
+
+        void bind();
+        void unbind();
 
         void resize(int w, int h);
 
-        void render(Transform& transform, DrawableElements& drawable);
-        void render(Transform& transform, DrawableElements& drawable, Material& material);
+        void blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const;
+
+    private:
+        void initAccumRevealFrame(int width, int height);
+        void initCompositeFrame(int width, int height);
 
     private:
         ImageBuffer mRenderTarget;
-        TransparentBuffer mTransparentBuffer;
         FrameBuffer mFrame;
         FrameBuffer mCompositeFrame;
-        Shader mShader;
-        Shader mCompositeShader;
+        OITCompositeShader mShader;
         DrawableQuad mDrawable;
     };
 

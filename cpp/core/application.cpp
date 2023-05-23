@@ -6,8 +6,8 @@ namespace gl {
         error("Error code: {0}\nError message: {1}", code, message);
     }
 
-    Application::Application(const char* title, int width, int height, const char* logoName)
-    : mTitle(title), mWidth(width), mHeight(height), mLogoName(logoName) {
+    Application::Application(const char* title, int width, int height, const char* logoName, const ThemeMode themeMode)
+    : mTitle(title), mWidth(width), mHeight(height), mLogoName(logoName), mThemeMode(themeMode) {
 #ifdef DEBUG
         initLogger();
 #endif
@@ -24,7 +24,68 @@ namespace gl {
     }
 
     Application::~Application() {
-        free();
+        mEnvironment.free();
+
+        delete mTransparentRenderer;
+
+        delete mRayTraceRenderer;
+
+        LightStorage::free();
+
+        FontAtlas::free();
+
+        delete mScreenRenderer;
+
+        delete mPbrPipeline;
+        delete mUiPipeline;
+        delete mVisualsPipeline;
+        delete mShadowPipeline;
+
+        delete mHdrRenderer;
+        delete mBlurRenderer;
+        delete mBloomRenderer;
+
+        mTerrainBuilder.free();
+
+        mWoodSphere.free();
+        mWoodSphere.material()->free();
+        mWoodSphere.drawable()->free();
+
+        mMetalSphere.free();
+        mMetalSphere.material()->free();
+        mMetalSphere.drawable()->free();
+
+        mRockSphere.free();
+        mRockSphere.material()->free();
+        mRockSphere.drawable()->free();
+
+        mPointLightVisual.drawable.free();
+
+        mBackpack.free();
+        mBackpack.material()->free();
+        mBackpack.drawable()->free();
+        mBackpackModel.free();
+
+        mHuman.free();
+        mHuman.material()->free();
+        mHuman.drawable()->free();
+        mHumanModel.free();
+
+        delete mEntityControl;
+
+        delete mCamera;
+
+#ifdef IMGUI
+        ImguiCore::free();
+#endif
+
+        delete mDevice;
+        delete mWindow;
+
+#ifdef DEBUG
+        delete mDebugger;
+        Logger::free();
+#endif
     }
 
     void Application::run() {
@@ -58,6 +119,7 @@ namespace gl {
                 mWidth, mHeight,
                 mTitle
         );
+        mWindow->setTheme(mThemeMode);
         mWindow->initCallbacks<Application>(this);
         mWindow->setWindowCloseCallback<Application>();
         mWindow->setWindowResizeCallback<Application>();
@@ -80,9 +142,11 @@ namespace gl {
     void Application::initImgui() {
         ImguiCore::init(mWindow, "#version 460 core");
         ImguiCore::setIniFilename(mTitle);
-        ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 18.0f);
-        ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 18.0f);
-        ImguiCore::setFont(ImguiCore::regularFont);
+        ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 16.0f);
+        ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 16.0f);
+        ImguiCore::setFont(ImguiCore::boldFont);
+        ImguiCore::addIconFont("fonts/codicon.ttf", 16.0f);
+        ImguiCore::setDarkTheme();
 
         ImguiCore::callback = this;
         ImguiCore::camera = mCamera;
@@ -91,6 +155,7 @@ namespace gl {
         ImguiCore::shadowPipeline = mShadowPipeline;
         ImguiCore::pbrPipeline = mPbrPipeline;
         ImguiCore::uiPipeline = mUiPipeline;
+        ImguiCore::visualsPipeline = mVisualsPipeline;
 
         ImguiCore::screenRenderer = mScreenRenderer;
         ImguiCore::hdrRenderer = mHdrRenderer;
@@ -98,6 +163,8 @@ namespace gl {
         ImguiCore::bloomRenderer = mBloomRenderer;
         ImguiCore::ssaoRenderer = mSsaoRenderer;
         ImguiCore::fxaaRenderer = mFxaaRenderer;
+
+        ImguiCore::transparentRenderer = mTransparentRenderer;
     }
 
     void Application::initScene() {
@@ -149,28 +216,28 @@ namespace gl {
         mTerrainBuilder.addComponent<Selectable>();
         mTerrainBuilder.addComponent<Draggable>();
 
-        mRockSphere.addComponent<PBR_Component_DeferredCull>();
+        mRockSphere.addComponent<Opaque>();
         mRockSphere.addComponent<Selectable>(onEntitySelected);
         mRockSphere.addComponent<Draggable>(onEntityDragged);
         mRockSphere.addComponent<SphereCollider>(mRockSphere.transform()->translation, 3.0f);
         mRockSphere.addComponent<Shadowable>();
 
-        mWoodSphere.addComponent<PBR_Component_DeferredCull>();
+        mWoodSphere.addComponent<Transparent>();
         mWoodSphere.addComponent<Selectable>(onEntitySelected);
         mWoodSphere.addComponent<Draggable>(onEntityDragged);
         mWoodSphere.addComponent<Shadowable>();
 
-        mMetalSphere.addComponent<PBR_Component_DeferredCull>();
+        mMetalSphere.addComponent<Opaque>();
         mMetalSphere.addComponent<Selectable>(onEntitySelected);
         mMetalSphere.addComponent<Draggable>(onEntityDragged);
         mMetalSphere.addComponent<Shadowable>();
 
-        mBackpack.addComponent<PBR_Component_DeferredCull>();
+        mBackpack.addComponent<Opaque>();
         mBackpack.addComponent<Selectable>(onEntitySelected);
         mBackpack.addComponent<Draggable>(onEntityDragged);
         mBackpack.addComponent<Shadowable>();
 
-        mHuman.addComponent<PBR_SkeletalComponent_DeferredCull>();
+        mHuman.addComponent<Opaque>();
         mHuman.addComponent<Selectable>(onEntitySelected);
         mHuman.addComponent<Draggable>(onEntityDragged);
 
@@ -292,13 +359,14 @@ namespace gl {
 
             mWoodSphere.material()->load(
                     false,
-                    "images/cheap-plywood1-bl/albedo.png",
+                    null,
                     "images/cheap-plywood1-bl/normal.png",
                     null,
                     "images/cheap-plywood1-bl/metallic.png",
                     "images/cheap-plywood1-bl/roughness.png",
                     "images/cheap-plywood1-bl/ao.png"
             );
+            mWoodSphere.material()->color = { 1, 1, 1, 0.5 };
             mWoodSphere.material()->metallicFactor = 1;
             mWoodSphere.material()->roughnessFactor = 1;
             mWoodSphere.material()->aoFactor = 1;
@@ -350,10 +418,13 @@ namespace gl {
         mFxaaRenderer = new FXAARenderer(mWidth, mHeight);
         mFxaaRenderer->isEnabled = true;
 
+        mTransparentRenderer = new TransparentRenderer(mWidth, mHeight);
+        mTransparentRenderer->isEnabled = true;
+
         mShadowPipeline = new ShadowPipeline(&mScene, mWidth, mHeight, mCamera);
         mShadowPipeline->directShadow.filterSize = 9;
 
-        mPbrPipeline = new PBR_Pipeline(&mScene, mWidth, mHeight, mSsaoRenderer);
+        mPbrPipeline = new PBR_Pipeline(&mScene, mWidth, mHeight, mSsaoRenderer, mTransparentRenderer);
         mPbrPipeline->setDirectShadow(&mShadowPipeline->directShadow);
         mPbrPipeline->setPointShadow(&mShadowPipeline->pointShadow);
         mPbrPipeline->terrain = &mTerrainBuilder.terrain;
@@ -409,72 +480,7 @@ namespace gl {
         mFlashlight.value().color = {0, 0, 0, 0 };
     }
 
-    void Application::free() {
-        mEnvironment.free();
-
-        delete mRayTraceRenderer;
-
-        LightStorage::free();
-
-        FontAtlas::free();
-
-        delete mScreenRenderer;
-
-        delete mPbrPipeline;
-        delete mUiPipeline;
-        delete mVisualsPipeline;
-        delete mShadowPipeline;
-
-        delete mHdrRenderer;
-        delete mBlurRenderer;
-        delete mBloomRenderer;
-
-        mTerrainBuilder.free();
-
-        mWoodSphere.free();
-        mWoodSphere.material()->free();
-        mWoodSphere.drawable()->free();
-
-        mMetalSphere.free();
-        mMetalSphere.material()->free();
-        mMetalSphere.drawable()->free();
-
-        mRockSphere.free();
-        mRockSphere.material()->free();
-        mRockSphere.drawable()->free();
-
-        mPointLightVisual.drawable.free();
-
-        mBackpack.free();
-        mBackpack.material()->free();
-        mBackpack.drawable()->free();
-        mBackpackModel.free();
-
-        mHuman.free();
-        mHuman.material()->free();
-        mHuman.drawable()->free();
-        mHumanModel.free();
-
-        delete mEntityControl;
-
-        delete mCamera;
-
-#ifdef IMGUI
-        ImguiCore::free();
-#endif
-
-        delete mDevice;
-        delete mWindow;
-
-#ifdef DEBUG
-        delete mDebugger;
-        Logger::free();
-#endif
-    }
-
     void Application::simulate() {
-        mCamera->move(mWindow, Timer::getDeltaMillis());
-
         // bind flashlight to camera
         mFlashlight.value().position = { mCamera->position, 0 };
         mFlashlight.value().direction = { mCamera->front, 0 };
@@ -524,6 +530,9 @@ namespace gl {
     void Application::onFramebufferResized(int w, int h) {
         info("width={0}, height={1}", w, h);
 
+        mWidth = w;
+        mHeight = h;
+
         mWindow->onFrameResized(w, h);
 
         mCamera->resize();
@@ -535,15 +544,21 @@ namespace gl {
         mSsaoRenderer->resize(w, h);
         mFxaaRenderer->resize(w, h);
 
+        mTransparentRenderer->resize(w, h);
+
         mShadowPipeline->resize(w, h);
         mPbrPipeline->resize(w, h);
         mUiPipeline->resize(w, h);
         mVisualsPipeline->resize(w, h);
 
         mRayTraceRenderer->resize(w, h);
+
+#ifdef IMGUI
+        ImguiCore::frameBufferResized = true;
+#endif
     }
 
-    void Application::onKeyPress(int key) {
+    void Application::onKeyPress(const KEY key) {
         trace("");
 
         if (key == KEY::Esc)
@@ -552,13 +567,14 @@ namespace gl {
         if (key == KEY::F)
             mWindow->toggleWindowMode();
 
+        mCamera->onKeyPress(key, Timer::getDeltaMillis());
     }
 
-    void Application::onKeyRelease(int key) {
+    void Application::onKeyRelease(const KEY key) {
         trace("");
     }
 
-    void Application::onMousePress(int button) {
+    void Application::onMousePress(const int button) {
         trace("");
         if (button == GLFW_MOUSE_BUTTON_LEFT) {
             Cursor mouse_cursor = mWindow->mouseCursor();
@@ -569,27 +585,27 @@ namespace gl {
         }
     }
 
-    void Application::onMouseRelease(int button) {
+    void Application::onMouseRelease(const int button) {
         trace("");
     }
 
-    void Application::onMouseCursor(double x, double y) {
-        mCamera->look(x, y, Timer::getDeltaMillis());
+    void Application::onMouseCursor(const double x, const double y) {
+        mCamera->onMouseCursor(x, y, Timer::getDeltaMillis());
         mEntityControl->drag(x, y);
     }
 
-    void Application::onMouseScroll(double x, double y) {
-        mCamera->zoom(y, Timer::getDeltaMillis());
+    void Application::onMouseScroll(const double x, const double y) {
+        mCamera->onMouseScroll(y, Timer::getDeltaMillis());
     }
 
-    void Application::resize(int w, int h) {
+    void Application::resize(const int w, const int h) {
         onFramebufferResized(w, h);
     }
 
-    void Application::resample(int samples) {
+    void Application::resample(const int samples) {
     }
 
-    void Application::onEntitySelected(Entity entity, double x, double y) {
+    void Application::onEntitySelected(Entity entity, const double x, const double y) {
         info("onEntitySelected: [{0}, {1}]", x, y);
         auto& selected = entity.getComponent<Selectable>()->enable;
         selected = !selected;
@@ -614,93 +630,113 @@ namespace gl {
     void Application::renderPostFX() {
         // Bloom effect
         if (mBloomRenderer->isEnabled) {
-            mBloomRenderer->getHdrBuffer() = mScreenRenderer->getParams().sceneBuffer;
+            mBloomRenderer->getHdrBuffer() = mScreenRenderer->getParams().buffer;
             mBloomRenderer->render();
-            mScreenRenderer->getParams().sceneBuffer = mBloomRenderer->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mBloomRenderer->getRenderTarget();
+            mColorFrame = mBloomRenderer->getColorFrame();
         }
         // HDR effect
         if (mHdrRenderer->isEnabled) {
-            mHdrRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().sceneBuffer;
+            mHdrRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().buffer;
             mHdrRenderer->render();
-            mScreenRenderer->getParams().sceneBuffer = mHdrRenderer->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mHdrRenderer->getRenderTarget();
+            mColorFrame = mHdrRenderer->getColorFrame();
         }
         // FXAA effect
         if (mFxaaRenderer->isEnabled) {
-            mFxaaRenderer->getParams().srcBuffer = mScreenRenderer->getParams().sceneBuffer;
+            mFxaaRenderer->getParams().srcBuffer = mScreenRenderer->getParams().buffer;
             mFxaaRenderer->render();
-            mScreenRenderer->getParams().sceneBuffer = mFxaaRenderer->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mFxaaRenderer->getRenderTarget();
+            mColorFrame = mFxaaRenderer->getColorFrame();
         }
         // Blur effect
         if (mBlurRenderer->isEnabled) {
-            mBlurRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().sceneBuffer;
+            mBlurRenderer->getParams().sceneBuffer = mScreenRenderer->getParams().buffer;
             mBlurRenderer->render();
-            mScreenRenderer->getParams().sceneBuffer = mBlurRenderer->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mBlurRenderer->getRenderTarget();
+            mColorFrame = mBlurRenderer->getColorFrame();
         }
     }
 
     void Application::renderDebugScreen() {
         if (mWindow->isKeyPress(KEY::D1)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mPbrPipeline->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::D2)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getGBuffer().position;
+            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().position;
         }
 
         else if (mWindow->isKeyPress(KEY::D3)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getGBuffer().normal;
+            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().normal;
         }
 
         else if (mWindow->isKeyPress(KEY::D4)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getGBuffer().albedo;
+            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().albedo;
         }
 
         else if (mWindow->isKeyPress(KEY::D5)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getGBuffer().pbrParams;
+            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().pbrParams;
         }
 
         else if (mWindow->isKeyPress(KEY::D6)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getGBuffer().emission;
+            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().emission;
         }
 
         else if (mWindow->isKeyPress(KEY::D7)) {
-            mScreenRenderer->getParams().sceneBuffer = mShadowPipeline->directShadow.map.buffer;
+            mScreenRenderer->getParams().buffer = mShadowPipeline->directShadow.map.buffer;
         }
 
         else if (mWindow->isKeyPress(KEY::D8)) {
-            mScreenRenderer->getParams().sceneBuffer = mSsaoRenderer->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mSsaoRenderer->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::D9)) {
-            mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getTransparentBuffer().revealage;
+            mScreenRenderer->getParams().buffer = mTransparentRenderer->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::D0)) {
-            mScreenRenderer->getParams().sceneBuffer = mUiPipeline->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mUiPipeline->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::P)) {
-            mScreenRenderer->getParams().sceneBuffer = mVisualsPipeline->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mVisualsPipeline->getRenderTarget();
         }
 
         else if (mWindow->isKeyPress(KEY::T)) {
-            mScreenRenderer->getParams().sceneBuffer = mFontRobotoRegular->buffer;
+            mScreenRenderer->getParams().buffer = mFontRobotoRegular->buffer;
         }
 
         else if (mWindow->isKeyPress(KEY::C)) {
-            mScreenRenderer->getParams().sceneBuffer = mRayTraceRenderer->getRenderTarget();
+            mScreenRenderer->getParams().buffer = mRayTraceRenderer->getRenderTarget();
         }
     }
 
     void Application::render() {
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_STENCIL_TEST);
+        glEnable(GL_BLEND);
+        glEnable(GL_CULL_FACE);
+
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glStencilMask(GL_FALSE);
+
         mShadowPipeline->render();
 
         mPbrPipeline->render();
-        mScreenRenderer->getParams().sceneBuffer = mPbrPipeline->getRenderTarget();
+        mColorFrame = mPbrPipeline->getColorFrame();
+        mDepthFrame = mPbrPipeline->getDepthFrame();
 
+        // todo move into ray trace pipeline
         mRayTraceRenderer->render();
-        mScreenRenderer->getParams().raytraceBuffer = mRayTraceRenderer->getRenderTarget();
 
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_STENCIL_TEST);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+
+        mScreenRenderer->getParams().buffer = mPbrPipeline->getRenderTarget();
         renderPostFX();
 
 #ifdef DEBUG
@@ -708,12 +744,27 @@ namespace gl {
 #endif
 
 #ifdef IMGUI
+
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+
+        mUiPipeline->blitColorDepth(mWidth, mHeight, mColorFrame.id, mDepthFrame.id);
         mUiPipeline->render();
-        mScreenRenderer->getParams().uiBuffer = mUiPipeline->getRenderTarget();
+        mColorFrame = mUiPipeline->getColorFrame();
+        mDepthFrame = mUiPipeline->getDepthFrame();
 
+        glEnable(GL_CULL_FACE);
+
+        mVisualsPipeline->blitColorDepth(mWidth, mHeight, mColorFrame.id, mDepthFrame.id);
         mVisualsPipeline->render();
-        mScreenRenderer->getParams().visualsBuffer = mVisualsPipeline->getRenderTarget();
+        mColorFrame = mVisualsPipeline->getColorFrame();
+        mDepthFrame = mVisualsPipeline->getDepthFrame();
 
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+
+        mScreenRenderer->getParams().buffer = mVisualsPipeline->getRenderTarget();
         mScreenRenderer->render();
         renderImgui();
 #else

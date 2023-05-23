@@ -4,6 +4,12 @@
 namespace gl {
 
     void ImageWindow::render() {
+        begin();
+        draw();
+        end();
+    }
+
+    void ImageWindow::begin() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
@@ -25,15 +31,31 @@ namespace gl {
         }
         mCurrentFrameSize = frameSize;
 
-        const auto id = reinterpret_cast<ImTextureID>((unsigned long long) imageBuffer.id);
-        ImGui::Image(id, frameSize, { 0, 1 }, { 1, 0 });
+        mHovered = ImGui::IsWindowHovered();
 
-        end();
+        if (mHovered) {
+            ImguiCore::camera->onKeyPressImgui(Timer::getDeltaMillis());
+            ImguiCore::camera->onMouseCursorImgui(Timer::getDeltaMillis());
+
+            if (mScrollX != ImguiCore::IO->MouseWheelH) {
+                mScrollX = ImguiCore::IO->MouseWheelH;
+            }
+
+            if (mScrollY != ImguiCore::IO->MouseWheel) {
+                mScrollY = ImguiCore::IO->MouseWheel;
+                ImguiCore::camera->onMouseScroll(mScrollY, Timer::getDeltaMillis());
+            }
+        }
     }
 
     void ImageWindow::end() {
         ImGui::PopStyleVar(2);
         ImGui::End();
+    }
+
+    void ImageWindow::draw() {
+        const auto id = reinterpret_cast<ImTextureID>((unsigned long long) imageBuffer.id);
+        ImGui::Image(id, mCurrentFrameSize, { 0, 1 }, { 1, 0 });
     }
 
 }

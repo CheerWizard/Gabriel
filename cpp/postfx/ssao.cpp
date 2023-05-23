@@ -103,7 +103,7 @@ namespace gl {
     void SsaoRenderer::render() {
         // Occlusion part
         mFrame.bind();
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         mSsaoShader.use();
         mSsaoShader.update();
@@ -112,7 +112,7 @@ namespace gl {
 
         // Blur part
         mBlurFrame.bind();
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT);
 
         mBlurShader.use();
         mBlurShader.update(mSsaoImage);

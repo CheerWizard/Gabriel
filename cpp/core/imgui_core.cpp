@@ -1,5 +1,7 @@
 #include <core/imgui_core.h>
 
+#include <imgui/gizmo.h>
+
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
@@ -9,7 +11,25 @@
 #include <GLES2/gl2.h>
 #endif
 
+#define IM_COLF(r, g, b, a) ImVec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f)
+
 namespace gl {
+
+    struct Color final {
+        static constexpr auto LAVENDER_GREY = IM_COL32(205, 209, 228, 255);
+        static constexpr auto BLACK_PEARL = IM_COL32(8, 14, 44, 255);
+        static constexpr auto JORDY_BLUE = IM_COL32(137, 196, 244, 255);
+        static constexpr auto CORNFLOWER_BLUE = IM_COL32(72, 113, 247, 255);
+        static constexpr auto ALICE_BLUE = IM_COL32(228, 241, 254, 255);
+    };
+
+    struct ColorF final {
+        static constexpr auto LAVENDER_GREY = IM_COLF(205, 209, 228, 255);
+        static constexpr auto BLACK_PEARL = IM_COLF(8, 14, 44, 255);
+        static constexpr auto JORDY_BLUE = IM_COLF(137, 196, 244, 255);
+        static constexpr auto CORNFLOWER_BLUE = IM_COLF(72, 113, 247, 255);
+        static constexpr auto ALICE_BLUE = IM_COLF(228, 241, 254, 255);
+    };
 
     Window* ImguiCore::window;
     ImGuiIO* ImguiCore::IO;
@@ -17,6 +37,7 @@ namespace gl {
     ImFont* ImguiCore::regularFont = null;
     ImFont* ImguiCore::boldFont = null;
     ImguiCoreCallback* ImguiCore::callback = null;
+    bool ImguiCore::frameBufferResized = false;
 
     ImGuiID ImguiCore::dockspaceId;
     ImGuiDockNodeFlags ImguiCore::dockspaceFlags = ImGuiDockNodeFlags_None;
@@ -28,9 +49,12 @@ namespace gl {
     SsaoRenderer* ImguiCore::ssaoRenderer = null;
     FXAARenderer* ImguiCore::fxaaRenderer = null;
 
+    TransparentRenderer* ImguiCore::transparentRenderer = null;
+
     ShadowPipeline* ImguiCore::shadowPipeline = null;
     PBR_Pipeline* ImguiCore::pbrPipeline = null;
     UI_Pipeline* ImguiCore::uiPipeline = null;
+    VisualsPipeline* ImguiCore::visualsPipeline = null;
 
     Camera* ImguiCore::camera = null;
     Scene* ImguiCore::scene = null;
@@ -53,9 +77,6 @@ namespace gl {
         IO->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Viewports
         IO->ConfigDockingWithShift = false;
 
-        // Setup style
-        ImGui::StyleColorsLight();
-
         // Setup backends
         ImGui_ImplGlfw_InitForOpenGL(window->getHandle(), true);
         ImGui_ImplOpenGL3_Init(shaderLangVersion);
@@ -67,10 +88,43 @@ namespace gl {
         ImGui::DestroyContext();
     }
 
+    void ImguiCore::setDarkTheme() {
+        auto& colors = ImGui::GetStyle().Colors;
+        colors[ImGuiCol_WindowBg] = ImVec4 { 0.1f, 0.105f, 0.11f, 1.0f };
+
+        // Headers
+        colors[ImGuiCol_Header] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+        colors[ImGuiCol_HeaderHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+        colors[ImGuiCol_HeaderActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+
+        // Buttons
+        colors[ImGuiCol_Button] = ColorF::CORNFLOWER_BLUE;
+        colors[ImGuiCol_ButtonHovered] = ColorF::JORDY_BLUE;
+        colors[ImGuiCol_ButtonActive] = ColorF::LAVENDER_GREY;
+
+        // Frame BG
+        colors[ImGuiCol_FrameBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+        colors[ImGuiCol_FrameBgHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+        colors[ImGuiCol_FrameBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+
+        // Tabs
+        colors[ImGuiCol_Tab] = ColorF::JORDY_BLUE;
+        colors[ImGuiCol_TabHovered] = ColorF::LAVENDER_GREY;
+        colors[ImGuiCol_TabActive] = ColorF::CORNFLOWER_BLUE;
+        colors[ImGuiCol_TabUnfocused] = ColorF::JORDY_BLUE;
+        colors[ImGuiCol_TabUnfocusedActive] = ColorF::CORNFLOWER_BLUE;
+
+        // Title
+        colors[ImGuiCol_TitleBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+        colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+        colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+    }
+
     void ImguiCore::begin() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
     }
 
     void ImguiCore::end() {
@@ -101,6 +155,16 @@ namespace gl {
         boldFont = IO->Fonts->AddFontFromFileTTF(filepath, size);
     }
 
+    void ImguiCore::addIconFont(const char* filepath, float size) {
+        static const ImWchar iconsRange[] = { ICON_MIN_CI, ICON_MAX_CI, 0 };
+
+        ImFontConfig iconsConfig;
+        iconsConfig.MergeMode = true;
+        iconsConfig.PixelSnapH = true;
+
+        IO->Fonts->AddFontFromFileTTF(filepath, size, &iconsConfig, iconsRange);
+    }
+
     void ImguiCore::setFont(ImFont *font) {
         IO->FontDefault = font;
     }
@@ -116,6 +180,56 @@ namespace gl {
             ss << s;
         }
         return ss.str();
+    }
+
+    void ImguiCore::selectEntity(const Entity& entity) {
+        unselectEntity();
+        selectedEntity = entity;
+
+        bool selectedModel = selectedEntity.validComponent<Transform>() && selectedEntity.validComponent<DrawableElements>();
+        bool selectedPhongLight = selectedEntity.validComponent<PhongLightComponent>();
+        bool selectedDirectLight = selectedEntity.validComponent<DirectLightComponent>();
+        bool selectedPointLight = selectedEntity.validComponent<PointLightComponent>();
+        bool selectedSpotLight = selectedEntity.validComponent<SpotLightComponent>();
+
+        if (selectedEntity.valid()) {
+
+            if (selectedModel) {
+                selectedEntity.addComponent<PolygonVisual>();
+                selectedEntity.addComponent<GizmoTransformComponent>();
+            }
+
+            if (selectedPhongLight) {
+                selectedEntity.addComponent<LightVisual>();
+                selectedEntity.addComponent<GizmoPhongLight>();
+            }
+
+            if (selectedDirectLight) {
+                selectedEntity.addComponent<LightVisual>();
+                selectedEntity.addComponent<GizmoDirectLight>();
+            }
+
+            if (selectedPointLight) {
+                selectedEntity.addComponent<LightVisual>();
+                selectedEntity.addComponent<GizmoPointLight>();
+            }
+
+            if (selectedSpotLight) {
+                selectedEntity.addComponent<LightVisual>();
+                selectedEntity.addComponent<GizmoSpotLight>();
+            }
+        }
+    }
+
+    void ImguiCore::unselectEntity() {
+        if (selectedEntity.valid()) {
+            selectedEntity.removeComponent<PolygonVisual>();
+            selectedEntity.removeComponent<GizmoTransformComponent>();
+            selectedEntity.removeComponent<GizmoPhongLight>();
+            selectedEntity.removeComponent<GizmoDirectLight>();
+            selectedEntity.removeComponent<GizmoPointLight>();
+            selectedEntity.removeComponent<GizmoSpotLight>();
+        }
     }
 
     bool ImguiCore::Checkbox(const char* label, bool &v, const char* fmt) {
@@ -502,6 +616,68 @@ namespace gl {
         InputUInt("Size", font->size);
         DrawColor4Control("Color", style.color);
         DrawVec2Control("Padding", style.padding);
+    }
+
+    bool ImguiCore::IconRadioButton(const char* id, const char* icon, bool& checked) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, Color::LAVENDER_GREY);
+        ImGui::PushID(id);
+
+        if (checked) {
+            ImGui::PushStyleColor(ImGuiCol_Button, Color::LAVENDER_GREY);
+            ImGui::PushStyleColor(ImGuiCol_Text, Color::BLACK_PEARL);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color::ALICE_BLUE);
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Button, Color::CORNFLOWER_BLUE);
+            ImGui::PushStyleColor(ImGuiCol_Text, Color::LAVENDER_GREY);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color::JORDY_BLUE);
+        }
+
+        bool pressed = ImGui::Button(icon, { 24, 24 });
+        if (pressed) {
+            checked = !checked;
+        }
+
+        ImGui::PopID();
+        ImGui::PopStyleColor(4);
+        ImGui::PopStyleVar();
+
+        return pressed;
+    }
+
+    bool ImguiCore::IconButton(const char* id, const char* icon) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, Color::LAVENDER_GREY);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color::JORDY_BLUE);
+        ImGui::PushStyleColor(ImGuiCol_Button, Color::CORNFLOWER_BLUE);
+        ImGui::PushStyleColor(ImGuiCol_Text, Color::LAVENDER_GREY);
+        ImGui::PushID(id);
+
+        bool pressed = ImGui::Button(icon, { 24, 24 });
+
+        ImGui::PopID();
+        ImGui::PopStyleColor(4);
+        ImGui::PopStyleVar();
+
+        return pressed;
+    }
+
+    void ImguiCore::Spacing(float width, float height) {
+        ImGui::Dummy({ width, height });
+    }
+
+    void ImguiCore::FullscreenMode() {
+        float width = static_cast<float>(window->getMonitorWidth());
+        float height = static_cast<float>(window->getMonitorHeight());
+        ImGui::SetWindowPos({0,0 });
+        ImGui::SetWindowSize({ width, height });
+    }
+
+    void ImguiCore::WindowMode() {
+        float width = static_cast<float>(window->getWidth());
+        float height = static_cast<float>(window->getHeight());
+        ImGui::SetWindowPos({width * 0.25f,height * 0.25f });
+        ImGui::SetWindowSize({ width, height });
     }
 
 }

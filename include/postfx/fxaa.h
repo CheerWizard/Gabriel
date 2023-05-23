@@ -35,6 +35,10 @@ namespace gl {
             return mShader.params;
         }
 
+        [[nodiscard]] inline const FrameBuffer& getColorFrame() const {
+            return mFrame;
+        }
+
         void resize(int width, int height);
 
         void render();

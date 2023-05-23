@@ -2,12 +2,12 @@
 
 namespace gl {
 
-    void SkeletalRenderer::begin() {
+    void SkeletalRenderer::use() {
         mShader.use();
     }
 
     void SkeletalRenderer::updateBones(std::vector<glm::mat4>& bones) {
-        UniformArrayM4F uniformBoneTransforms = {"bone_transforms", bones };
+        UniformArrayM4F uniformBoneTransforms = { "bone_transforms", bones };
         mShader.use();
         mShader.setUniformArray(uniformBoneTransforms);
     }

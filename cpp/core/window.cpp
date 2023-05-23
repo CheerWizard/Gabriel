@@ -2,7 +2,17 @@
 
 #include <api/image.h>
 
-#include <unordered_map>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#include <windef.h>
+
+#ifdef _WIN32
+
+#pragma comment (lib, "Dwmapi")
+#include <dwmapi.h>
+#define winHandle glfwGetWin32Window(mHandle)
+
+#endif
 
 namespace gl {
 
@@ -48,6 +58,10 @@ namespace gl {
         glfwWindowHint(GLFW_GREEN_BITS, primary_mode->greenBits);
         glfwWindowHint(GLFW_BLUE_BITS, primary_mode->blueBits);
         glfwWindowHint(GLFW_REFRESH_RATE, primary_mode->refreshRate);
+
+#ifdef IMGUI
+        hideTitleBar();
+#endif
 
         mHandle = glfwCreateWindow(width, height, title, null, null);
         if (!mHandle) {
@@ -215,6 +229,21 @@ namespace gl {
             mCurrentCursorMode = cursorMode;
             glfwSetInputMode(mHandle, GLFW_CURSOR, cursorMode);
         }
+    }
+
+    void Window::setTheme(const ThemeMode themeMode) {
+#ifdef _WIN32
+        BOOL value = TRUE;
+        DwmSetWindowAttribute(winHandle, themeMode, &value, sizeof(value));
+#endif
+    }
+
+    void Window::minimize() {
+        glfwIconifyWindow(mHandle);
+    }
+
+    void Window::hideTitleBar() {
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     }
 
 }

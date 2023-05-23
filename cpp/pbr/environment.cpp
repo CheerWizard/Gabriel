@@ -101,7 +101,7 @@ namespace gl {
         for (int i = 0; i < 6; i++) {
             mHdrToCubemapShader.setUniformArgs("view", cube_views[i]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment->skybox.id, 0);
-            clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             mEnvCube.draw();
         }
         environment->skybox.generateMipmaps(environment->params);
@@ -116,7 +116,7 @@ namespace gl {
         for (int i = 0; i < 6; i++) {
             mHdrIrradianceShader.setUniformArgs("view", cube_views[i]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment->irradiance.id, 0);
-            clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             mEnvCube.draw();
         }
         // create HDR skybox prefilter map
@@ -142,7 +142,7 @@ namespace gl {
             for (int i = 0; i < 6; i++) {
                 mHdrPrefilterConvolutionShader.setUniformArgs("view", cube_views[i]);
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment->prefilter.id, mip);
-                clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 mEnvCube.draw();
             }
         }
@@ -156,7 +156,7 @@ namespace gl {
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, environment->brdfConvolution.id, 0);
 
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         mBrdfConvolutionShader.use();
         mDrawable.draw();
 

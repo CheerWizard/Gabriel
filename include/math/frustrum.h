@@ -39,7 +39,7 @@ namespace gl {
 
         void log() const;
 
-        Frustum& toWorldSpace(const ViewMat& viewMat);
+        Frustum& toWorldSpace(ViewMat& viewMat);
     };
 
 }

@@ -82,23 +82,19 @@ namespace gl {
     }
 
     void ShadowPipeline::begin() {
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         mFrame.bindWriting();
     }
 
     void ShadowPipeline::end() {
         glCullFace(GL_BACK);
-        glDisable(GL_CULL_FACE);
-        glDisable(GL_DEPTH_TEST);
     }
 
     void ShadowPipeline::bind(const DepthAttachment& shadowMap) {
         mFrame.depth = shadowMap;
         mFrame.attachDepth();
         Viewport::resize(0, 0, shadowMap.image.width, shadowMap.image.height);
-        glClear(GL_DEPTH_BUFFER_BIT);
+        FrameBuffer::clearBuffer(GL_DEPTH_BUFFER_BIT);
     }
 
     void ShadowPipeline::renderDirectShadows() {

@@ -20,7 +20,13 @@ namespace gl {
     static ImageWindow ssaoImage = { "SSAO", InvalidImageBuffer };
     static ImageWindow fxaaImage = { "FXAA", InvalidImageBuffer };
 
+    static ImageWindow accumulationImage = { "Accumulation", InvalidImageBuffer };
+    static ImageWindow revealImage = {"Reveal", InvalidImageBuffer };
+    static ImageWindow transparentImage = { "Transparent", InvalidImageBuffer };
+
     static ImageWindow uiImage = { "UI", InvalidImageBuffer };
+
+    static ImageWindow visualsImage = { "Visuals", InvalidImageBuffer };
 
     void Viewports::render() {
         if (positionsImage.show) {
@@ -82,6 +88,26 @@ namespace gl {
             uiImage.imageBuffer = ImguiCore::uiPipeline->getRenderTarget();
             uiImage.render();
         }
+
+        if (visualsImage.show) {
+            visualsImage.imageBuffer = ImguiCore::visualsPipeline->getRenderTarget();
+            visualsImage.render();
+        }
+
+        if (accumulationImage.show) {
+            accumulationImage.imageBuffer = ImguiCore::transparentRenderer->getParams().accumBuffer;
+            accumulationImage.render();
+        }
+
+        if (revealImage.show) {
+            revealImage.imageBuffer = ImguiCore::transparentRenderer->getParams().revealBuffer;
+            revealImage.render();
+        }
+
+        if (transparentImage.show) {
+            transparentImage.imageBuffer = ImguiCore::transparentRenderer->getRenderTarget();
+            transparentImage.render();
+        }
     }
 
     void ViewportsMenu::render() {
@@ -101,51 +127,76 @@ namespace gl {
             ImGui::MenuItem(fxaaImage.title, null, &fxaaImage.show);
 
             ImGui::MenuItem(uiImage.title, null, &uiImage.show);
+            ImGui::MenuItem(visualsImage.title, null, &visualsImage.show);
+
+            ImGui::MenuItem(accumulationImage.title, null, &accumulationImage.show);
+            ImGui::MenuItem(revealImage.title, null, &revealImage.show);
+            ImGui::MenuItem(transparentImage.title, null, &transparentImage.show);
 
             ImGui::EndMenu();
         }
     }
 
+    bool Toolbar::sInitialized = false;
+    int Toolbar::sX = 0;
+    int Toolbar::sY = 0;
+    int Toolbar::sWidth = 800;
+    int Toolbar::sHeight = 600;
+
     void Toolbar::render() {
-        static bool open = false;
+        static bool show = true;
 
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->WorkPos);
-        ImGui::SetNextWindowSize(viewport->WorkSize);
-        ImGui::SetNextWindowViewport(viewport->ID);
+        if (!sInitialized || ImguiCore::frameBufferResized) {
+            sInitialized = true;
+            ImguiCore::frameBufferResized = false;
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::SetNextWindowViewport(viewport->ID);
+        }
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        windowFlags |= ImGuiWindowFlags_NoTitleBar;
+        windowFlags |= ImGuiWindowFlags_NoCollapse;
         windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         windowFlags |= ImGuiWindowFlags_NoBackground;
 
-        ImGui::Begin("DockSpace", &open, windowFlags);
+        ImGui::Begin("DockSpace", &show, windowFlags);
         ImGuiID dsId = ImGui::GetID("Dashboard");
         ImguiCore::dockspaceId = dsId;
-        ImGui::DockSpace(dsId, ImVec2(0.0f, 0.0f), ImguiCore::dockspaceFlags);
+        ImGui::DockSpace(dsId, { 0, 0 }, ImguiCore::dockspaceFlags);
 
         if (ImGui::BeginMenuBar()) {
 
-            if (ImGui::BeginMenu("Docking")) {
-                if (ImGui::MenuItem("NoSplit Mode", null, (ImguiCore::dockspaceFlags & ImGuiDockNodeFlags_NoSplit) != 0)) {
-                    ImguiCore::dockspaceFlags ^= ImGuiDockNodeFlags_NoSplit;
+            ImGui::Text("Gabriel");
+
+            if (ImGui::BeginMenu("File")) {
+
+                if (ImGui::MenuItem("New", "Ctrl+N")) {
+
                 }
 
-                if (ImGui::MenuItem("NoResize Mode", null, (ImguiCore::dockspaceFlags & ImGuiDockNodeFlags_NoResize) != 0)) {
-                    ImguiCore::dockspaceFlags ^= ImGuiDockNodeFlags_NoResize;
+                if (ImGui::MenuItem("Open", "Ctrl+O")) {
+
                 }
 
-                if (ImGui::MenuItem("Auto Hide TabBar", null, (ImguiCore::dockspaceFlags & ImGuiDockNodeFlags_AutoHideTabBar) != 0)) {
-                    ImguiCore::dockspaceFlags ^= ImGuiDockNodeFlags_AutoHideTabBar;
+                if (ImGui::MenuItem("Save", "Ctrl+S")) {
+
                 }
 
                 ImGui::Separator();
 
-                ImguiCore::close = ImGui::MenuItem("Exit", null, false);
+                if (ImGui::MenuItem("Settings", "Alt+S")) {
+
+                }
+
+                ImGui::Separator();
+
+                ImguiCore::close = ImGui::MenuItem("Exit", "Esc", false);
 
                 ImGui::EndMenu();
             }
@@ -155,10 +206,32 @@ namespace gl {
             ImGui::EndMenuBar();
         }
 
-        ImGui::PopStyleVar(3);
-        ImGui::End();
+        ImVec2 pos = ImGui::GetWindowPos();
+        int width = static_cast<int>(ImGui::GetWindowWidth());
+        int height = static_cast<int>(ImGui::GetWindowWidth());
+        int x = static_cast<int>(pos.x);
+        int y = static_cast<int>(pos.y);
+
+        if (x != sX || y != sY) {
+            sX = x;
+            sY = y;
+            ImguiCore::window->move(x, y);
+        }
+
+        if (width != sWidth || height != sHeight) {
+            sWidth = width;
+            sHeight = height;
+            ImguiCore::window->resize(width, height);
+        }
+
+        end();
 
         Viewports::render();
+    }
+
+    void Toolbar::end() {
+        ImGui::PopStyleVar(3);
+        ImGui::End();
     }
 
 }

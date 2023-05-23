@@ -85,6 +85,29 @@ namespace gl {
         glDeleteFramebuffers(1, &id);
     }
 
+    void FrameBuffer::clearColorBuffers() const {
+        for (const auto& color : colors) {
+            color.clearBuffer();
+        }
+    }
+
+    void FrameBuffer::clearDepthBuffer() const {
+        depth.clearBuffer();
+    }
+
+    void FrameBuffer::clearStencilBuffer() const {
+        depthStencil.clearBuffer();
+    }
+
+    void FrameBuffer::clearBuffer(const glm::vec4& color, int bitmask) {
+        glClearColor(color.r, color.g, color.b, color.a);
+        clearBuffer(bitmask);
+    }
+
+    void FrameBuffer::clearBuffer(int bitmask) {
+        glClear(bitmask);
+    }
+
     void FrameBuffer::initColors() {
         for (auto& color : colors) {
             color.init();
@@ -228,6 +251,10 @@ namespace gl {
         buffer.store(image);
     }
 
+    void ColorAttachment::clearBuffer() const {
+        glClearBufferfv(GL_COLOR, static_cast<int>(index), glm::value_ptr(clearColor));
+    }
+
     void DepthAttachment::init() {
         image.internalFormat = GL_DEPTH_COMPONENT;
         image.pixelFormat = GL_DEPTH_COMPONENT;
@@ -248,6 +275,10 @@ namespace gl {
         }
     }
 
+    void DepthAttachment::clearBuffer() const {
+        glClearBufferfv(GL_DEPTH, 0, glm::value_ptr(clearColor));
+    }
+
     void DepthStencilAttachment::init() {
         image.internalFormat = GL_DEPTH24_STENCIL8;
         image.pixelFormat = GL_DEPTH_STENCIL;
@@ -264,6 +295,10 @@ namespace gl {
 
     void DepthStencilAttachment::attach() {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, buffer.type, buffer.id, 0);
+    }
+
+    void DepthStencilAttachment::clearBuffer() const {
+        glClearBufferfv(GL_STENCIL, 0, glm::value_ptr(clearColor));
     }
 
     void RenderBuffer::init() {

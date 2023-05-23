@@ -7,34 +7,13 @@ out vec4 outColor;
 in vec2 l_uv;
 
 uniform sampler2D scene;
-uniform sampler2D raytrace;
-
-#ifdef IMGUI
-uniform sampler2D ui;
-uniform sampler2D visuals;
-#endif
 
 uniform float gamma;
 
 void main()
 {
-    vec3 screenColor = vec3(0, 0, 0);
-
-    vec3 sceneColor = texture(scene, l_uv).rgb;
-    sceneColor = pow(sceneColor, vec3(1.0 / gamma));
-    screenColor += sceneColor;
-
-    vec3 raytraceColor = texture(raytrace, l_uv).rgb;
-    screenColor += raytraceColor;
-
-    #ifdef IMGUI
-
-    vec3 uiColor = texture(ui, l_uv).rgb;
-    screenColor += uiColor;
-    vec3 visualsColor = texture(visuals, l_uv).rgb;
-    screenColor += visualsColor;
-
-    #endif
-
+    vec3 screenColor = texture(scene, l_uv).rgb;
+    // tone mapping
+    screenColor = pow(screenColor, vec3(1.0 / gamma));
     outColor = vec4(screenColor, 1.0);
 }

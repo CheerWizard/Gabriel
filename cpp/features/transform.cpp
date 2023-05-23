@@ -2,21 +2,18 @@
 
 namespace gl {
 
-    void Transform::update(Shader &shader) const {
-        glm::mat4 model = init();
-        shader.setUniformArgs("model", model);
+    void Transform::update(Shader &shader) {
+        shader.setUniformArgs("model", value);
     }
 
-    void Transform::updateArrayElement(Shader &shader, int i, const Transform& transform) {
-        glm::mat4 model = transform.init();
-        shader.setUniform("models", model, i);
+    void Transform::updateArrayElement(Shader &shader, int i, Transform& transform) {
+        shader.setUniform("models", transform.value, i);
     }
 
-    void Transform::updateArray(Shader &shader, const std::vector<Transform> &transforms) {
+    void Transform::updateArray(Shader &shader, std::vector<Transform> &transforms) {
         size_t size = transforms.size();
         for (int i = 0; i < size; i++) {
-            glm::mat4 model = transforms[i].init();
-            shader.setUniform("models", model, i);
+            shader.setUniform("models", transforms[i].value, i);
         }
     }
 

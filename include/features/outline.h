@@ -15,6 +15,18 @@ namespace gl {
         ) : color(r, g, b, a), thickness(thickness) {}
     };
 
+    struct OutlineParams final {
+        UniformV4F color = { "outline_color", { 1, 1, 0, 1 } };
+        UniformF thickness = { "outline_thickness", 0.02f };
+    };
+
+    struct OutlineShader : Shader {
+        OutlineParams params;
+
+        void init();
+        void update(Outline& outline);
+    };
+
     struct OutlineRenderer final {
 
         OutlineRenderer();
@@ -27,7 +39,7 @@ namespace gl {
         void render(Outline& outline, Transform& transform, DrawableElements& drawable);
 
     private:
-        Shader mShader;
+        OutlineShader mShader;
     };
 
 }

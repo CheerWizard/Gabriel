@@ -2,10 +2,22 @@
 
 namespace gl {
 
+    void OutlineShader::init() {
+        addVertexStage("shaders/outline.vert");
+        addFragmentStage("shaders/outline.frag");
+        complete();
+    }
+
+    void OutlineShader::update(Outline& outline) {
+        params.color.value = outline.color;
+        params.thickness.value = outline.thickness;
+
+        setUniform(params.color);
+        setUniform(params.thickness);
+    }
+
     OutlineRenderer::OutlineRenderer() {
-        mShader.addVertexStage("shaders/outline.vert");
-        mShader.addFragmentStage("shaders/outline.frag");
-        mShader.complete();
+        mShader.init();
     }
 
     OutlineRenderer::~OutlineRenderer() {
@@ -29,8 +41,7 @@ namespace gl {
     }
 
     void OutlineRenderer::render(Outline& outline, Transform& transform, DrawableElements& drawable) {
-        mShader.setUniformArgs<float>("outline_thickness", outline.thickness);
-        mShader.setUniformArgs<glm::vec4>("outline_color", outline.color);
+        mShader.update(outline);
         transform.update(mShader);
         drawable.draw();
     }

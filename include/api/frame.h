@@ -10,6 +10,7 @@ namespace gl {
         gl::ImageBuffer buffer;
         gl::ImageParams params;
         gl::Image image;
+        glm::vec4 clearColor = COLOR_CLEAR;
 
         ColorAttachment() = default;
 
@@ -32,27 +33,35 @@ namespace gl {
         void attach() const;
 
         void resize(int w, int h);
+
+        void clearBuffer() const;
     };
 
     struct DepthAttachment final {
         gl::ImageBuffer buffer;
         gl::ImageParams params;
         gl::Image image;
+        glm::vec4 clearColor = COLOR_CLEAR;
 
         void init();
         void free();
 
         void attach();
+
+        void clearBuffer() const;
     };
 
     struct DepthStencilAttachment final {
         ImageBuffer buffer;
         Image image;
+        glm::vec4 clearColor = COLOR_CLEAR;
 
         void init();
         void free();
 
         void attach();
+
+        void clearBuffer() const;
     };
 
     struct RenderBuffer final {
@@ -83,10 +92,17 @@ namespace gl {
         DepthAttachment depth;
         DepthStencilAttachment depthStencil;
         RenderBuffer rbo;
+        glm::vec4 clearColor = COLOR_CLEAR;
 
         void init();
         void initWithRenderBuffer();
         void free();
+
+        void clearColorBuffers() const;
+        void clearDepthBuffer() const;
+        void clearStencilBuffer() const;
+        static void clearBuffer(const glm::vec4& color = COLOR_CLEAR, int bitmask = GL_COLOR_BUFFER_BIT);
+        static void clearBuffer(int bitmask);
 
         void bind() const;
         void bindWriting() const;

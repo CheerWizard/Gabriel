@@ -12,6 +12,14 @@ namespace gl {
 
     struct Toolbar final {
         static void render();
+
+    private:
+        static void end();
+
+    private:
+        static bool sInitialized;
+        static int sX, sY;
+        static int sWidth, sHeight;
     };
 
 }

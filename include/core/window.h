@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/keycodes.h>
+
 #include <api/device.h>
 
 #define GLFW_INCLUDE_NONE
@@ -17,6 +18,11 @@ namespace gl {
         NORMAL = GLFW_CURSOR_NORMAL,
         HIDE = GLFW_CURSOR_HIDDEN,
         DISABLED = GLFW_CURSOR_DISABLED
+    };
+
+    enum ThemeMode : u8 {
+        LIGHT_MODE = 0,
+        DARK_MODE = 20
     };
 
     struct Window final {
@@ -77,6 +83,14 @@ namespace gl {
 
         [[nodiscard]] inline bool getFullscreen() const {
             return mEnableFullscreen;
+        }
+
+        [[nodiscard]] inline int getMonitorWidth() {
+            return mVideoModes[mPrimaryMonitor]->width;
+        }
+
+        [[nodiscard]] inline int getMonitorHeight() {
+            return mVideoModes[mPrimaryMonitor]->height;
         }
 
         void setContext();
@@ -147,6 +161,12 @@ namespace gl {
         void loadIcon(const char* filepath);
 
         void setCursorMode(const CursorMode cursorMode);
+
+        void setTheme(const ThemeMode themeMode);
+
+        void minimize();
+
+        void hideTitleBar();
 
     private:
         GLFWwindow* mHandle;
@@ -223,9 +243,9 @@ namespace gl {
     void Window::setKeyCallback() {
         glfwSetKeyCallback(mHandle, [](GLFWwindow* win, int key, int scancode, int action, int mods) {
             if (action == GLFW_PRESS) {
-                static_cast<T*>(glfwGetWindowUserPointer(win))->onKeyPress(key);
+                static_cast<T*>(glfwGetWindowUserPointer(win))->onKeyPress(static_cast<KEY>(key));
             } else if (action == GLFW_RELEASE) {
-                static_cast<T*>(glfwGetWindowUserPointer(win))->onKeyRelease(key);
+                static_cast<T*>(glfwGetWindowUserPointer(win))->onKeyRelease(static_cast<KEY>(key));
             }
         });
     }

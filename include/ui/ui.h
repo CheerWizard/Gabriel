@@ -16,9 +16,19 @@ namespace gl {
             return mRenderTarget;
         }
 
+        [[nodiscard]] inline const FrameBuffer& getColorFrame() const {
+            return mFrame;
+        }
+
+        [[nodiscard]] inline const FrameBuffer& getDepthFrame() const {
+            return mFrame;
+        }
+
         void resize(int w, int h);
 
         void render();
+
+        void blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const;
 
     private:
         void initFrame(int w, int h);

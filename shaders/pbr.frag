@@ -62,7 +62,7 @@ void main()
     if (material.enable_albedo) {
         albedo *= texture(material.albedo, UV);
     }
-    // tone mapping
+    // gamma correction
     albedo = vec4(pow(albedo.rgb, vec3(2.2)), albedo.a);
 
     // metal mapping
@@ -118,4 +118,14 @@ void main()
     vec3 ambient = ibl(NdotV, N, R, albedo.rgb, metallic, roughness);
 
     outColor = vec4((ambient + Lo) * ao, albedo.a);
+
+//    // weigth and blend transparent material
+//    if (outColor.a < 1) {
+//        // weight function
+//        float weight = clamp(pow(min(1.0, outColor.a * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
+//        // store pixel revealage threshold
+//        outReveal = outColor.a;
+//        // store pixel color accumulation
+//        outColor = vec4(outColor.rgb * outColor.a, outColor.a) * weight;
+//    }
 }

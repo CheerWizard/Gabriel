@@ -19,7 +19,7 @@ namespace gl {
     }
 
     void UI_Pipeline::initFrame(int w, int h) {
-        ColorAttachment uiColor = {0, w, h };
+        ColorAttachment uiColor = { 0, w, h };
         uiColor.image.internalFormat = GL_RGBA8;
         uiColor.image.pixelFormat = GL_RGBA;
         uiColor.image.pixelType = PixelType::U8;
@@ -41,10 +41,7 @@ namespace gl {
 
     void UI_Pipeline::render() {
         mFrame.bind();
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        clearDisplay(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         mText2dRenderer->begin();
         scene->eachComponent<Text2d>([this](Text2d* text) {
@@ -55,9 +52,11 @@ namespace gl {
         scene->eachComponent<Text3d>([this](Text3d* text) {
             mText3dRenderer->render(*text);
         });
+    }
 
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
+    void UI_Pipeline::blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const {
+        FrameBuffer::blit(srcColorFrame, w, h, mFrame.id, w, h, 1, GL_COLOR_BUFFER_BIT);
+        FrameBuffer::blit(srcDepthFrame, w, h, mFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
     }
 
 }

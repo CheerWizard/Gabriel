@@ -18,8 +18,11 @@ endif(IMGUI)
 file(GLOB_RECURSE SRC
         cpp/*.cpp
         include/*.h
+
         vendor/glad-c/src/glad.c
+
         vendor/stb/stb_image.h
+
         vendor/imgui/imgui.cpp
         vendor/imgui/imgui_draw.cpp
         vendor/imgui/imgui_tables.cpp
@@ -28,6 +31,12 @@ file(GLOB_RECURSE SRC
         vendor/imgui/backends/imgui_impl_glfw.cpp
         vendor/imgui/backends/imgui_impl_opengl3.cpp
         vendor/imgui/misc/cpp/imgui_stdlib.cpp
+
+        vendor/ImGuizmo/ImGuizmo.cpp
+        vendor/ImGuizmo/ImGradient.cpp
+        vendor/ImGuizmo/ImSequencer.cpp
+        vendor/ImGuizmo/ImCurveEdit.cpp
+        vendor/ImGuizmo/GraphEditor.cpp
 )
 
 include_directories(
@@ -40,6 +49,7 @@ include_directories(
         vendor/freetype/include
         vendor/imgui
         vendor/spdlog/include
+        vendor/ImGuizmo
 )
 
 add_executable(${PROJECT_NAME} ${SRC})

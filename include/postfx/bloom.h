@@ -63,6 +63,10 @@ namespace gl {
             return mMixShader.bloomStrength.value;
         }
 
+        [[nodiscard]] inline const FrameBuffer& getColorFrame() const {
+            return mFrame;
+        }
+
         void resize(int w, int h);
 
         void render();

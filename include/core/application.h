@@ -39,29 +39,35 @@
 #include <imgui/properties_window.h>
 #include <imgui/entity_window.h>
 #include <imgui/component_window.h>
+#include <imgui/gizmo.h>
 
 namespace gl {
 
     class Application : ImguiCoreCallback {
 
     public:
-        Application(const char* title, int width, int height, const char* logoName);
+        Application(
+                const char* title,
+                int width, int height,
+                const char* logoName,
+                const ThemeMode themeMode = DARK_MODE
+        );
         ~Application();
 
         void run();
 
         void onWindowClose();
-        void onWindowMove(int x, int y);
-        void onWindowResize(int w, int h);
-        void onFramebufferResized(int w, int h);
+        void onWindowMove(const int x, const int y);
+        void onWindowResize(const int w, const int h);
+        void onFramebufferResized(const int w, const int h);
 
-        void onKeyPress(int key);
-        void onKeyRelease(int key);
+        void onKeyPress(const KEY key);
+        void onKeyRelease(const KEY key);
 
-        void onMousePress(int button);
-        void onMouseRelease(int button);
-        void onMouseCursor(double x, double y);
-        void onMouseScroll(double x, double y);
+        void onMousePress(const int button);
+        void onMouseRelease(const int button);
+        void onMouseCursor(const double x, const double y);
+        void onMouseScroll(const double x, const double y);
 
         void resize(int w, int h) override;
         void resample(int samples) override;
@@ -76,8 +82,6 @@ namespace gl {
         void initText();
         void initImgui();
         void initEnvironment();
-
-        void free();
 
         void printDt();
 
@@ -101,6 +105,7 @@ namespace gl {
         int mWidth;
         int mHeight;
         bool mRunning = true;
+        ThemeMode mThemeMode;
 
         Window* mWindow = null;
         Device* mDevice = null;
@@ -130,6 +135,7 @@ namespace gl {
         BlurRenderer* mBlurRenderer;
         SsaoRenderer* mSsaoRenderer;
         FXAARenderer* mFxaaRenderer;
+        TransparentRenderer* mTransparentRenderer;
 
         Animator mHumanAnimator;
         SkeletalModel mHumanModel;
@@ -159,6 +165,9 @@ namespace gl {
 
         Ray mRay = { 0, 0, 0 };
         Sphere mSphere;
+
+        FrameBuffer mColorFrame;
+        FrameBuffer mDepthFrame;
     };
 
 }

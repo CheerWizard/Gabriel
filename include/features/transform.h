@@ -12,14 +12,15 @@ namespace gl {
             this->translation = translation;
             this->rotation = rotation;
             this->scale = scale;
+            init();
         }
 
         Transform(const Transform& transform) : ModelMat(transform) {}
 
-        void update(Shader& shader) const;
+        void update(Shader& shader);
 
-        static void updateArrayElement(Shader& shader, int i, const Transform& transform);
-        static void updateArray(Shader& shader, const std::vector<Transform>& transforms);
+        static void updateArrayElement(Shader& shader, int i, Transform& transform);
+        static void updateArray(Shader& shader, std::vector<Transform>& transforms);
     };
 
     component(Transform2d) {

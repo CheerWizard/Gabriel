@@ -60,10 +60,6 @@ namespace gl {
         if (ImGui::BeginPopup("AddComponent")) {
             displayAddComponent<Transform>("Transform");
 
-            displayAddComponent<PolygonVisual>("PolygonVisual");
-            displayAddComponent<NormalVisual>("NormalVisual");
-            displayAddComponent<LightVisual>("LightVisual");
-
             displayAddComponent<PhongLightComponent>("PhongLight");
             displayAddComponent<DirectLightComponent>("DirectLight");
             displayAddComponent<PointLightComponent>("PointLight");
@@ -71,6 +67,8 @@ namespace gl {
 
             displayAddComponent<Text2d>("Text2D");
             displayAddComponent<Text3d>("Text3D");
+
+            displayAddComponent<Outline>("Outline");
 
             ImGui::EndPopup();
         }
@@ -84,11 +82,11 @@ namespace gl {
 
         renderLightComponents();
 
-        renderVisualComponents();
-
         renderTextComponents();
 
         renderMaterialComponents();
+
+        renderOutlineComponent();
     }
 
     void ComponentWindow::renderLightComponents() {
@@ -127,27 +125,6 @@ namespace gl {
         });
     }
 
-    void ComponentWindow::renderVisualComponents() {
-        ImguiCore::DrawComponent<PolygonVisual>("PolygonVisual", sEntity, [](PolygonVisual& component)
-        {
-            ImguiCore::InputFloat("Thickness", component.thickness, 0.0001f);
-            ImguiCore::ColorEdit3("Color", component.color);
-        });
-
-        ImguiCore::DrawComponent<NormalVisual>("NormalVisual", sEntity, [](NormalVisual& component)
-        {
-            ImguiCore::InputFloat("Length", component.length, 0.1f);
-            ImguiCore::ColorEdit3("Color", component.color);
-        });
-
-        ImguiCore::DrawComponent<LightVisual>("LightVisual", sEntity, [](LightVisual& component)
-        {
-            ImGui::SeparatorText("Transform");
-            ImguiCore::DrawTransform(component.transform);
-            ImguiCore::ColorEdit4("Color", component.color);
-        });
-    }
-
     void ComponentWindow::renderTextComponents() {
         ImguiCore::DrawComponent<Text2d>("Text2D", sEntity, [](Text2d& component) {
             ImGui::SeparatorText("Input");
@@ -179,6 +156,19 @@ namespace gl {
                 ImguiCore::ColorEdit4("Color", component.color);
                 ImGui::PopID();
                 ImguiCore::Checkbox("Albedo Mapping", component.enableAlbedo);
+
+                bool transparent = sEntity.validComponent<Transparent>();
+                ImguiCore::Checkbox("Transparent", transparent);
+
+                if (sEntity.invalidComponent<Transparent>() && transparent) {
+                    sEntity.addComponent<Transparent>();
+                    sEntity.removeComponent<Opaque>();
+                }
+
+                else if (sEntity.validComponent<Transparent>() && !transparent) {
+                    sEntity.removeComponent<Transparent>();
+                    sEntity.addComponent<Opaque>();
+                }
             }
 
             if (ImGui::CollapsingHeader("Bumping")) {
@@ -219,6 +209,18 @@ namespace gl {
                 ImguiCore::DrawColor3Control("Intensity", component.emissionFactor);
                 ImGui::PopID();
             }
+        });
+    }
+
+    void ComponentWindow::renderOutlineComponent() {
+        ImguiCore::DrawComponent<Outline>("Outline", sEntity, [](Outline& component) {
+            ImGui::PushID("##outline_color");
+            ImguiCore::ColorEdit4("Color", component.color);
+            ImGui::PopID();
+
+            ImGui::PushID("##outline_thickness");
+            ImGui::SliderFloat("Thickness", &component.thickness, 0.0f, 1.0f);
+            ImGui::PopID();
         });
     }
 

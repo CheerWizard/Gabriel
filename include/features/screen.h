@@ -6,18 +6,7 @@
 namespace gl {
 
     struct ScreenParams final {
-        const ImageSampler sceneSampler = { "scene", 0 };
-        ImageBuffer sceneBuffer;
-
-        const ImageSampler uiSampler = { "ui", 1 };
-        ImageBuffer uiBuffer;
-
-        const ImageSampler visualsSampler = { "visuals", 2 };
-        ImageBuffer visualsBuffer;
-
-        const ImageSampler raytraceSampler = { "raytrace", 3 };
-        ImageBuffer raytraceBuffer;
-
+        ImageBuffer buffer;
         UniformF gamma = { "gamma", 2.2f };
     };
 
