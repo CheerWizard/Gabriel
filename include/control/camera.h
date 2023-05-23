@@ -45,13 +45,12 @@ namespace gl {
         ~Camera();
 
         void onMouseCursor(const double x, const double y, const float dt);
-        void onMouseCursorImgui(const float dt);
+        void onMouseCursorImgui(const float x, const float y, const float dt);
 
         void onMouseScroll(const double y, const float dt);
 
-        void onKeyPress(const KEY key, const float dt);
-        void onKeyPressImgui(const float dt);
-
+        void move(const float dt);
+        void moveImgui(const float dt);
 
         void resize();
 

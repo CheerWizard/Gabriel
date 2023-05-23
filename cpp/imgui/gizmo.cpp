@@ -27,6 +27,14 @@ namespace gl {
 
         ImGuizmo::MODE mode = enableWorldMode ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
 
+        if (ImGuizmo::IsOver() || ImGuizmo::IsUsing()) {
+            info("Guizmo is over or used");
+            ImguiCore::disableInput();
+        } else {
+            info("Guizmo is not over or used");
+            ImguiCore::enableInput();
+        }
+
         // draw gizmo for scene objects
         scene->eachComponent<GizmoTransformComponent>([=](GizmoTransformComponent* component) {
             auto& transform = *scene->getComponent<Transform>(component->entityId);

@@ -29,6 +29,9 @@ namespace gl {
         void draw();
 
     private:
+        void pollEvents();
+
+    private:
         bool mInitialized = false;
         ImVec2 mCurrentFrameSize = { 800, 600 };
         bool mHovered = false;

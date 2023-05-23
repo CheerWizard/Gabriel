@@ -145,8 +145,9 @@ namespace gl {
         ImguiCore::addRegularFont("fonts/Roboto-Regular.ttf", 16.0f);
         ImguiCore::addBoldFont("fonts/Roboto-Bold.ttf", 16.0f);
         ImguiCore::setFont(ImguiCore::boldFont);
-        ImguiCore::addIconFont("fonts/codicon.ttf", 16.0f);
+        ImguiCore::addIconFont("fonts/codicon.ttf", 20.0f);
         ImguiCore::setDarkTheme();
+        ImguiCore::loadLogo(mLogoName);
 
         ImguiCore::callback = this;
         ImguiCore::camera = mCamera;
@@ -481,6 +482,7 @@ namespace gl {
     }
 
     void Application::simulate() {
+        mCamera->move(Timer::getDeltaMillis());
         // bind flashlight to camera
         mFlashlight.value().position = { mCamera->position, 0 };
         mFlashlight.value().direction = { mCamera->front, 0 };
@@ -564,10 +566,8 @@ namespace gl {
         if (key == KEY::Esc)
             mWindow->close();
 
-        if (key == KEY::F)
+        else if (key == KEY::F)
             mWindow->toggleWindowMode();
-
-        mCamera->onKeyPress(key, Timer::getDeltaMillis());
     }
 
     void Application::onKeyRelease(const KEY key) {

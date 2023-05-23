@@ -34,10 +34,14 @@ namespace gl {
     Window* ImguiCore::window;
     ImGuiIO* ImguiCore::IO;
     bool ImguiCore::close = false;
+    ImguiCoreCallback* ImguiCore::callback = null;
+
     ImFont* ImguiCore::regularFont = null;
     ImFont* ImguiCore::boldFont = null;
-    ImguiCoreCallback* ImguiCore::callback = null;
+
     bool ImguiCore::frameBufferResized = false;
+
+    ColorAttachment ImguiCore::logo;
 
     ImGuiID ImguiCore::dockspaceId;
     ImGuiDockNodeFlags ImguiCore::dockspaceFlags = ImGuiDockNodeFlags_None;
@@ -173,6 +177,26 @@ namespace gl {
         IO->IniFilename = iniFilename;
     }
 
+    void ImguiCore::loadLogo(const char* filepath, const glm::vec2& size) {
+        if (logo.buffer.id != InvalidImageBuffer || !logo.image.pixels) {
+            logo.free();
+        }
+
+        logo.image = ImageReader::read(filepath, true);
+        logo.image.resize(size.x, size.y);
+        logo.image.internalFormat = GL_RGBA8;
+        logo.image.pixelFormat = GL_RGBA;
+        logo.image.pixelType = PixelType::U8;
+
+        logo.params.minFilter = GL_LINEAR;
+        logo.params.magFilter = GL_LINEAR;
+        logo.params.r = GL_CLAMP_TO_EDGE;
+        logo.params.s = GL_CLAMP_TO_EDGE;
+        logo.params.t = GL_CLAMP_TO_EDGE;
+
+        logo.init();
+    }
+
     std::string ImguiCore::ID(const std::vector<const char*> &str) {
         std::stringstream ss;
         ss << "##";
@@ -230,6 +254,24 @@ namespace gl {
             selectedEntity.removeComponent<GizmoPointLight>();
             selectedEntity.removeComponent<GizmoSpotLight>();
         }
+    }
+
+    static bool pEnableInput = true;
+
+    void ImguiCore::enableInput() {
+        if (pEnableInput) return;
+        pEnableInput = true;
+
+        IO->ConfigFlags &= ~ImGuiConfigFlags_NoMouse;          // Enable Mouse
+        IO->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard
+    }
+
+    void ImguiCore::disableInput() {
+        if (!pEnableInput) return;
+        pEnableInput = false;
+
+        IO->ConfigFlags |= ImGuiConfigFlags_NoMouse;            // Disable Mouse
+        IO->ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard; // Disable Keyboard
     }
 
     bool ImguiCore::Checkbox(const char* label, bool &v, const char* fmt) {
@@ -618,8 +660,8 @@ namespace gl {
         DrawVec2Control("Padding", style.padding);
     }
 
-    bool ImguiCore::IconRadioButton(const char* id, const char* icon, bool& checked) {
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+    bool ImguiCore::IconRadioButton(const char* id, const char* icon, bool& checked, const ImVec2& size, const float cornerRadius) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, cornerRadius);
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, Color::LAVENDER_GREY);
         ImGui::PushID(id);
 
@@ -633,7 +675,7 @@ namespace gl {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color::JORDY_BLUE);
         }
 
-        bool pressed = ImGui::Button(icon, { 24, 24 });
+        bool pressed = ImGui::Button(icon, size);
         if (pressed) {
             checked = !checked;
         }
@@ -645,15 +687,15 @@ namespace gl {
         return pressed;
     }
 
-    bool ImguiCore::IconButton(const char* id, const char* icon) {
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+    bool ImguiCore::IconButton(const char* id, const char* icon, const ImVec2& size, const float cornerRadius) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, cornerRadius);
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, Color::LAVENDER_GREY);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color::JORDY_BLUE);
         ImGui::PushStyleColor(ImGuiCol_Button, Color::CORNFLOWER_BLUE);
         ImGui::PushStyleColor(ImGuiCol_Text, Color::LAVENDER_GREY);
         ImGui::PushID(id);
 
-        bool pressed = ImGui::Button(icon, { 24, 24 });
+        bool pressed = ImGui::Button(icon, size);
 
         ImGui::PopID();
         ImGui::PopStyleColor(4);

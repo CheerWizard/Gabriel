@@ -56,6 +56,8 @@ namespace gl {
         static ImguiCoreCallback* callback;
         static bool frameBufferResized;
 
+        static ColorAttachment logo;
+
         static Window* window;
         static Camera* camera;
         static Scene* scene;
@@ -100,11 +102,17 @@ namespace gl {
 
         static void setIniFilename(const char *iniFilename);
 
+        static void loadLogo(const char* filepath, const glm::vec2& size = { 16, 16 });
+
         static std::string ID(const std::vector<const char *> &str);
 
         static void selectEntity(const Entity& entity);
 
         static void unselectEntity();
+
+        static void enableInput();
+
+        static void disableInput();
 
         static bool Checkbox(const char *label, bool &v, const char *fmt = "%s");
 
@@ -179,9 +187,9 @@ namespace gl {
 
         static void DrawFontStyle(Style& style);
 
-        static bool IconRadioButton(const char* id, const char* icon, bool& checked);
+        static bool IconRadioButton(const char* id, const char* icon, bool& checked, const ImVec2& size = { 24, 24 }, const float cornerRadius = 2.0f);
 
-        static bool IconButton(const char* id, const char* icon);
+        static bool IconButton(const char* id, const char* icon, const ImVec2& size = { 24, 24 }, const float cornerRadius = 2.0f);
 
         static void Spacing(float width, float height);
 

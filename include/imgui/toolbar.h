@@ -1,5 +1,7 @@
 #pragma once
 
+#include <api/image.h>
+
 namespace gl {
 
     struct ViewportsMenu final {

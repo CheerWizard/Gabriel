@@ -170,9 +170,18 @@ namespace gl {
         ImguiCore::dockspaceId = dsId;
         ImGui::DockSpace(dsId, { 0, 0 }, ImguiCore::dockspaceFlags);
 
+        ImGui::SetNextWindowSize({ ImGui::GetWindowWidth(), 64 });
+
         if (ImGui::BeginMenuBar()) {
 
-            ImGui::Text("Gabriel");
+            if (ImguiCore::logo.buffer.id != InvalidImageBuffer) {
+                const auto id = reinterpret_cast<ImTextureID>((unsigned long long) ImguiCore::logo.buffer.id);
+                ImVec2 size = {
+                        static_cast<float>(ImguiCore::logo.image.width),
+                        static_cast<float>(ImguiCore::logo.image.height)
+                };
+                ImGui::Image(id, size, { 0, 1 }, { 1, 0 });
+            }
 
             if (ImGui::BeginMenu("File")) {
 
@@ -196,12 +205,38 @@ namespace gl {
 
                 ImGui::Separator();
 
-                ImguiCore::close = ImGui::MenuItem("Exit", "Esc", false);
+                if (ImGui::MenuItem("Exit", "Esc", false)) {
+                    ImguiCore::close = true;
+                }
 
-                ImGui::EndMenu();
+                ImGui::EndMenuBar();
             }
 
             ViewportsMenu::render();
+
+            ImguiCore::Spacing(ImGui::GetWindowWidth() - 410, 1);
+
+            if (ImguiCore::IconButton("##minimize_button", "_", { 72, 24 }, 0)) {
+                ImguiCore::window->minimize();
+            }
+
+            ImGui::SameLine(0, 1);
+
+            static bool fullscreen = false;
+            if (ImguiCore::IconButton("##resize_button", ICON_CI_SCREEN_FULL, { 72, 24 }, 0)) {
+                fullscreen = !fullscreen;
+                if (fullscreen) {
+                    ImguiCore::window->setFullScreen();
+                } else {
+                    ImguiCore::window->setWindowed();
+                }
+            }
+
+            ImGui::SameLine(0, 1);
+
+            if (ImguiCore::IconButton("##close_button", ICON_CI_CLOSE, { 72, 24 }, 0)) {
+                ImguiCore::close = true;
+            }
 
             ImGui::EndMenuBar();
         }

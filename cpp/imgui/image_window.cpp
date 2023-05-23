@@ -33,19 +33,7 @@ namespace gl {
 
         mHovered = ImGui::IsWindowHovered();
 
-        if (mHovered) {
-            ImguiCore::camera->onKeyPressImgui(Timer::getDeltaMillis());
-            ImguiCore::camera->onMouseCursorImgui(Timer::getDeltaMillis());
-
-            if (mScrollX != ImguiCore::IO->MouseWheelH) {
-                mScrollX = ImguiCore::IO->MouseWheelH;
-            }
-
-            if (mScrollY != ImguiCore::IO->MouseWheel) {
-                mScrollY = ImguiCore::IO->MouseWheel;
-                ImguiCore::camera->onMouseScroll(mScrollY, Timer::getDeltaMillis());
-            }
-        }
+        pollEvents();
     }
 
     void ImageWindow::end() {
@@ -56,6 +44,20 @@ namespace gl {
     void ImageWindow::draw() {
         const auto id = reinterpret_cast<ImTextureID>((unsigned long long) imageBuffer.id);
         ImGui::Image(id, mCurrentFrameSize, { 0, 1 }, { 1, 0 });
+    }
+
+    void ImageWindow::pollEvents() {
+//        ImguiCore::camera->moveImgui(Timer::getDeltaMillis());
+//        ImguiCore::camera->onMouseCursorImgui(ImGui::GetCursorPosX(), ImGui::GetCursorPosY(), Timer::getDeltaMillis());
+//
+//        if (mScrollX != ImguiCore::IO->MouseWheelH) {
+//            mScrollX = ImguiCore::IO->MouseWheelH;
+//        }
+//
+//        if (mScrollY != ImguiCore::IO->MouseWheel) {
+//            mScrollY = ImguiCore::IO->MouseWheel;
+//            ImguiCore::camera->onMouseScroll(mScrollY, Timer::getDeltaMillis());
+//        }
     }
 
 }
