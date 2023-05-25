@@ -169,3 +169,6 @@ spdlog | https://github.com/gabime/spdlog
 ### FXAA
 ![Знімок екрана (75)](https://github.com/CheerWizard/Gabriel/assets/37471793/8a61648e-f4e3-4fd8-b190-d3164af27dda)
 ![Знімок екрана (76)](https://github.com/CheerWizard/Gabriel/assets/37471793/0b83ce7e-f42d-4460-9639-7fa221cdcc32)
+
+### UI theme, Gizmo, custom toolbar
+https://www.instagram.com/p/CsqLJ7urE8P/
