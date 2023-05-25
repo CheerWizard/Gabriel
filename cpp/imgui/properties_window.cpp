@@ -54,7 +54,7 @@ namespace gl {
                 }
 
                 auto& screenParams = ImguiCore::screenRenderer->getParams();
-                if (ImguiCore::InputFloat("Gamma", screenParams.gamma.value, 0.1f)) {
+                if (ImguiCore::SliderFloat("Gamma", screenParams.gamma.value, 0, 5)) {
                     ImguiCore::screenRenderer->updateGamma();
                 }
 
@@ -67,17 +67,9 @@ namespace gl {
                         ImguiCore::Checkbox("Enable", fxaaRenderer->isEnabled);
                         ImGui::PopID();
 
-                        ImGui::PushID("##fxaa_span_max");
-                        ImGui::SliderFloat("Span Max", &fxaaRenderer->getParams().spanMax.value, 0, 16);
-                        ImGui::PopID();
-
-                        ImGui::PushID("##fxaa_reduce_min");
-                        ImGui::SliderFloat("Reduce Min", &fxaaRenderer->getParams().reduceMin.value, 0, 1);
-                        ImGui::PopID();
-
-                        ImGui::PushID("##fxaa_reduce_mul");
-                        ImGui::SliderFloat("Reduce Mul", &fxaaRenderer->getParams().reduceMul.value, 0, 1);
-                        ImGui::PopID();
+                        ImguiCore::SliderFloat("Span Max", fxaaRenderer->getParams().spanMax.value, 0, 16);
+                        ImguiCore::SliderFloat("Reduce Min", fxaaRenderer->getParams().reduceMin.value, 0, 1);
+                        ImguiCore::SliderFloat("Reduce Mul", fxaaRenderer->getParams().reduceMul.value, 0, 1);
                     }
                 }
 
@@ -132,18 +124,23 @@ namespace gl {
 
                 if (ImGui::CollapsingHeader("HDR")) {
                     auto& hdrParams = ImguiCore::hdrRenderer->getParams();
+
                     ImguiCore::Checkbox("Enable HDR", ImguiCore::hdrRenderer->isEnabled);
-                    if (ImguiCore::InputFloat("Exposure", hdrParams.exposure.value, 0.1f)) {
+
+                    if (ImguiCore::SliderFloat("Exposure", hdrParams.exposure.value, 0, 10)) {
                         ImguiCore::hdrRenderer->updateExposure();
                     }
-                    if (ImguiCore::InputFloat("Shiny", hdrParams.shinyStrength.value, 0.1f)) {
+
+                    if (ImguiCore::SliderFloat("Shiny", hdrParams.shinyStrength.value, 0, 16)) {
                         ImguiCore::hdrRenderer->updateShinyStrength();
                     }
                 }
 
                 if (ImGui::CollapsingHeader("Blur")) {
                     auto& blurParams = ImguiCore::blurRenderer->getParams();
+
                     ImguiCore::Checkbox("Enable Blur", ImguiCore::blurRenderer->isEnabled);
+
                     if (ImguiCore::InputFloat("Offset", blurParams.offset.value, 0.001f)) {
                         ImguiCore::blurRenderer->updateOffset();
                     }
@@ -151,12 +148,8 @@ namespace gl {
 
                 if (ImGui::CollapsingHeader("Bloom")) {
                     ImguiCore::Checkbox("Enable Bloom", ImguiCore::bloomRenderer->isEnabled);
-                    ImGui::PushID("##bloom_strength");
-                    ImGui::SliderFloat("Strength", &ImguiCore::bloomRenderer->getBloomStrength(), 0.0f, 1.0f);
-                    ImGui::PopID();
-                    ImGui::PushID("##bloom_filter_radius");
-                    ImGui::SliderFloat("Filter Radius", &ImguiCore::bloomRenderer->getFilterRadius(), 0.0f, 1.0f);
-                    ImGui::PopID();
+                    ImguiCore::SliderFloat("Strength", ImguiCore::bloomRenderer->getBloomStrength(), 0.0f, 1.0f);
+                    ImguiCore::SliderFloat("Filter Radius", ImguiCore::bloomRenderer->getFilterRadius(), 0.0f, 1.0f);
                 }
 
                 if (ImGui::CollapsingHeader("SSAO")) {
@@ -166,7 +159,7 @@ namespace gl {
                     ImguiCore::InputInt("Samples Size", ssaoParams.samplesSize.value);
                     ImguiCore::InputFloat("Sample Radius", ssaoParams.sampleRadius.value, 0.1f);
                     ImguiCore::InputFloat("Sample Bias", ssaoParams.sampleBias.value, 0.001f);
-                    ImguiCore::InputInt("Occlusion Power", ssaoParams.occlusionPower.value);
+                    ImguiCore::SliderInt("Occlusion Power", ssaoParams.occlusionPower.value, 0, 10);
                 }
 
                 ImGui::EndTabItem();

@@ -788,7 +788,7 @@ namespace gl {
     void Application::renderImgui() {
         ImguiCore::begin();
 
-        Toolbar::render();
+        MainWindow::render();
         ScreenWindow::render();
         PropertiesWindow::render();
         EntityWindow::render();

@@ -28,10 +28,10 @@ namespace gl {
         ImGuizmo::MODE mode = enableWorldMode ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
 
         if (ImGuizmo::IsOver() || ImGuizmo::IsUsing()) {
-            info("Guizmo is over or used");
+//            info("Guizmo is over or used");
             ImguiCore::disableInput();
         } else {
-            info("Guizmo is not over or used");
+//            info("Guizmo is not over or used");
             ImguiCore::enableInput();
         }
 

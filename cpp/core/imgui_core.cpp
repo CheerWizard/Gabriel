@@ -11,25 +11,7 @@
 #include <GLES2/gl2.h>
 #endif
 
-#define IM_COLF(r, g, b, a) ImVec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f)
-
 namespace gl {
-
-    struct Color final {
-        static constexpr auto LAVENDER_GREY = IM_COL32(205, 209, 228, 255);
-        static constexpr auto BLACK_PEARL = IM_COL32(8, 14, 44, 255);
-        static constexpr auto JORDY_BLUE = IM_COL32(137, 196, 244, 255);
-        static constexpr auto CORNFLOWER_BLUE = IM_COL32(72, 113, 247, 255);
-        static constexpr auto ALICE_BLUE = IM_COL32(228, 241, 254, 255);
-    };
-
-    struct ColorF final {
-        static constexpr auto LAVENDER_GREY = IM_COLF(205, 209, 228, 255);
-        static constexpr auto BLACK_PEARL = IM_COLF(8, 14, 44, 255);
-        static constexpr auto JORDY_BLUE = IM_COLF(137, 196, 244, 255);
-        static constexpr auto CORNFLOWER_BLUE = IM_COLF(72, 113, 247, 255);
-        static constexpr auto ALICE_BLUE = IM_COLF(228, 241, 254, 255);
-    };
 
     Window* ImguiCore::window;
     ImGuiIO* ImguiCore::IO;
@@ -94,34 +76,43 @@ namespace gl {
 
     void ImguiCore::setDarkTheme() {
         auto& colors = ImGui::GetStyle().Colors;
-        colors[ImGuiCol_WindowBg] = ImVec4 { 0.1f, 0.105f, 0.11f, 1.0f };
+        colors[ImGuiCol_WindowBg] = ColorsF::windowBg;
 
         // Headers
-        colors[ImGuiCol_Header] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-        colors[ImGuiCol_HeaderHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-        colors[ImGuiCol_HeaderActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+        colors[ImGuiCol_Header] = ColorsF::header;
+        colors[ImGuiCol_HeaderHovered] = ColorsF::headerHover;
+        colors[ImGuiCol_HeaderActive] = ColorsF::headerActive;
 
         // Buttons
-        colors[ImGuiCol_Button] = ColorF::CORNFLOWER_BLUE;
-        colors[ImGuiCol_ButtonHovered] = ColorF::JORDY_BLUE;
-        colors[ImGuiCol_ButtonActive] = ColorF::LAVENDER_GREY;
+        colors[ImGuiCol_Button] = ColorsF::button;
+        colors[ImGuiCol_ButtonHovered] = ColorsF::buttonHover;
+        colors[ImGuiCol_ButtonActive] = ColorsF::buttonActive;
 
         // Frame BG
-        colors[ImGuiCol_FrameBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-        colors[ImGuiCol_FrameBgHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-        colors[ImGuiCol_FrameBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+        colors[ImGuiCol_FrameBg] = ColorsF::frameBg;
+        colors[ImGuiCol_FrameBgHovered] = ColorsF::frameBgHover;
+        colors[ImGuiCol_FrameBgActive] = ColorsF::frameBgActive;
 
         // Tabs
-        colors[ImGuiCol_Tab] = ColorF::JORDY_BLUE;
-        colors[ImGuiCol_TabHovered] = ColorF::LAVENDER_GREY;
-        colors[ImGuiCol_TabActive] = ColorF::CORNFLOWER_BLUE;
-        colors[ImGuiCol_TabUnfocused] = ColorF::JORDY_BLUE;
-        colors[ImGuiCol_TabUnfocusedActive] = ColorF::CORNFLOWER_BLUE;
+        colors[ImGuiCol_Tab] = ColorsF::tab;
+        colors[ImGuiCol_TabHovered] = ColorsF::tabHover;
+        colors[ImGuiCol_TabActive] = ColorsF::tabActive;
+        colors[ImGuiCol_TabUnfocused] = ColorsF::tabUnfocused;
+        colors[ImGuiCol_TabUnfocusedActive] = ColorsF::tabUnfocusedActive;
 
         // Title
-        colors[ImGuiCol_TitleBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-        colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-        colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+        colors[ImGuiCol_TitleBg] = ColorsF::titleBg;
+        colors[ImGuiCol_TitleBgActive] = ColorsF::titleBgActive;
+        colors[ImGuiCol_TitleBgCollapsed] = ColorsF::titleBgCollapsed;
+
+        // Menu Bar
+        colors[ImGuiCol_MenuBarBg] = ColorsF::menubarBg;
+
+        // Popup
+        colors[ImGuiCol_PopupBg] = ColorsF::popupBg;
+
+        // Scrollbar
+        colors[ImGuiCol_ScrollbarBg] = ColorsF::scrollbarBg;
     }
 
     void ImguiCore::begin() {
@@ -620,7 +611,9 @@ namespace gl {
     void ImguiCore::DrawLightColorControl(const std::string& label, LightColor& color, float resetValue, float columnWidth) {
         ImGui::SeparatorText("Light Color");
         DrawColor3Control("", color.rgb, resetValue, columnWidth);
-        ImGui::DragFloat(IMGUI_ID("##light_color", label.c_str()), &color.intensity, 0.1f);
+        ImGui::PushID(IMGUI_ID("##light_intensity_", label.c_str()));
+        ImGui::SliderFloat("Intensity", &color.intensity, 0, 100);
+        ImGui::PopID();
     }
 
     bool ImguiCore::InputText(std::string& text) {
@@ -687,12 +680,21 @@ namespace gl {
         return pressed;
     }
 
-    bool ImguiCore::IconButton(const char* id, const char* icon, const ImVec2& size, const float cornerRadius) {
+    bool ImguiCore::IconButton(
+            const char* id,
+            const char* icon,
+            const ImVec2& size,
+            const float cornerRadius,
+            const u32 baseColor,
+            const u32 hoverColor,
+            const u32 activeColor,
+            const u32 textColor
+    ) {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, cornerRadius);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, Color::LAVENDER_GREY);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Color::JORDY_BLUE);
-        ImGui::PushStyleColor(ImGuiCol_Button, Color::CORNFLOWER_BLUE);
-        ImGui::PushStyleColor(ImGuiCol_Text, Color::LAVENDER_GREY);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, activeColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverColor);
+        ImGui::PushStyleColor(ImGuiCol_Button, baseColor);
+        ImGui::PushStyleColor(ImGuiCol_Text, textColor);
         ImGui::PushID(id);
 
         bool pressed = ImGui::Button(icon, size);
@@ -713,13 +715,37 @@ namespace gl {
         float height = static_cast<float>(window->getMonitorHeight());
         ImGui::SetWindowPos({0,0 });
         ImGui::SetWindowSize({ width, height });
+        window->setFullScreen();
     }
 
     void ImguiCore::WindowMode() {
         float width = static_cast<float>(window->getWidth());
         float height = static_cast<float>(window->getHeight());
-        ImGui::SetWindowPos({width * 0.25f,height * 0.25f });
+        ImGui::SetWindowPos({0, 0 });
         ImGui::SetWindowSize({ width, height });
+        window->setWindowed();
+    }
+
+    void ImguiCore::FullscreenWindowMode() {
+        float width = static_cast<float>(window->getMonitorWidth());
+        float height = static_cast<float>(window->getMonitorHeight());
+        ImGui::SetWindowPos({0, 0 });
+        ImGui::SetWindowSize({ width, height });
+        window->setFullscreenWindowed();
+    }
+
+    bool ImguiCore::SliderFloat(const char *label, float &value, const float min, const float max) {
+        ImGui::PushID(IMGUI_ID(label));
+        bool result = ImGui::SliderFloat(label, &value, min, max);
+        ImGui::PopID();
+        return result;
+    }
+
+    bool ImguiCore::SliderInt(const char *label, int &value, const int min, const int max) {
+        ImGui::PushID(IMGUI_ID(label));
+        bool result = ImGui::SliderInt(label, &value, min, max);
+        ImGui::PopID();
+        return result;
     }
 
 }

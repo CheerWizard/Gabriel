@@ -23,13 +23,12 @@ namespace gl {
             ImGui::SetNextWindowDockID(ImguiCore::dockspaceId);
         }
 
-        screenImage.begin();
-
-        renderManipulateTab();
-        screenImage.draw();
-        Gizmo::render();
-
-        screenImage.end();
+        if (screenImage.begin()) {
+            renderManipulateTab();
+            screenImage.draw();
+            Gizmo::render();
+            screenImage.end();
+        }
     }
 
     void ScreenWindow::renderManipulateTab() {

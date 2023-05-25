@@ -107,6 +107,15 @@ namespace gl {
         glfwSetWindowMonitor(mHandle, null, mX, mY, mWidth, mHeight, refreshRate);
     }
 
+    void Window::setFullscreenWindowed() {
+        mWindowModeX = mX;
+        mWindowModeY = mY;
+        mWindowModeWidth = mWidth;
+        mWindowModeHeight = mHeight;
+        auto& mode = mVideoModes[mPrimaryMonitor];
+        glfwSetWindowMonitor(mHandle, null, 0, 0, mode->width, mode->height, mode->refreshRate);
+    }
+
     void Window::toggleWindowMode() {
         mEnableFullscreen = !mEnableFullscreen;
         if (mEnableFullscreen)

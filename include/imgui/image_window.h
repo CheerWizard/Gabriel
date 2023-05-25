@@ -24,7 +24,7 @@ namespace gl {
 
         void render();
 
-        void begin();
+        bool begin();
         void end();
         void draw();
 

@@ -137,113 +137,54 @@ namespace gl {
         }
     }
 
-    bool Toolbar::sInitialized = false;
-    int Toolbar::sX = 0;
-    int Toolbar::sY = 0;
-    int Toolbar::sWidth = 800;
-    int Toolbar::sHeight = 600;
+    bool Dockspace::sInitialized = false;
+    int Dockspace::sX = 0;
+    int Dockspace::sY = 0;
+    int Dockspace::sWidth = 800;
+    int Dockspace::sHeight = 600;
 
-    void Toolbar::render() {
+    void Dockspace::render() {
         static bool show = true;
 
-        if (!sInitialized || ImguiCore::frameBufferResized) {
-            sInitialized = true;
-            ImguiCore::frameBufferResized = false;
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImGui::SetNextWindowPos(viewport->WorkPos);
-            ImGui::SetNextWindowSize(viewport->WorkSize);
-            ImGui::SetNextWindowViewport(viewport->ID);
-        }
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 16 });
 
-        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
         windowFlags |= ImGuiWindowFlags_NoTitleBar;
         windowFlags |= ImGuiWindowFlags_NoCollapse;
-        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+        windowFlags |= ImGuiWindowFlags_NoNavFocus;
         windowFlags |= ImGuiWindowFlags_NoBackground;
+        windowFlags |= ImGuiWindowFlags_MenuBar;
 
         ImGui::Begin("DockSpace", &show, windowFlags);
+
+        Toolbar::render();
+
         ImGuiID dsId = ImGui::GetID("Dashboard");
         ImguiCore::dockspaceId = dsId;
         ImGui::DockSpace(dsId, { 0, 0 }, ImguiCore::dockspaceFlags);
 
-        ImGui::SetNextWindowSize({ ImGui::GetWindowWidth(), 64 });
+        pollEvents();
 
-        if (ImGui::BeginMenuBar()) {
+        end();
+    }
 
-            if (ImguiCore::logo.buffer.id != InvalidImageBuffer) {
-                const auto id = reinterpret_cast<ImTextureID>((unsigned long long) ImguiCore::logo.buffer.id);
-                ImVec2 size = {
-                        static_cast<float>(ImguiCore::logo.image.width),
-                        static_cast<float>(ImguiCore::logo.image.height)
-                };
-                ImGui::Image(id, size, { 0, 1 }, { 1, 0 });
-            }
+    void Dockspace::end() {
+        ImGui::PopStyleVar(4);
+        ImGui::End();
+    }
 
-            if (ImGui::BeginMenu("File")) {
-
-                if (ImGui::MenuItem("New", "Ctrl+N")) {
-
-                }
-
-                if (ImGui::MenuItem("Open", "Ctrl+O")) {
-
-                }
-
-                if (ImGui::MenuItem("Save", "Ctrl+S")) {
-
-                }
-
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("Settings", "Alt+S")) {
-
-                }
-
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("Exit", "Esc", false)) {
-                    ImguiCore::close = true;
-                }
-
-                ImGui::EndMenuBar();
-            }
-
-            ViewportsMenu::render();
-
-            ImguiCore::Spacing(ImGui::GetWindowWidth() - 410, 1);
-
-            if (ImguiCore::IconButton("##minimize_button", "_", { 72, 24 }, 0)) {
-                ImguiCore::window->minimize();
-            }
-
-            ImGui::SameLine(0, 1);
-
-            static bool fullscreen = false;
-            if (ImguiCore::IconButton("##resize_button", ICON_CI_SCREEN_FULL, { 72, 24 }, 0)) {
-                fullscreen = !fullscreen;
-                if (fullscreen) {
-                    ImguiCore::window->setFullScreen();
-                } else {
-                    ImguiCore::window->setWindowed();
-                }
-            }
-
-            ImGui::SameLine(0, 1);
-
-            if (ImguiCore::IconButton("##close_button", ICON_CI_CLOSE, { 72, 24 }, 0)) {
-                ImguiCore::close = true;
-            }
-
-            ImGui::EndMenuBar();
-        }
-
+    void Dockspace::pollEvents() {
         ImVec2 pos = ImGui::GetWindowPos();
         int width = static_cast<int>(ImGui::GetWindowWidth());
-        int height = static_cast<int>(ImGui::GetWindowWidth());
+        int height = static_cast<int>(ImGui::GetWindowHeight());
         int x = static_cast<int>(pos.x);
         int y = static_cast<int>(pos.y);
 
@@ -258,15 +199,89 @@ namespace gl {
             sHeight = height;
             ImguiCore::window->resize(width, height);
         }
-
-        end();
-
-        Viewports::render();
     }
 
-    void Toolbar::end() {
-        ImGui::PopStyleVar(3);
-        ImGui::End();
+    void Toolbar::render() {
+        if (ImGui::BeginMenuBar()) {
+            drawLogo();
+            drawFileMenu();
+            ViewportsMenu::render();
+            drawWindowButtons();
+            ImGui::EndMenuBar();
+        }
+    }
+
+    void Toolbar::drawLogo() {
+        if (ImguiCore::logo.buffer.id != InvalidImageBuffer) {
+            const auto id = reinterpret_cast<ImTextureID>((unsigned long long) ImguiCore::logo.buffer.id);
+            ImVec2 size = {
+                    static_cast<float>(ImguiCore::logo.image.width),
+                    static_cast<float>(ImguiCore::logo.image.height)
+            };
+            ImGui::Image(id, size, { 0, 1 }, { 1, 0 });
+        }
+    }
+
+    void Toolbar::drawFileMenu() {
+        if (ImGui::BeginMenu("File")) {
+
+            if (ImGui::MenuItem("New", "Ctrl+N")) {
+
+            }
+
+            if (ImGui::MenuItem("Open", "Ctrl+O")) {
+
+            }
+
+            if (ImGui::MenuItem("Save", "Ctrl+S")) {
+
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Settings", "Alt+S")) {
+
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Exit", "Esc", false)) {
+                ImguiCore::close = true;
+            }
+
+            ImGui::EndMenu();
+        }
+    }
+
+    void Toolbar::drawWindowButtons() {
+        ImguiCore::Spacing(ImGui::GetWindowWidth() - 400, 1);
+
+        if (ImguiCore::IconButton("##minimize_button", "_", { 72, 36 }, 0, Colors::menubarBg, Colors::frameBgHover)) {
+            ImguiCore::window->minimize();
+        }
+
+        ImGui::SameLine(0, 0);
+
+        static bool fullscreen = false;
+        if (ImguiCore::IconButton("##resize_button", ICON_CI_SCREEN_FULL, { 72, 36 }, 0, Colors::menubarBg, Colors::frameBgHover)) {
+            fullscreen = !fullscreen;
+            if (fullscreen) {
+                ImguiCore::window->setFullscreenWindowed();
+            } else {
+                ImguiCore::window->setWindowed();
+            }
+        }
+
+        ImGui::SameLine(0, 0);
+
+        if (ImguiCore::IconButton("##close_button", ICON_CI_CLOSE, { 72, 36 }, 0, Color::TALL_POPPY, Color::CHESNUT_ROSE)) {
+            ImguiCore::close = true;
+        }
+    }
+
+    void MainWindow::render() {
+        Dockspace::render();
+        Viewports::render();
     }
 
 }

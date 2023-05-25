@@ -12,16 +12,31 @@ namespace gl {
         static void render();
     };
 
-    struct Toolbar final {
+    struct Dockspace final {
         static void render();
 
     private:
         static void end();
 
+        static void pollEvents();
+
     private:
         static bool sInitialized;
         static int sX, sY;
         static int sWidth, sHeight;
+    };
+
+    struct Toolbar final {
+        static void render();
+
+    private:
+        static void drawLogo();
+        static void drawFileMenu();
+        static void drawWindowButtons();
+    };
+
+    struct MainWindow final {
+        static void render();
     };
 
 }

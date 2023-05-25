@@ -9,13 +9,13 @@ namespace gl {
         end();
     }
 
-    void ImageWindow::begin() {
+    bool ImageWindow::begin() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
         if (!ImGui::Begin(title, &show, windowFlags)) {
             end();
-            return;
+            return false;
         }
 
         if (!mInitialized) {
@@ -34,6 +34,8 @@ namespace gl {
         mHovered = ImGui::IsWindowHovered();
 
         pollEvents();
+
+        return true;
     }
 
     void ImageWindow::end() {

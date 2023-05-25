@@ -97,6 +97,7 @@ namespace gl {
 
         void setFullScreen();
         void setWindowed();
+        void setFullscreenWindowed();
         void toggleWindowMode();
 
         void enableVSync();
