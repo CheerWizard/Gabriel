@@ -16,6 +16,7 @@ OGLDEV                | https://www.youtube.com/@OGLDEV
 Learn OpenGL          | https://learnopengl.com/
 QianMo                | https://gitea.yiem.net/QianMo/Real-Time-Rendering-4th-Bibliography-Collection
 Victor Gordan         | https://www.youtube.com/@VictorGordan
+Jorge Rodriguez       | https://www.youtube.com/@JorgeVinoRodriguez  
 
 ## Libraries
 Library | Links
