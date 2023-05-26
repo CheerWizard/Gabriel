@@ -50,7 +50,7 @@ spdlog | https://github.com/gabime/spdlog
   - [x] Zoom in/out
   - [x] Select object
   - [x] Drag object
-  - [x] Hover object  
+  - [] Hover object  
 
 #### ECS
   - [x] Entity
@@ -99,10 +99,10 @@ spdlog | https://github.com/gabime/spdlog
 
 #### Transparency
   - [x] Sorted Scene
-  - [x] Weighted Blended
+  - [] Weighted Blended
 
 #### Animations
-  - [x] 3D Skeletal
+  - [] 3D Skeletal
 
 #### UI
   - [x] Text 2D
