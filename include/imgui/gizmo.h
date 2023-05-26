@@ -15,7 +15,16 @@ namespace gl {
         static bool enableScale;
         static bool enableWorldMode;
 
-        static void render();
+        static void render(const Entity& entity);
+
+    private:
+        static void renderGizmoTransform();
+        static void renderGizmoLight();
+
+    private:
+        static Entity sEntity;
+        static glm::mat4 sView;
+        static glm::mat4 sPerspective;
     };
 
 }

@@ -9,9 +9,15 @@ namespace gl {
     bool Gizmo::enableScale = false;
     bool Gizmo::enableWorldMode = false;
 
-    void Gizmo::render() {
+    Entity Gizmo::sEntity;
+
+    glm::mat4 Gizmo::sView;
+    glm::mat4 Gizmo::sPerspective;
+
+    static ImGuizmo::MODE pMode;
+
+    void Gizmo::render(const Entity& entity) {
         ImGuiIO& io = *ImguiCore::IO;
-        Scene* scene = ImguiCore::scene;
         auto& camera = *ImguiCore::camera;
 
         ImGuizmo::SetOrthographic(false);
@@ -22,10 +28,9 @@ namespace gl {
         ImVec2 position = ImGui::GetWindowPos();
         ImGuizmo::SetRect(position.x, position.y, width, height);
 
-        const float* view = glm::value_ptr(camera.view());
-        const float* perspective = glm::value_ptr(camera.perspective());
-
-        ImGuizmo::MODE mode = enableWorldMode ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
+        sView = camera.view();
+        sPerspective = camera.perspective();
+        pMode = enableWorldMode ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
 
         if (ImGuizmo::IsOver() || ImGuizmo::IsUsing()) {
 //            info("Guizmo is over or used");
@@ -35,110 +40,134 @@ namespace gl {
             ImguiCore::enableInput();
         }
 
-        // draw gizmo for scene objects
-        scene->eachComponent<GizmoTransformComponent>([=](GizmoTransformComponent* component) {
-            auto& transform = *scene->getComponent<Transform>(component->entityId);
+        sEntity = entity;
+        renderGizmoTransform();
+        renderGizmoLight();
+    }
+
+    void Gizmo::renderGizmoTransform() {
+        auto* transform = sEntity.getComponent<Transform>();
+        const float* viewPtr = glm::value_ptr(sView);
+        const float* perspectivePtr = glm::value_ptr(sPerspective);
+
+        if (transform) {
+            float* transformPtr = glm::value_ptr(transform->value);
+            float* translationPtr = glm::value_ptr(transform->translation);
+            float* rotationPtr = glm::value_ptr(transform->rotation);
+            float* scalePtr = glm::value_ptr(transform->scale);
 
             if (enableTranslation) {
                 ImGuizmo::Manipulate(
-                        view,
-                        perspective,
+                        viewPtr,
+                        perspectivePtr,
                         ImGuizmo::TRANSLATE,
-                        mode,
-                        glm::value_ptr(transform.value)
+                        pMode,
+                        transformPtr
                 );
             }
 
             if (enableRotation) {
                 ImGuizmo::Manipulate(
-                        view,
-                        perspective,
+                        viewPtr,
+                        perspectivePtr,
                         ImGuizmo::ROTATE,
-                        mode,
-                        glm::value_ptr(transform.value)
+                        pMode,
+                        transformPtr
                 );
             }
 
             if (enableScale) {
                 ImGuizmo::Manipulate(
-                        view,
-                        perspective,
+                        viewPtr,
+                        perspectivePtr,
                         ImGuizmo::SCALE,
-                        mode,
-                        glm::value_ptr(transform.value)
+                        pMode,
+                        transformPtr
                 );
             }
-        });
 
-        // draw gizmo for lights
+            ImGuizmo::DecomposeMatrixToComponents(
+                    transformPtr,
+                    translationPtr,
+                    rotationPtr,
+                    scalePtr
+            );
+        }
+    }
 
-        scene->eachComponent<GizmoPhongLight>([=](GizmoPhongLight* component) {
-            auto* phongLight = scene->getComponent<PhongLightComponent>(component->entityId);
+    void Gizmo::renderGizmoLight() {
+        const float* viewPtr = glm::value_ptr(sView);
+        const float* perspectivePtr = glm::value_ptr(sPerspective);
+        bool updated = false;
 
-            if (enableTranslation && phongLight) {
-                glm::mat4 translate(1.0f);
-                translate = glm::translate(translate, glm::vec3(phongLight->position));
-                ImGuizmo::Manipulate(
-                        view,
-                        perspective,
-                        ImGuizmo::TRANSLATE,
-                        mode,
-                        glm::value_ptr(translate)
-                );
-                phongLight->position = glm::vec4(translate[3]);
-            }
-        });
+        auto* phongLight = sEntity.getComponent<PhongLightComponent>();
+        auto* directLight = sEntity.getComponent<DirectLightComponent>();
+        auto* pointLight = sEntity.getComponent<PointLightComponent>();
+        auto* spotLight = sEntity.getComponent<SpotLightComponent>();
 
-        scene->eachComponent<GizmoDirectLight>([=](GizmoDirectLight* component) {
-            auto* directLight = scene->getComponent<DirectLightComponent>(component->entityId);
+        if (enableTranslation && phongLight) {
+            glm::mat4 translate(1.0f);
+            translate = glm::translate(translate, glm::vec3(phongLight->position));
+            ImGuizmo::Manipulate(
+                    viewPtr,
+                    perspectivePtr,
+                    ImGuizmo::TRANSLATE,
+                    pMode,
+                    glm::value_ptr(translate)
+            );
+            glm::vec4 newPosition = glm::vec4(translate[3]);
+            updated = updated || (newPosition != phongLight->position);
+            phongLight->position = newPosition;
+        }
 
-            if (enableTranslation && directLight) {
-                glm::mat4 translate(1.0f);
-                translate = glm::translate(translate, glm::vec3(directLight->position));
-                ImGuizmo::Manipulate(
-                        view,
-                        perspective,
-                        ImGuizmo::TRANSLATE,
-                        mode,
-                        glm::value_ptr(translate)
-                );
-                directLight->position = glm::vec4(translate[3]);
-            }
-        });
+        if (enableTranslation && directLight) {
+            glm::mat4 translate(1.0f);
+            translate = glm::translate(translate, glm::vec3(directLight->position));
+            ImGuizmo::Manipulate(
+                    viewPtr,
+                    perspectivePtr,
+                    ImGuizmo::TRANSLATE,
+                    pMode,
+                    glm::value_ptr(translate)
+            );
+            glm::vec4 newPosition = glm::vec4(translate[3]);
+            updated = updated || (newPosition != directLight->position);
+            directLight->position = newPosition;
+        }
 
-        scene->eachComponent<GizmoPointLight>([=](GizmoPointLight* component) {
-            auto* pointLight = scene->getComponent<PointLightComponent>(component->entityId);
+        if (enableTranslation && pointLight) {
+            glm::mat4 translate(1.0f);
+            translate = glm::translate(translate, glm::vec3(pointLight->position));
+            ImGuizmo::Manipulate(
+                    viewPtr,
+                    perspectivePtr,
+                    ImGuizmo::TRANSLATE,
+                    pMode,
+                    glm::value_ptr(translate)
+            );
+            glm::vec4 newPosition = glm::vec4(translate[3]);
+            updated = updated || (newPosition != pointLight->position);
+            pointLight->position = newPosition;
+        }
 
-            if (enableTranslation && pointLight) {
-                glm::mat4 translate(1.0f);
-                translate = glm::translate(translate, glm::vec3(pointLight->position));
-                ImGuizmo::Manipulate(
-                        view,
-                        perspective,
-                        ImGuizmo::TRANSLATE,
-                        mode,
-                        glm::value_ptr(translate)
-                );
-                pointLight->position = glm::vec4(translate[3]);
-            }
-        });
+        if (enableTranslation && spotLight) {
+            glm::mat4 translate(1.0f);
+            translate = glm::translate(translate, glm::vec3(spotLight->position));
+            ImGuizmo::Manipulate(
+                    viewPtr,
+                    perspectivePtr,
+                    ImGuizmo::TRANSLATE,
+                    pMode,
+                    glm::value_ptr(translate)
+            );
+            glm::vec4 newPosition = glm::vec4(translate[3]);
+            updated = updated || (newPosition != spotLight->position);
+            spotLight->position = newPosition;
+        }
 
-        scene->eachComponent<GizmoSpotLight>([=](GizmoSpotLight* component) {
-            auto* spotLight = scene->getComponent<SpotLightComponent>(component->entityId);
-
-            if (enableTranslation && spotLight) {
-                glm::mat4 translate(1.0f);
-                translate = glm::translate(translate, glm::vec3(spotLight->position));
-                ImGuizmo::Manipulate(
-                        view,
-                        perspective,
-                        ImGuizmo::TRANSLATE,
-                        mode,
-                        glm::value_ptr(translate)
-                );
-                spotLight->position = glm::vec4(translate[3]);
-            }
-        });
+        if (updated) {
+            LightStorage::update();
+        }
     }
 
 }

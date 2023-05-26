@@ -11,7 +11,7 @@ namespace gl {
 
     bool ImageWindow::begin() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1);
 
         if (!ImGui::Begin(title, &show, windowFlags)) {
             end();
@@ -31,7 +31,7 @@ namespace gl {
         }
         mCurrentFrameSize = frameSize;
 
-        mHovered = ImGui::IsWindowHovered();
+        mFocused = ImGui::IsWindowFocused();
 
         pollEvents();
 
@@ -49,6 +49,9 @@ namespace gl {
     }
 
     void ImageWindow::pollEvents() {
+        if (mFocused) {
+            ImguiCore::IO->WantCaptureMouse = false;
+        }
 //        ImguiCore::camera->moveImgui(Timer::getDeltaMillis());
 //        ImguiCore::camera->onMouseCursorImgui(ImGui::GetCursorPosX(), ImGui::GetCursorPosY(), Timer::getDeltaMillis());
 //

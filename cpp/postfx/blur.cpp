@@ -23,13 +23,7 @@ namespace gl {
         mShader.init();
         mDrawable.init();
 
-        ColorAttachment color = { 0, w, h };
-        color.image.internalFormat = GL_RGB;
-        color.image.pixelFormat = GL_RGB;
-        color.image.pixelType = PixelType::U8;
-        color.init();
-
-        mFrame.colors = { color };
+        mFrame.colors = { initColor(w, h) };
         mFrame.init();
         mFrame.attachColors();
         mFrame.complete();
@@ -58,6 +52,15 @@ namespace gl {
 
     void BlurRenderer::updateOffset() {
         mShader.updateOffset();
+    }
+
+    ColorAttachment BlurRenderer::initColor(int width, int height) {
+        ColorAttachment color = { 0, width, height };
+        color.image.internalFormat = GL_RGB;
+        color.image.pixelFormat = GL_RGB;
+        color.image.pixelType = PixelType::U8;
+        color.init();
+        return color;
     }
 
 }

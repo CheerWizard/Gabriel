@@ -89,6 +89,8 @@ namespace gl {
         static void onEntityDragged(Entity entity, double x, double y);
         static void onEntityHovered(Entity entity, double x, double y);
 
+        void updateInput();
+
         void simulate();
 
         void renderPostFX();

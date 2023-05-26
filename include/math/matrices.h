@@ -50,4 +50,13 @@ namespace gl {
         glm::mat4& init();
     };
 
+    struct Model2dMat {
+        glm::fvec2 translation = { 0, 0 };
+        float rotation = 0;
+        glm::fvec2 scale = { 1, 1 };
+        glm::mat3 value;
+
+        glm::mat3& init();
+    };
+
 }

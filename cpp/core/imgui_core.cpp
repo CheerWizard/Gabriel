@@ -201,7 +201,8 @@ namespace gl {
         unselectEntity();
         selectedEntity = entity;
 
-        bool selectedModel = selectedEntity.validComponent<Transform>() && selectedEntity.validComponent<DrawableElements>();
+        bool selectedDrawable = selectedEntity.validComponent<DrawableElements>();
+        bool selectedTransform = selectedEntity.validComponent<Transform>();
         bool selectedPhongLight = selectedEntity.validComponent<PhongLightComponent>();
         bool selectedDirectLight = selectedEntity.validComponent<DirectLightComponent>();
         bool selectedPointLight = selectedEntity.validComponent<PointLightComponent>();
@@ -209,8 +210,11 @@ namespace gl {
 
         if (selectedEntity.valid()) {
 
-            if (selectedModel) {
+            if (selectedDrawable) {
                 selectedEntity.addComponent<PolygonVisual>();
+            }
+
+            if (selectedTransform) {
                 selectedEntity.addComponent<GizmoTransformComponent>();
             }
 
@@ -240,6 +244,7 @@ namespace gl {
         if (selectedEntity.valid()) {
             selectedEntity.removeComponent<PolygonVisual>();
             selectedEntity.removeComponent<GizmoTransformComponent>();
+            selectedEntity.removeComponent<LightVisual>();
             selectedEntity.removeComponent<GizmoPhongLight>();
             selectedEntity.removeComponent<GizmoDirectLight>();
             selectedEntity.removeComponent<GizmoPointLight>();
@@ -346,6 +351,7 @@ namespace gl {
             float resetValue, float columnWidth
     ) {
         bool press = false;
+        glm::vec2 oldValue = values;
 
         ImGui::PushID(label.c_str());
 
@@ -397,7 +403,7 @@ namespace gl {
 
         ImGui::PopID();
 
-        return press;
+        return press || (oldValue != values);
     }
 
     bool ImguiCore::DrawVec3Control(
@@ -406,6 +412,7 @@ namespace gl {
             float resetValue, float columnWidth
     ) {
         bool press = false;
+        glm::vec3 oldValue = values;
 
         ImGui::PushID(label.c_str());
 
@@ -473,7 +480,7 @@ namespace gl {
 
         ImGui::PopID();
 
-        return press;
+        return press || (oldValue != values);
     }
 
     bool ImguiCore::DrawVec4Control(
@@ -482,6 +489,7 @@ namespace gl {
             float resetValue, float columnWidth
     ) {
         bool press = false;
+        glm::vec4 oldValue = values;
 
         ImGui::PushID(label.c_str());
 
@@ -565,35 +573,45 @@ namespace gl {
 
         ImGui::PopID();
 
-        return press;
+        return press || (oldValue != values);
     }
 
     void ImguiCore::DrawTransform(Transform& transform) {
-        ImguiCore::DrawVec3Control("Translation", transform.translation);
+        bool translated = ImguiCore::DrawVec3Control("Translation", transform.translation);
+
         glm::vec3 rotation = glm::degrees(transform.rotation);
-        ImguiCore::DrawVec3Control("Rotation", rotation);
+        bool rotated = ImguiCore::DrawVec3Control("Rotation", rotation);
         transform.rotation = glm::radians(rotation);
-        ImguiCore::DrawVec3Control("Scale", transform.scale, { "X", "Y", "Z" }, 1.0f);
+
+        bool scaled = ImguiCore::DrawVec3Control("Scale", transform.scale, { "X", "Y", "Z" }, 1.0f);
+
+        if (translated || rotated || scaled) {
+            transform.init();
+        }
     }
 
     void ImguiCore::DrawTransform2d(Transform2d& transform) {
-        ImguiCore::DrawVec2Control("Translation", transform.translation);
-        ImguiCore::InputFloat("Rotation", transform.rotation, 1.0f);
-        ImguiCore::DrawVec2Control("Scale", transform.scale, { "X", "Y" }, 1.0f);
+        bool translated = ImguiCore::DrawVec2Control("Translation", transform.translation);
+        bool rotated = ImguiCore::InputFloat("Rotation", transform.rotation, 1.0f);
+        bool scaled = ImguiCore::DrawVec2Control("Scale", transform.scale, { "X", "Y" }, 1.0f);
+
+        if (translated || rotated || scaled) {
+            transform.init();
+        }
     }
 
-    void ImguiCore::DrawColor3Control(
+    bool ImguiCore::DrawColor3Control(
             const std::string &label, glm::vec3 &values,
             float resetValue, float columnWidth
     ) {
-        DrawVec3Control(label, values, { "R", "G", "B" }, resetValue, columnWidth);
+        return DrawVec3Control(label, values, { "R", "G", "B" }, resetValue, columnWidth);
     }
 
-    void ImguiCore::DrawColor4Control(
+    bool ImguiCore::DrawColor4Control(
             const std::string &label, glm::vec4 &values,
             float resetValue, float columnWidth
     ) {
-        DrawVec4Control(label, values, { "R", "G", "B", "A" }, resetValue, columnWidth);
+        return DrawVec4Control(label, values, { "R", "G", "B", "A" }, resetValue, columnWidth);
     }
 
     bool ImguiCore::ColorEdit3(const char* label, glm::vec3 &values, const char* fmt) {
@@ -608,22 +626,25 @@ namespace gl {
         return ImGui::ColorEdit4(IMGUI_ID(label), glm::value_ptr(values));
     }
 
-    void ImguiCore::DrawLightColorControl(const std::string& label, LightColor& color, float resetValue, float columnWidth) {
+    bool ImguiCore::DrawLightColorControl(const std::string& label, LightColor& color, float resetValue, float columnWidth) {
         ImGui::SeparatorText("Light Color");
-        DrawColor3Control("", color.rgb, resetValue, columnWidth);
+        bool colorChanged = DrawColor3Control("", color.rgb, resetValue, columnWidth);
         ImGui::PushID(IMGUI_ID("##light_intensity_", label.c_str()));
-        ImGui::SliderFloat("Intensity", &color.intensity, 0, 100);
+        bool intensityChanged = ImGui::SliderFloat("Intensity", &color.intensity, 0, 100);
         ImGui::PopID();
+        return colorChanged || intensityChanged;
     }
 
     bool ImguiCore::InputText(std::string& text) {
         char buffer[256];
         memset(buffer, 0, sizeof(buffer));
         strncpy_s(buffer, sizeof(buffer), text.c_str(), sizeof(buffer));
-        if (ImGui::InputText(IMGUI_ID("##Tag", text.c_str()), buffer, sizeof(buffer))) {
+
+        if (ImGui::InputText("##tag", buffer, sizeof(buffer))) {
             text = std::string(buffer);
             return true;
         }
+
         return false;
     }
 
@@ -715,7 +736,7 @@ namespace gl {
         float height = static_cast<float>(window->getMonitorHeight());
         ImGui::SetWindowPos({0,0 });
         ImGui::SetWindowSize({ width, height });
-        window->setFullScreen();
+        window->resizeFrame(width, height);
     }
 
     void ImguiCore::WindowMode() {
@@ -723,7 +744,7 @@ namespace gl {
         float height = static_cast<float>(window->getHeight());
         ImGui::SetWindowPos({0, 0 });
         ImGui::SetWindowSize({ width, height });
-        window->setWindowed();
+        window->resizeFrame(width, height);
     }
 
     void ImguiCore::FullscreenWindowMode() {
@@ -731,7 +752,7 @@ namespace gl {
         float height = static_cast<float>(window->getMonitorHeight());
         ImGui::SetWindowPos({0, 0 });
         ImGui::SetWindowSize({ width, height });
-        window->setFullscreenWindowed();
+        window->resizeFrame(width, height);
     }
 
     bool ImguiCore::SliderFloat(const char *label, float &value, const float min, const float max) {

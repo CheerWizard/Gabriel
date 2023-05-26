@@ -23,17 +23,18 @@ namespace gl {
         static void updateArray(Shader& shader, std::vector<Transform>& transforms);
     };
 
-    component(Transform2d) {
-        glm::vec2 translation = { 0, 0 };
-        float rotation = 0;
-        glm::vec2 scale = { 1, 1 };
+    component(Transform2d), Model2dMat {
 
         Transform2d() = default;
 
-        Transform2d(const glm::vec2& translation, const float rotation, const glm::vec2& scale)
-        : translation(translation), rotation(rotation), scale(scale) {}
+        Transform2d(const glm::vec2& translation, const float rotation, const glm::vec2& scale) {
+            this->translation = translation;
+            this->rotation = rotation;
+            this->scale = scale;
+            init();
+        }
 
-        Transform2d(const Transform2d& transform) = default;
+        Transform2d(const Transform2d& transform) : Model2dMat(transform) {}
 
         void update(Shader& shader) const;
 

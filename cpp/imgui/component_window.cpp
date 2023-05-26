@@ -47,17 +47,18 @@ namespace gl {
     }
 
     void ComponentWindow::renderComponents() {
-        if (sEntity.validComponent<Tag>()) {
-            ImguiCore::InputText(sEntity.getComponent<Tag>()->buffer);
+        Tag* tag = sEntity.getComponent<Tag>();
+        if (tag) {
+            ImguiCore::InputText(tag->buffer);
         }
 
         ImGui::SameLine();
-        ImGui::PushItemWidth(-1);
 
-        if (ImGui::Button("Add Component"))
+        if (ImguiCore::IconButton("##add_component", "+"))
             ImGui::OpenPopup("AddComponent");
 
         if (ImGui::BeginPopup("AddComponent")) {
+            displayAddComponent<Transform2d>("Transform2D");
             displayAddComponent<Transform>("Transform");
 
             displayAddComponent<PhongLightComponent>("PhongLight");
@@ -70,15 +71,12 @@ namespace gl {
 
             displayAddComponent<Outline>("Outline");
 
+            displayAddComponent<Shadowable>("Shadowing");
+
             ImGui::EndPopup();
         }
 
-        ImGui::PopItemWidth();
-
-        ImguiCore::DrawComponent<Transform>("Transform", sEntity, [](Transform& component)
-        {
-            ImguiCore::DrawTransform(component);
-        });
+        renderTransformComponents();
 
         renderLightComponents();
 
@@ -87,41 +85,67 @@ namespace gl {
         renderMaterialComponents();
 
         renderOutlineComponent();
+
+        renderShadowComponents();
+    }
+
+    void ComponentWindow::renderTransformComponents() {
+        ImguiCore::DrawComponent<Transform2d>("Transform2D", sEntity, [](Transform2d& component) {
+            ImguiCore::DrawTransform2d(component);
+        });
+        ImguiCore::DrawComponent<Transform>("Transform", sEntity, [](Transform& component) {
+            ImguiCore::DrawTransform(component);
+        });
     }
 
     void ComponentWindow::renderLightComponents() {
         ImguiCore::DrawComponent<PhongLightComponent>("PhongLight", sEntity, [](PhongLightComponent& component)
         {
-            ImguiCore::DrawVec4Control("Position", component.position);
-            ImguiCore::DrawLightColorControl("PhongLightColor", component.color);
+            bool positionChanged = ImguiCore::DrawVec4Control("Position", component.position);
+            bool colorChanged = ImguiCore::DrawLightColorControl("PhongLightColor", component.color);
+
+            if (positionChanged || colorChanged) {
+                LightStorage::update();
+            }
         });
 
         ImguiCore::DrawComponent<DirectLightComponent>("DirectLight", sEntity, [](DirectLightComponent& component)
         {
-            ImguiCore::DrawVec4Control("Position", component.position);
-            ImguiCore::DrawVec3Control("Direction", component.direction);
-            ImguiCore::DrawLightColorControl("DirectLightColor", component.color);
+            bool positionChanged = ImguiCore::DrawVec4Control("Position", component.position);
+            bool dirChanged = ImguiCore::DrawVec3Control("Direction", component.direction);
+            bool colorChanged = ImguiCore::DrawLightColorControl("DirectLightColor", component.color);
+
+            if (positionChanged || dirChanged || colorChanged) {
+                LightStorage::update();
+            }
         });
 
         ImguiCore::DrawComponent<PointLightComponent>("PointLight", sEntity, [](PointLightComponent& component)
         {
-            ImguiCore::DrawVec4Control("Position", component.position);
-            ImguiCore::DrawLightColorControl("PointLightColor", component.color);
-            ImguiCore::InputFloat("Constant", component.constant, 0.1f);
-            ImguiCore::InputFloat("Linear", component.linear, 0.1f);
-            ImguiCore::InputFloat("Quadratic", component.quadratic, 0.1f);
+            bool positionChanged = ImguiCore::DrawVec4Control("Position", component.position);
+            bool colorChanged = ImguiCore::DrawLightColorControl("PointLightColor", component.color);
+            bool constantChanged = ImguiCore::InputFloat("Constant", component.constant, 0.1f);
+            bool linearChanged = ImguiCore::InputFloat("Linear", component.linear, 0.1f);
+            bool quadraticChanged = ImguiCore::InputFloat("Quadratic", component.quadratic, 0.1f);
+
+            if (positionChanged || colorChanged || constantChanged || linearChanged || quadraticChanged) {
+                LightStorage::update();
+            }
         });
 
         ImguiCore::DrawComponent<SpotLightComponent>("SpotLight", sEntity, [](SpotLightComponent& component)
         {
-            ImguiCore::DrawVec4Control("Position", component.position);
-            ImguiCore::DrawVec4Control("Direction", component.direction);
-            ImguiCore::DrawLightColorControl("SpotLightColor", component.color);
-            ImguiCore::InputFloat("CutOff", component.cutoff, 0.1f);
+            bool positionChanged = ImguiCore::DrawVec4Control("Position", component.position);
+            bool directionChanged = ImguiCore::DrawVec4Control("Direction", component.direction);
+            bool colorChanged = ImguiCore::DrawLightColorControl("SpotLightColor", component.color);
+            bool cutoffChanged = ImguiCore::InputFloat("CutOff", component.cutoff, 0.1f);
             component.setCutOff(component.cutoff);
-            ImguiCore::InputFloat("Outer CutOff", component.outer, 0.1f);
+            bool outerChanged = ImguiCore::InputFloat("Outer CutOff", component.outer, 0.1f);
             component.setOuter(component.outer);
-            ImguiCore::InputFloat("Refraction", component.refraction, 0.1f);
+
+            if (positionChanged || directionChanged || colorChanged || cutoffChanged || outerChanged) {
+                LightStorage::update();
+            }
         });
     }
 
@@ -222,6 +246,10 @@ namespace gl {
             ImGui::SliderFloat("Thickness", &component.thickness, 0.0f, 1.0f);
             ImGui::PopID();
         });
+    }
+
+    void ComponentWindow::renderShadowComponents() {
+        ImguiCore::DrawComponent<Shadowable>("Shadowing", sEntity, [](Shadowable& component) {});
     }
 
 }

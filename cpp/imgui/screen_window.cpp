@@ -25,8 +25,13 @@ namespace gl {
 
         if (screenImage.begin()) {
             renderManipulateTab();
+
             screenImage.draw();
-            Gizmo::render();
+
+            if (ImguiCore::selectedEntity.valid()) {
+                Gizmo::render(ImguiCore::selectedEntity);
+            }
+
             screenImage.end();
         }
     }
@@ -35,10 +40,6 @@ namespace gl {
         ImguiCore::Spacing(ImGui::GetWindowWidth(), 2);
         ImguiCore::Spacing(ImGui::GetWindowWidth() * 0.5f - 100.0f, 0);
         ImGui::SameLine();
-
-        ImguiCore::IconRadioButton("##polygon_mode", ICON_CI_GRAPH, ImguiCore::callback->enablePolygonMode);
-
-        ImGui::SameLine(0, 4);
 
         ImguiCore::IconRadioButton("##world_space", ICON_CI_GLOBE, Gizmo::enableWorldMode);
 
@@ -57,23 +58,12 @@ namespace gl {
         ImGui::SameLine(0, 4);
 
         static bool enable_play = false;
-        if (ImguiCore::IconRadioButton("##play", ICON_CI_PLAY, enable_play)) {
-            if (enable_play) {
-                // play
-            } else {
-                // stop
-            }
-        }
-
-        ImGui::SameLine(0, 4);
-
-        static bool enable_pause = false;
-        if (ImguiCore::IconRadioButton("##pause", ICON_CI_DEBUG_PAUSE, enable_pause)) {
-            if (enable_pause) {
-                // pause
-            } else {
-                // resume
-            }
+        if (enable_play) {
+            ImguiCore::IconRadioButton("##pause", ICON_CI_DEBUG_PAUSE, enable_play);
+            ImguiCore::callback->enableSimulation = true;
+        } else {
+            ImguiCore::IconRadioButton("##play", ICON_CI_PLAY, enable_play);
+            ImguiCore::callback->enableSimulation = false;
         }
 
         ImGui::SameLine(0, 4);
@@ -88,7 +78,7 @@ namespace gl {
         if (ImguiCore::IconButton("##fullscreen", ICON_CI_SCREEN_FULL)) {
             fullscreen = !fullscreen;
             if (fullscreen) {
-                ImguiCore::FullscreenMode();
+                ImguiCore::FullscreenWindowMode();
             } else {
                 ImguiCore::WindowMode();
             }

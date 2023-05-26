@@ -96,7 +96,15 @@ namespace gl {
 
             mWindow->poll();
 
+            updateInput();
+
+#ifdef IMGUI
+            if (enableSimulation) {
+                simulate();
+            }
+#else
             simulate();
+#endif
 
             render();
 
@@ -241,6 +249,7 @@ namespace gl {
         mHuman.addComponent<Opaque>();
         mHuman.addComponent<Selectable>(onEntitySelected);
         mHuman.addComponent<Draggable>(onEntityDragged);
+        mHuman.addComponent<Shadowable>();
 
         // setup 3D model
         mBackpackModel.generate("models/backpack/backpack.obj");
@@ -271,8 +280,8 @@ namespace gl {
                 null,
                 null
         );
-        mHuman.material()->metallicFactor = 0.5;
-        mHuman.material()->roughnessFactor = 0.5;
+        mHuman.material()->metallicFactor = 0.8;
+        mHuman.material()->roughnessFactor = 0.2;
         mHuman.material()->aoFactor = 1.0;
         mHumanAnimator = Animator(&mHumanModel.animation);
 
@@ -481,8 +490,17 @@ namespace gl {
         mFlashlight.value().color = {0, 0, 0, 0 };
     }
 
-    void Application::simulate() {
+    void Application::updateInput() {
+#ifdef IMGUI
+        if (!ImguiCore::IO->WantTextInput) {
+            mCamera->move(Timer::getDeltaMillis());
+        }
+#else
         mCamera->move(Timer::getDeltaMillis());
+#endif
+    }
+
+    void Application::simulate() {
         // bind flashlight to camera
         mFlashlight.value().position = { mCamera->position, 0 };
         mFlashlight.value().direction = { mCamera->front, 0 };
@@ -493,6 +511,11 @@ namespace gl {
         mWoodSphere.transform()->rotation.y += f * 2;
         mMetalSphere.transform()->rotation.y += f * 4;
         mHuman.transform()->rotation.y += f * 4;
+
+        mRockSphere.transform()->init();
+        mWoodSphere.transform()->init();
+        mMetalSphere.transform()->init();
+        mHuman.transform()->init();
 
         // skeletal animations
         {
@@ -590,12 +613,25 @@ namespace gl {
     }
 
     void Application::onMouseCursor(const double x, const double y) {
+#ifdef IMGUI
+        if (!ImguiCore::IO->WantCaptureMouse) {
+            mCamera->onMouseCursor(x, y, Timer::getDeltaMillis());
+            mEntityControl->drag(x, y);
+        }
+#else
         mCamera->onMouseCursor(x, y, Timer::getDeltaMillis());
         mEntityControl->drag(x, y);
+#endif
     }
 
     void Application::onMouseScroll(const double x, const double y) {
+#ifdef IMGUI
+        if (!ImguiCore::IO->WantCaptureMouse) {
+            mCamera->onMouseScroll(y, Timer::getDeltaMillis());
+        }
+#else
         mCamera->onMouseScroll(y, Timer::getDeltaMillis());
+#endif
     }
 
     void Application::resize(const int w, const int h) {

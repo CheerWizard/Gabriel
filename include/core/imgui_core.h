@@ -133,6 +133,8 @@ namespace gl {
         PolygonFace polygonFace = PolygonFace::FRONT;
         PolygonType polygonType = PolygonType::LINE;
 
+        bool enableSimulation = false;
+
         virtual void resize(int w, int h) = 0;
         virtual void resample(int samples) = 0;
     };
@@ -254,13 +256,13 @@ namespace gl {
 
         static void DrawTransform2d(Transform2d& transform);
 
-        static void DrawColor3Control(
+        static bool DrawColor3Control(
                 const std::string &label, glm::vec3 &values,
                 float resetValue = 0.0f,
                 float columnWidth = 100.0f
         );
 
-        static void DrawColor4Control(
+        static bool DrawColor4Control(
                 const std::string &label, glm::vec4 &values,
                 float resetValue = 0.0f,
                 float columnWidth = 100.0f
@@ -269,7 +271,7 @@ namespace gl {
         static bool ColorEdit3(const char* label, glm::vec3& values, const char* fmt = "%s");
         static bool ColorEdit4(const char* label, glm::vec4& values, const char* fmt = "%s");
 
-        static void DrawLightColorControl(
+        static bool DrawLightColorControl(
                 const std::string &label, LightColor& color,
                 float resetValue = 0.0f,
                 float columnWidth = 100.0f
@@ -330,17 +332,20 @@ namespace gl {
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
             float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+
             ImGui::Separator();
             bool open = ImGui::TreeNodeEx(name.c_str(), treeNodeFlags);
+
             ImGui::PopStyleVar();
-            ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
-            if (ImGui::Button("+", ImVec2 { lineHeight, lineHeight })) {
+
+            ImGui::SameLine(contentRegionAvailable.x - 24);
+            if (ImguiCore::IconButton("##component_settings", "+")) {
                 ImGui::OpenPopup("ComponentSettings");
             }
 
             bool removeComponent = false;
             if (ImGui::BeginPopup("ComponentSettings")) {
-                if (ImGui::MenuItem("Remove Component"))
+                if (ImGui::MenuItem("Remove"))
                     removeComponent = true;
 
                 ImGui::EndPopup();

@@ -45,6 +45,9 @@ namespace gl {
         void render();
 
     private:
+        ColorAttachment initColor(int width, int height);
+
+    private:
         ImageBuffer mRenderTarget;
         FrameBuffer mFrame;
         BlurShader mShader;

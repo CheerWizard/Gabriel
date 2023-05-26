@@ -72,9 +72,9 @@ namespace gl {
         // data
         color.image.width = width;
         color.image.height = height;
-        color.image.internalFormat = GL_RGB16F;
+        color.image.internalFormat = GL_RGB;
         color.image.pixelFormat = GL_RGB;
-        color.image.pixelType = PixelType::FLOAT;
+        color.image.pixelType = PixelType::U8;
 
         // filter
         color.params.minFilter = GL_LINEAR;

@@ -21,6 +21,8 @@ namespace gl {
         template<typename T>
         static void displayAddComponent(const char* name);
 
+        static void renderTransformComponents();
+
         static void renderLightComponents();
 
         static void renderTextComponents();
@@ -28,6 +30,8 @@ namespace gl {
         static void renderMaterialComponents();
 
         static void renderOutlineComponent();
+
+        static void renderShadowComponents();
 
     private:
         static Entity sEntity;

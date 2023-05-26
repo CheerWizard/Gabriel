@@ -160,7 +160,7 @@ namespace gl {
     }
 
     template<typename T>
-    void Shader::setUniformArgs(const char *name, T &value) {
+    void Shader::setUniformArgs(const char* name, T &value) {
         setUniform(getUniformLocation(name), value);
     }
 
