@@ -140,6 +140,28 @@ namespace gl {
         glDeleteTextures(size, &id);
     }
 
+    void ImageBuffer::initHandle() {
+        handle = glGetTextureHandleARB(id);
+
+        if (handle == InvalidImageHandle) {
+            handle = glGetTextureHandleNV(id);
+            glMakeTextureHandleResidentNV(id);
+        } else {
+            glMakeTextureHandleResidentARB(id);
+        }
+    }
+
+    void ImageBuffer::initSamplerHandle(u32 sampler) {
+        handle = glGetTextureSamplerHandleARB(id, sampler);
+
+        if (handle == InvalidImageHandle) {
+            handle = glGetTextureSamplerHandleNV(id, sampler);
+            glMakeTextureHandleResidentNV(id);
+        } else {
+            glMakeTextureHandleResidentARB(id);
+        }
+    }
+
     void ImageBuffer::bind() const {
         glBindTexture(type, id);
     }
@@ -177,7 +199,7 @@ namespace gl {
         glTexParameterf(textureType, GL_TEXTURE_MAX_ANISOTROPY_EXT, Device::get().MAX_ANISOTROPY_SAMPLES);
     }
 
-    void ImageBuffer::updateParams(const ImageParams &params) const {
+    void ImageBuffer::updateParams(const ImageParams &params) {
         u32 textureType = type;
         int minFilter = params.minFilter;
 
@@ -198,6 +220,8 @@ namespace gl {
         glTexParameteri(textureType, GL_TEXTURE_WRAP_R, params.r);
         glTexParameteri(textureType, GL_TEXTURE_MIN_FILTER, minFilter);
         glTexParameteri(textureType, GL_TEXTURE_MAG_FILTER, params.magFilter);
+
+        initHandle();
     }
 
     void ImageBuffer::bindParams(const ImageParams &params) {
@@ -205,7 +229,7 @@ namespace gl {
         updateParams(params);
     }
 
-    void ImageBuffer::store(const Image &image) const {
+    void ImageBuffer::store(const Image &image) {
         int internalFormat = image.internalFormat;
         if (image.srgb) {
             internalFormat = INTERNAL_FORMATS_SRGB[image.channels - 3];
@@ -231,7 +255,7 @@ namespace gl {
         }
     }
 
-    void ImageBuffer::storeCubemap(const Image &image) const {
+    void ImageBuffer::storeCubemap(const Image &image) {
         for (int i = 0 ; i < 6 ; i++) {
             int internalFormat = image.internalFormat;
             if (image.srgb) {
@@ -269,19 +293,19 @@ namespace gl {
         }
     }
 
-    void ImageBuffer::load(const Image &image, const ImageParams& params) const {
+    void ImageBuffer::load(const Image &image, const ImageParams& params) {
         bind();
         store(image);
         updateParams(params);
     }
 
-    void ImageBuffer::loadCubemap(const Image &image, const ImageParams& params) const {
+    void ImageBuffer::loadCubemap(const Image &image, const ImageParams& params) {
         bind();
         storeCubemap(image);
         updateParams(params);
     }
 
-    void ImageBuffer::loadCubemap(const std::array<Image, 6> &images, const ImageParams& params) const {
+    void ImageBuffer::loadCubemap(const std::array<Image, 6> &images, const ImageParams& params) {
         bind();
         storeCubemap(images);
         updateParams(params);
@@ -291,13 +315,24 @@ namespace gl {
         glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
     }
 
-    void ImageBuffer::bindImage(int slot, AccessMode access, int internalFormat) {
+    void ImageBuffer::initImageHandle(const AccessMode access, int internalFormat) {
+        handle = glGetImageHandleARB(id, 0, GL_FALSE, 0, internalFormat);
+
+        if (handle == InvalidImageHandle) {
+            handle = glGetImageHandleNV(id, 0, GL_FALSE, 0, internalFormat);
+            glMakeImageHandleResidentNV(handle, access);
+        } else {
+            glMakeImageHandleResidentARB(handle, access);
+        }
+    }
+
+    void ImageBuffer::bindImage(int slot, const AccessMode access, int internalFormat) {
         ImageBuffer::bindActivate(type, id, slot);
         glBindImageTexture(slot, id, 0, GL_FALSE, 0, access, internalFormat);
     }
 
-    void ImageBuffer::loadHDR(const char* filepath, const bool uv) {
-        Image hdrImage = ImageReader::read(filepath, uv, PixelType::FLOAT);
+    void ImageBuffer::loadHDR(const char* filepath, const bool flipUV) {
+        Image hdrImage = ImageReader::read(filepath, flipUV, PixelType::FLOAT);
         hdrImage.internalFormat = GL_RGB16F;
         hdrImage.pixelFormat = GL_RGB;
 
@@ -312,6 +347,26 @@ namespace gl {
         load(hdrImage, params);
 
         hdrImage.free();
+    }
+
+    void ImageBuffer::makeResident() {
+        glMakeTextureHandleResidentARB(handle);
+        glMakeTextureHandleResidentNV(handle);
+    }
+
+    void ImageBuffer::makeNonResident() {
+        glMakeTextureHandleNonResidentARB(handle);
+        glMakeTextureHandleNonResidentNV(handle);
+    }
+
+    void ImageBuffer::makeImageResident(const AccessMode access) {
+        glMakeImageHandleResidentARB(handle, access);
+        glMakeImageHandleResidentNV(handle, access);
+    }
+
+    void ImageBuffer::makeImageNonResident() {
+        glMakeImageHandleNonResidentARB(handle);
+        glMakeImageHandleNonResidentNV(handle);
     }
 
     void ImageWriter::write(const char* filepath, const Image &image) {

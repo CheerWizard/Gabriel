@@ -106,10 +106,12 @@ namespace gl {
     };
 
 #define InvalidImageBuffer 0
+#define InvalidImageHandle 0
 
     struct ImageBuffer final {
         u32 id = InvalidImageBuffer;
         u32 type = GL_TEXTURE_2D;
+        u64 handle = InvalidImageHandle;
 
         ImageBuffer() = default;
 
@@ -127,22 +129,34 @@ namespace gl {
         static void unbind();
 
         void bindParams(const ImageParams& params);
-        void updateParams(const ImageParams& params) const;
+        void updateParams(const ImageParams& params);
         void generateMipmaps(const ImageParams& params);
 
-        void store(const Image& image) const;
-        void storeCubemap(const Image& image) const;
-        static void storeCubemap(const std::array<Image, 6> &images);
+        void store(const Image& image);
+        void storeCubemap(const Image& image);
+        void storeCubemap(const std::array<Image, 6> &images);
 
-        void load(const Image &image, const ImageParams& params = {}) const;
-        void loadCubemap(const Image &image, const ImageParams& params = {}) const;
-        void loadCubemap(const std::array<Image, 6> &images, const ImageParams& params = {}) const;
+        void load(const Image &image, const ImageParams& params = {});
+        void loadCubemap(const Image &image, const ImageParams& params = {});
+        void loadCubemap(const std::array<Image, 6> &images, const ImageParams& params = {});
 
-        void bindImage(int slot, AccessMode access, int internalFormat);
+        void bindImage(int slot, const AccessMode access, int internalFormat);
 
         static void setUnpackAlignment(int alignment);
 
-        void loadHDR(const char* filepath, const bool uv);
+        void loadHDR(const char* filepath, const bool flipUV);
+
+        void makeResident();
+        void makeNonResident();
+
+        void makeImageResident(const AccessMode access);
+        void makeImageNonResident();
+
+    private:
+        void initHandle();
+        void initSamplerHandle(u32 sampler);
+        void initImageHandle(const AccessMode access, int internalFormat);
+
     };
 
 }

@@ -26,9 +26,15 @@ namespace gl {
     Application::~Application() {
         mEnvironment.free();
 
+        delete mOutlineRenderer;
+
+        delete mEnvRenderer;
+
         delete mTransparentRenderer;
 
         delete mRayTraceRenderer;
+
+        EnvStorage::free();
 
         LightStorage::free();
 
@@ -426,7 +432,7 @@ namespace gl {
         mSsaoRenderer->isEnabled = true;
 
         mFxaaRenderer = new FXAARenderer(mWidth, mHeight);
-        mFxaaRenderer->isEnabled = true;
+        mFxaaRenderer->isEnabled = false;
 
         mTransparentRenderer = new TransparentRenderer(mWidth, mHeight);
         mTransparentRenderer->isEnabled = true;
@@ -434,7 +440,17 @@ namespace gl {
         mShadowPipeline = new ShadowPipeline(&mScene, mWidth, mHeight, mCamera);
         mShadowPipeline->directShadow.filterSize = 9;
 
-        mPbrPipeline = new PBR_Pipeline(&mScene, mWidth, mHeight, mSsaoRenderer, mTransparentRenderer);
+        mEnvRenderer = new EnvRenderer(mWidth, mHeight);
+
+        mOutlineRenderer = new OutlineRenderer();
+
+        mPbrPipeline = new PBR_Pipeline(
+                &mScene, mWidth, mHeight,
+                mSsaoRenderer,
+                mTransparentRenderer,
+                mEnvRenderer,
+                mOutlineRenderer
+        );
         mPbrPipeline->setDirectShadow(&mShadowPipeline->directShadow);
         mPbrPipeline->setPointShadow(&mShadowPipeline->pointShadow);
         mPbrPipeline->terrain = &mTerrainBuilder.terrain;
@@ -446,13 +462,16 @@ namespace gl {
     }
 
     void Application::initEnvironment() {
+        EnvStorage::init();
+
+        // init new environment
         mEnvironment.enable = true;
         mEnvironment.resolution = { 1024, 1024 };
-        mEnvironment.prefilterResolution = {512, 512 };
+        mEnvironment.prefilterResolution = { 512, 512 };
         mEnvironment.hdr.loadHDR("images/hdr/Arches_E_PineTree_3k.hdr", true);
         mEnvironment.init();
+
         mPbrPipeline->setEnvironment(&mEnvironment);
-        mPbrPipeline->generateEnv();
     }
 
     void Application::initCamera() {
@@ -488,6 +507,8 @@ namespace gl {
         mFlashlight.value().position = { mCamera->position, 0 };
         mFlashlight.value().direction = { mCamera->front, 0 };
         mFlashlight.value().color = {0, 0, 0, 0 };
+
+        LightStorage::update();
     }
 
     void Application::updateInput() {

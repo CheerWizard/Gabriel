@@ -164,6 +164,9 @@ namespace gl {
         RayTraceRenderer* mRayTraceRenderer = null;
 
         Environment mEnvironment;
+        EnvRenderer* mEnvRenderer = null;
+
+        OutlineRenderer* mOutlineRenderer = null;
 
         Ray mRay = { 0, 0, 0 };
         Sphere mSphere;

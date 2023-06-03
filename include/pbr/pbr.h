@@ -153,7 +153,12 @@ namespace gl {
         Scene* scene;
         Terrain* terrain = null;
 
-        PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer, TransparentRenderer* transparentRenderer);
+        PBR_Pipeline(Scene* scene, int width, int height,
+                     SsaoRenderer* ssaoRenderer,
+                     TransparentRenderer* transparentRenderer,
+                     EnvRenderer* envRenderer,
+                     OutlineRenderer* outlineRenderer
+        );
         ~PBR_Pipeline();
 
         [[nodiscard]] inline const ImageBuffer& getRenderTarget() const {
@@ -183,8 +188,6 @@ namespace gl {
         }
 
         void setEnvironment(Environment* environment);
-
-        void generateEnv();
 
         void resize(int width, int height);
 

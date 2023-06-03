@@ -1,7 +1,5 @@
 #include <pbr/pbr.h>
 
-#include <array>
-
 namespace gl {
 
     static std::array<ImageSampler, 7> samplers = {
@@ -23,9 +21,9 @@ namespace gl {
     void PBR_Skeletal_ForwardRenderer::update(Environment* env) {
         mShader.use();
         mShader.setUniformStructArgs("envlight", "prefilter_levels", env->prefilterLevels);
-        mShader.bindSamplerStruct("envlight", "irradiance", 8, env->irradiance);
-        mShader.bindSamplerStruct("envlight", "prefilter", 9, env->prefilter);
-        mShader.bindSamplerStruct("envlight", "brdf_convolution", 10, env->brdfConvolution);
+        mShader.bindSamplerStruct("envlight", "irradiance", 16, env->irradiance);
+        mShader.bindSamplerStruct("envlight", "prefilter", 17, env->prefilter);
+        mShader.bindSamplerStruct("envlight", "brdf_convolution", 18, env->brdfConvolution);
     }
 
     PBR_Skeletal_DeferredRenderer::PBR_Skeletal_DeferredRenderer() {
@@ -37,9 +35,9 @@ namespace gl {
     void PBR_Skeletal_DeferredRenderer::update(Environment* env) {
         mShader.use();
         mShader.setUniformStructArgs("envlight", "prefilter_levels", env->prefilterLevels);
-        mShader.bindSamplerStruct("envlight", "irradiance", 8, env->irradiance);
-        mShader.bindSamplerStruct("envlight", "prefilter", 9, env->prefilter);
-        mShader.bindSamplerStruct("envlight", "brdf_convolution", 10, env->brdfConvolution);
+        mShader.bindSamplerStruct("envlight", "irradiance", 16, env->irradiance);
+        mShader.bindSamplerStruct("envlight", "prefilter", 17, env->prefilter);
+        mShader.bindSamplerStruct("envlight", "brdf_convolution", 18, env->brdfConvolution);
     }
 
     PBR_ForwardRenderer::PBR_ForwardRenderer(int width, int height) {
@@ -97,9 +95,9 @@ namespace gl {
     void PBR_ForwardRenderer::update(Environment* env) {
         mShader.use();
         mShader.setUniformStructArgs("envlight", "prefilter_levels", env->prefilterLevels);
-        mShader.bindSamplerStruct("envlight", "irradiance", 8, env->irradiance);
-        mShader.bindSamplerStruct("envlight", "prefilter", 9, env->prefilter);
-        mShader.bindSamplerStruct("envlight", "brdf_convolution", 10, env->brdfConvolution);
+        mShader.bindSamplerStruct("envlight", "irradiance", 16, env->irradiance);
+        mShader.bindSamplerStruct("envlight", "prefilter", 17, env->prefilter);
+        mShader.bindSamplerStruct("envlight", "brdf_convolution", 18, env->brdfConvolution);
     }
 
     void PBR_ForwardRenderer::render(Transform& transform, DrawableElements& drawable, Material& material) {
@@ -339,9 +337,9 @@ namespace gl {
     void PBR_DeferredRenderer::update(Environment* env) {
         mLightShader.use();
         mLightShader.setUniformStructArgs("envlight", "prefilter_levels", env->prefilterLevels);
-        mLightShader.bindSamplerStruct("envlight", "irradiance", 8, env->irradiance);
-        mLightShader.bindSamplerStruct("envlight", "prefilter", 9, env->prefilter);
-        mLightShader.bindSamplerStruct("envlight", "brdf_convolution", 11, env->brdfConvolution);
+        mLightShader.bindSamplerStruct("envlight", "irradiance", 16, env->irradiance);
+        mLightShader.bindSamplerStruct("envlight", "prefilter", 17, env->prefilter);
+        mLightShader.bindSamplerStruct("envlight", "brdf_convolution", 18, env->brdfConvolution);
     }
 
     void PBR_DeferredRenderer::blitColorDepth(int w, int h, u32 srcColorFrame, u32 srcDepthFrame) const {
@@ -354,43 +352,40 @@ namespace gl {
         FrameBuffer::blit(srcDepthFrame, w, h, mFrame.id, w, h, 1, GL_DEPTH_BUFFER_BIT);
     }
 
-    PBR_Pipeline::PBR_Pipeline(Scene* scene, int width, int height, SsaoRenderer* ssaoRenderer, TransparentRenderer* transparentRenderer)
-    : mResolution(width, height), scene(scene), mTransparentRenderer(transparentRenderer) {
-        mEnvRenderer = new EnvRenderer(width, height);
+    PBR_Pipeline::PBR_Pipeline(
+            Scene* scene,
+            int width, int height,
+            SsaoRenderer* ssaoRenderer,
+            TransparentRenderer* transparentRenderer,
+            EnvRenderer* envRenderer,
+            OutlineRenderer* outlineRenderer
+    ) : mResolution(width, height), scene(scene),
+    mTransparentRenderer(transparentRenderer),
+    mEnvRenderer(envRenderer),
+    mOutlineRenderer(outlineRenderer) {
 
         mPbrForwardRenderer = new PBR_ForwardRenderer(width, height);
         mPbrDeferredRenderer = new PBR_DeferredRenderer(width, height, ssaoRenderer);
-
         mSkeletalForwardRenderer = new PBR_Skeletal_ForwardRenderer();
         mSkeletalDeferredRenderer = new PBR_Skeletal_DeferredRenderer();
 
-        mOutlineRenderer = new OutlineRenderer();
     }
 
     PBR_Pipeline::~PBR_Pipeline() {
-        delete mEnvRenderer;
-
         delete mPbrForwardRenderer;
         delete mPbrDeferredRenderer;
-
         delete mSkeletalForwardRenderer;
         delete mSkeletalDeferredRenderer;
-
-        delete mOutlineRenderer;
     }
 
-    void PBR_Pipeline::setEnvironment(Environment *environment) {
-        mEnvRenderer->environment = environment;
+    void PBR_Pipeline::setEnvironment(Environment* environment) {
         if (environment) {
-            mPbrForwardRenderer->update(environment);
-            mPbrDeferredRenderer->update(environment);
-            mSkeletalForwardRenderer->update(environment);
-            mSkeletalDeferredRenderer->update(environment);
+            mEnvRenderer->setEnvironment(environment);
+            mPbrForwardRenderer->use();
+            environment->makeResident();
+            mPbrDeferredRenderer->use();
+            environment->makeResident();
         }
-    }
-
-    void PBR_Pipeline::generateEnv() {
-        mEnvRenderer->generate();
     }
 
     void PBR_Pipeline::resize(int width, int height) {

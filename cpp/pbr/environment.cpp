@@ -44,6 +44,41 @@ namespace gl {
         brdfConvolution.free();
     }
 
+    void Environment::makeResident() {
+        irradiance.makeResident();
+        prefilter.makeResident();
+        brdfConvolution.makeResident();
+    }
+
+    void Environment::makeNonResident() {
+        irradiance.makeNonResident();
+        prefilter.makeNonResident();
+        brdfConvolution.makeNonResident();
+    }
+
+    Environment* EnvStorage::environment = null;
+    UniformBuffer EnvStorage::sEnvUbo;
+
+    void EnvStorage::init() {
+        sEnvUbo.init(5, sizeof(EnvUniform));
+    }
+
+    void EnvStorage::free() {
+        sEnvUbo.free();
+    }
+
+    void EnvStorage::update() {
+        if (environment) {
+            EnvUniform envUniform = {
+                environment->prefilterLevels,
+                environment->irradiance.handle,
+                environment->prefilter.handle,
+                environment->brdfConvolution.handle
+            };
+            sEnvUbo.update(0, sizeof(EnvUniform), &envUniform);
+        }
+    }
+
     EnvRenderer::EnvRenderer(int width, int height) {
         mHdrToCubemapShader.addVertexStage("shaders/hdr_to_cubemap.vert");
         mHdrToCubemapShader.addFragmentStage("shaders/hdr_to_cubemap.frag");
@@ -172,6 +207,13 @@ namespace gl {
             mEnvCube.draw();
             glDepthFunc(GL_LESS);
         }
+    }
+
+    void EnvRenderer::setEnvironment(Environment* environment) {
+        this->environment = environment;
+        generate();
+        EnvStorage::environment = environment;
+        EnvStorage::update();
     }
 
 }

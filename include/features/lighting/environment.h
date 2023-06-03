@@ -30,6 +30,29 @@ namespace gl {
 
         void init();
         void free();
+
+        void makeResident();
+        void makeNonResident();
+    };
+
+    struct EnvUniform final {
+        int prefilterLevels;
+        u64 irradiance;
+        u64 prefilter;
+        u64 brdf_convolution;
+    };
+
+    struct EnvStorage final {
+
+        static Environment* environment;
+
+        static void init();
+        static void free();
+
+        static void update();
+
+    private:
+        static UniformBuffer sEnvUbo;
     };
 
     struct EnvRenderer final {
@@ -41,6 +64,8 @@ namespace gl {
         void generate();
 
         void render();
+
+        void setEnvironment(Environment* environment);
 
     private:
         FrameBuffer mFrame;

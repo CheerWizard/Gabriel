@@ -1,3 +1,6 @@
+#extension GL_NV_bindless_texture : require
+#extension GL_NV_gpu_shader5 : require
+
 #define IMGUI
 
 const float PI = 3.14159265359;
