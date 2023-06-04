@@ -76,7 +76,6 @@ namespace gl {
     }
 
     void ScreenRenderer::renderInternal() {
-        glEnable(GL_DEPTH_TEST);
         FrameBuffer::clearBuffer(COLOR_CLEAR, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         mShader.use();
         mShader.update();

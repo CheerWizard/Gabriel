@@ -24,6 +24,7 @@ namespace gl {
     struct Text {
         Style style;
         std::string buffer;
+        DrawableElements drawable;
 
         Text() {
             init();
@@ -55,7 +56,6 @@ namespace gl {
         void draw();
 
     private:
-        DrawableElements mDrawable;
         std::vector<CharVertices> mVertices;
         std::vector<u32> mIndices;
     };

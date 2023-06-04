@@ -95,8 +95,6 @@ namespace gl {
 
         void renderPostFX();
 
-        void renderDebugScreen();
-
         void renderImgui();
 
         void render();
@@ -173,6 +171,9 @@ namespace gl {
 
         FrameBuffer mColorFrame;
         FrameBuffer mDepthFrame;
+
+        ImageBuffer mFinalRenderTarget;
+        ImageBuffer mDebugRenderTarget;
     };
 
 }

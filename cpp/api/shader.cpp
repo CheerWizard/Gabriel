@@ -71,18 +71,9 @@ namespace gl {
         }
 
 #ifdef DEBUG
-        // write preprocessed shader into file
-        std::string generatedFilepath = "generated/" + std::string(filepath);
-        std::filesystem::create_directory("generated");
-        std::filesystem::create_directory("generated/shaders");
-        std::filesystem::create_directory("generated/shaders/bloom");
-        std::filesystem::create_directory("generated/shaders/features");
-        std::filesystem::create_directory("generated/shaders/features/lighting");
-        std::filesystem::create_directory("generated/shaders/features/shadow");
-        std::filesystem::create_directory("generated/shaders/pbr");
-        std::filesystem::create_directory("generated/shaders/text");
-        std::filesystem::create_directory("generated/shaders/postfx");
-        FileWriter::write(generatedFilepath.c_str(), src);
+
+        generateCode(filepath, src);
+
 #endif
 
         // create and compile shader
@@ -99,6 +90,23 @@ namespace gl {
             error("Failed stage compilation {0}", info);
             id = 0;
         }
+    }
+
+    void ShaderStage::generateCode(const char* filepath, const std::string& src) {
+        std::string generatedFilepath = "generated/" + std::string(filepath);
+
+        std::filesystem::create_directory("generated");
+        std::filesystem::create_directory("generated/shaders");
+        std::filesystem::create_directory("generated/shaders/bloom");
+        std::filesystem::create_directory("generated/shaders/features");
+        std::filesystem::create_directory("generated/shaders/features/lighting");
+        std::filesystem::create_directory("generated/shaders/features/shadow");
+        std::filesystem::create_directory("generated/shaders/pbr");
+        std::filesystem::create_directory("generated/shaders/text");
+        std::filesystem::create_directory("generated/shaders/postfx");
+        std::filesystem::create_directory("generated/shaders/polygon_visual");
+
+        FileWriter::write(generatedFilepath.c_str(), src);
     }
 
     void Shader::complete() {

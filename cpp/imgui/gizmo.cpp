@@ -14,6 +14,8 @@ namespace gl {
     glm::mat4 Gizmo::sView;
     glm::mat4 Gizmo::sPerspective;
 
+    bool Gizmo::sLightUpdated = false;
+
     static ImGuizmo::MODE pMode;
 
     void Gizmo::render(const Entity& entity) {
@@ -41,12 +43,45 @@ namespace gl {
         }
 
         sEntity = entity;
-        renderGizmoTransform();
-        renderGizmoLight();
+
+        if (sEntity.validComponent<GizmoTransform>()) {
+            renderGizmoTransform(sEntity.getComponent<Transform>());
+        }
+
+        else if (sEntity.validComponent<GizmoTransform2d>()) {
+            renderGizmoTransform2d(sEntity.getComponent<Transform2d>());
+        }
+
+        else if (sEntity.validComponent<GizmoPhongLight>()) {
+            renderGizmoPhongLight();
+        }
+
+        else if (sEntity.validComponent<GizmoDirectLight>()) {
+            renderGizmoDirectLight();
+        }
+
+        else if (sEntity.validComponent<GizmoPointLight>()) {
+            renderGizmoPointLight();
+        }
+
+        else if (sEntity.validComponent<GizmoSpotLight>()) {
+            renderGizmoSpotLight();
+        }
+
+        else if (sEntity.validComponent<GizmoText2d>()) {
+            renderGizmoText2d();
+        }
+
+        else if (sEntity.validComponent<GizmoText3d>()) {
+            renderGizmoText3d();
+        }
+
+        if (sLightUpdated) {
+            LightStorage::update();
+        }
     }
 
-    void Gizmo::renderGizmoTransform() {
-        auto* transform = sEntity.getComponent<Transform>();
+    void Gizmo::renderGizmoTransform(Transform* transform) {
         const float* viewPtr = glm::value_ptr(sView);
         const float* perspectivePtr = glm::value_ptr(sPerspective);
 
@@ -95,15 +130,59 @@ namespace gl {
         }
     }
 
-    void Gizmo::renderGizmoLight() {
+    void Gizmo::renderGizmoTransform2d(Transform2d* transform) {
         const float* viewPtr = glm::value_ptr(sView);
         const float* perspectivePtr = glm::value_ptr(sPerspective);
-        bool updated = false;
 
+        if (transform) {
+            float* transformPtr = glm::value_ptr(transform->value);
+            float* translationPtr = glm::value_ptr(transform->translation);
+            float* rotationPtr = &transform->rotation;
+            float* scalePtr = glm::value_ptr(transform->scale);
+
+            if (enableTranslation) {
+                ImGuizmo::Manipulate(
+                        viewPtr,
+                        perspectivePtr,
+                        ImGuizmo::TRANSLATE,
+                        pMode,
+                        transformPtr
+                );
+            }
+
+            if (enableRotation) {
+                ImGuizmo::Manipulate(
+                        viewPtr,
+                        perspectivePtr,
+                        ImGuizmo::ROTATE,
+                        pMode,
+                        transformPtr
+                );
+            }
+
+            if (enableScale) {
+                ImGuizmo::Manipulate(
+                        viewPtr,
+                        perspectivePtr,
+                        ImGuizmo::SCALE,
+                        pMode,
+                        transformPtr
+                );
+            }
+
+            ImGuizmo::DecomposeMatrixToComponents(
+                    transformPtr,
+                    translationPtr,
+                    rotationPtr,
+                    scalePtr
+            );
+        }
+    }
+
+    void Gizmo::renderGizmoPhongLight() {
+        const float* viewPtr = glm::value_ptr(sView);
+        const float* perspectivePtr = glm::value_ptr(sPerspective);
         auto* phongLight = sEntity.getComponent<PhongLightComponent>();
-        auto* directLight = sEntity.getComponent<DirectLightComponent>();
-        auto* pointLight = sEntity.getComponent<PointLightComponent>();
-        auto* spotLight = sEntity.getComponent<SpotLightComponent>();
 
         if (enableTranslation && phongLight) {
             glm::mat4 translate(1.0f);
@@ -116,9 +195,15 @@ namespace gl {
                     glm::value_ptr(translate)
             );
             glm::vec4 newPosition = glm::vec4(translate[3]);
-            updated = updated || (newPosition != phongLight->position);
+            sLightUpdated = sLightUpdated || (newPosition != phongLight->position);
             phongLight->position = newPosition;
         }
+    }
+
+    void Gizmo::renderGizmoDirectLight() {
+        const float* viewPtr = glm::value_ptr(sView);
+        const float* perspectivePtr = glm::value_ptr(sPerspective);
+        auto* directLight = sEntity.getComponent<DirectLightComponent>();
 
         if (enableTranslation && directLight) {
             glm::mat4 translate(1.0f);
@@ -131,9 +216,15 @@ namespace gl {
                     glm::value_ptr(translate)
             );
             glm::vec4 newPosition = glm::vec4(translate[3]);
-            updated = updated || (newPosition != directLight->position);
+            sLightUpdated = sLightUpdated || (newPosition != directLight->position);
             directLight->position = newPosition;
         }
+    }
+
+    void Gizmo::renderGizmoPointLight() {
+        const float* viewPtr = glm::value_ptr(sView);
+        const float* perspectivePtr = glm::value_ptr(sPerspective);
+        auto* pointLight = sEntity.getComponent<PointLightComponent>();
 
         if (enableTranslation && pointLight) {
             glm::mat4 translate(1.0f);
@@ -146,9 +237,15 @@ namespace gl {
                     glm::value_ptr(translate)
             );
             glm::vec4 newPosition = glm::vec4(translate[3]);
-            updated = updated || (newPosition != pointLight->position);
+            sLightUpdated = sLightUpdated || (newPosition != pointLight->position);
             pointLight->position = newPosition;
         }
+    }
+
+    void Gizmo::renderGizmoSpotLight() {
+        const float* viewPtr = glm::value_ptr(sView);
+        const float* perspectivePtr = glm::value_ptr(sPerspective);
+        auto* spotLight = sEntity.getComponent<SpotLightComponent>();
 
         if (enableTranslation && spotLight) {
             glm::mat4 translate(1.0f);
@@ -161,13 +258,17 @@ namespace gl {
                     glm::value_ptr(translate)
             );
             glm::vec4 newPosition = glm::vec4(translate[3]);
-            updated = updated || (newPosition != spotLight->position);
+            sLightUpdated = sLightUpdated || (newPosition != spotLight->position);
             spotLight->position = newPosition;
         }
+    }
 
-        if (updated) {
-            LightStorage::update();
-        }
+    void Gizmo::renderGizmoText2d() {
+        renderGizmoTransform2d(&sEntity.getComponent<Text2d>()->transform);
+    }
+
+    void Gizmo::renderGizmoText3d() {
+        renderGizmoTransform(&sEntity.getComponent<Text3d>()->transform);
     }
 
 }

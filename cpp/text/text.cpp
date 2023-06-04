@@ -3,21 +3,21 @@
 namespace gl {
 
     void Text::init() {
-        mDrawable.type = DrawType::TRIANGLES;
-        mDrawable.strips = 1;
+        drawable.type = DrawType::TRIANGLES;
+        drawable.strips = 1;
 
-        mDrawable.vao.init();
-        mDrawable.vao.bind();
+        drawable.vao.init();
+        drawable.vao.bind();
 
         mVertices.reserve(1);
-        mDrawable.vbo.init<CharVertices>(1, Vertex2dUV::format, BufferAllocType::DYNAMIC);
+        drawable.vbo.init<CharVertices>(1, Vertex2dUV::format, BufferAllocType::DYNAMIC);
 
         mIndices.reserve(6); // 6 indices per character
-        mDrawable.ibo.init(6, BufferAllocType::DYNAMIC);
+        drawable.ibo.init(6, BufferAllocType::DYNAMIC);
     }
 
     void Text::free() {
-        mDrawable.free();
+        drawable.free();
     }
 
     void Text::update() {
@@ -55,13 +55,13 @@ namespace gl {
             mIndices[index + 5] = indexOffset + 3;
         }
 
-        mDrawable.vbo.tryUpdate(mVertices);
-        mDrawable.ibo.tryUpdate(mIndices);
-        mDrawable.verticesPerStrip = mIndices.size();
+        drawable.vbo.tryUpdate(mVertices);
+        drawable.ibo.tryUpdate(mIndices);
+        drawable.verticesPerStrip = mIndices.size();
     }
 
     void Text::draw() {
-        mDrawable.draw();
+        drawable.draw();
     }
 
     void TextShader::update(Style &style) {

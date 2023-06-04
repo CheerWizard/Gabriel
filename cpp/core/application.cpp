@@ -607,11 +607,76 @@ namespace gl {
     void Application::onKeyPress(const KEY key) {
         trace("");
 
-        if (key == KEY::Esc)
-            mWindow->close();
+        switch (key) {
 
-        else if (key == KEY::F)
-            mWindow->toggleWindowMode();
+            case Esc:
+                mWindow->close();
+                break;
+
+            case F:
+                mWindow->toggleWindowMode();
+                break;
+
+#ifdef DEBUG
+
+            case D1:
+                mDebugRenderTarget.id = InvalidImageBuffer;
+                break;
+
+            case D2:
+                mDebugRenderTarget = mPbrPipeline->getGBuffer().position;
+                break;
+
+            case D3:
+                mDebugRenderTarget = mPbrPipeline->getGBuffer().normal;
+                break;
+
+            case D4:
+                mDebugRenderTarget = mPbrPipeline->getGBuffer().albedo;
+                break;
+
+            case D5:
+                mDebugRenderTarget = mPbrPipeline->getGBuffer().pbrParams;
+                break;
+
+            case D6:
+                mDebugRenderTarget = mPbrPipeline->getGBuffer().emission;
+                break;
+
+            case D7:
+                mDebugRenderTarget = mShadowPipeline->directShadow.map.buffer;
+                break;
+
+            case D8:
+                mDebugRenderTarget = mSsaoRenderer->getRenderTarget();
+                break;
+
+            case D9:
+                mDebugRenderTarget = mTransparentRenderer->getRenderTarget();
+                break;
+
+            case D0:
+                mDebugRenderTarget = mUiPipeline->getRenderTarget();
+                break;
+
+            case P:
+                mDebugRenderTarget = mVisualsPipeline->getRenderTarget();
+                break;
+
+            case T:
+                mDebugRenderTarget = mFontRobotoRegular->buffer;
+                break;
+
+            case C:
+                mDebugRenderTarget = mRayTraceRenderer->getRenderTarget();
+                break;
+
+#endif
+
+            default:
+                break;
+
+        }
     }
 
     void Application::onKeyRelease(const KEY key) {
@@ -715,93 +780,29 @@ namespace gl {
         }
     }
 
-    void Application::renderDebugScreen() {
-        if (mWindow->isKeyPress(KEY::D1)) {
-            mScreenRenderer->getParams().buffer = mPbrPipeline->getRenderTarget();
-        }
-
-        else if (mWindow->isKeyPress(KEY::D2)) {
-            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().position;
-        }
-
-        else if (mWindow->isKeyPress(KEY::D3)) {
-            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().normal;
-        }
-
-        else if (mWindow->isKeyPress(KEY::D4)) {
-            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().albedo;
-        }
-
-        else if (mWindow->isKeyPress(KEY::D5)) {
-            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().pbrParams;
-        }
-
-        else if (mWindow->isKeyPress(KEY::D6)) {
-            mScreenRenderer->getParams().buffer = mPbrPipeline->getGBuffer().emission;
-        }
-
-        else if (mWindow->isKeyPress(KEY::D7)) {
-            mScreenRenderer->getParams().buffer = mShadowPipeline->directShadow.map.buffer;
-        }
-
-        else if (mWindow->isKeyPress(KEY::D8)) {
-            mScreenRenderer->getParams().buffer = mSsaoRenderer->getRenderTarget();
-        }
-
-        else if (mWindow->isKeyPress(KEY::D9)) {
-            mScreenRenderer->getParams().buffer = mTransparentRenderer->getRenderTarget();
-        }
-
-        else if (mWindow->isKeyPress(KEY::D0)) {
-            mScreenRenderer->getParams().buffer = mUiPipeline->getRenderTarget();
-        }
-
-        else if (mWindow->isKeyPress(KEY::P)) {
-            mScreenRenderer->getParams().buffer = mVisualsPipeline->getRenderTarget();
-        }
-
-        else if (mWindow->isKeyPress(KEY::T)) {
-            mScreenRenderer->getParams().buffer = mFontRobotoRegular->buffer;
-        }
-
-        else if (mWindow->isKeyPress(KEY::C)) {
-            mScreenRenderer->getParams().buffer = mRayTraceRenderer->getRenderTarget();
-        }
-    }
-
     void Application::render() {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_STENCIL_TEST);
         glEnable(GL_BLEND);
         glEnable(GL_CULL_FACE);
-
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glStencilMask(GL_FALSE);
-
         mShadowPipeline->render();
-
         mPbrPipeline->render();
+        mRayTraceRenderer->render();
         mColorFrame = mPbrPipeline->getColorFrame();
         mDepthFrame = mPbrPipeline->getDepthFrame();
 
-        // todo move into ray trace pipeline
-        mRayTraceRenderer->render();
-
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_STENCIL_TEST);
-        glDisable(GL_BLEND);
+        // Post processing chain
         glDisable(GL_CULL_FACE);
-
+        glDisable(GL_STENCIL_TEST);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
         mScreenRenderer->getParams().buffer = mPbrPipeline->getRenderTarget();
         renderPostFX();
 
-#ifdef DEBUG
-        renderDebugScreen();
-#endif
-
-#ifdef IMGUI
-
+        // UI pipeline
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
 
@@ -809,6 +810,11 @@ namespace gl {
         mUiPipeline->render();
         mColorFrame = mUiPipeline->getColorFrame();
         mDepthFrame = mUiPipeline->getDepthFrame();
+        mFinalRenderTarget = mUiPipeline->getRenderTarget();
+
+        glDisable(GL_BLEND);
+
+#ifdef IMGUI
 
         glEnable(GL_CULL_FACE);
 
@@ -816,16 +822,48 @@ namespace gl {
         mVisualsPipeline->render();
         mColorFrame = mVisualsPipeline->getColorFrame();
         mDepthFrame = mVisualsPipeline->getDepthFrame();
+        mFinalRenderTarget = mVisualsPipeline->getRenderTarget();
 
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
         glDisable(GL_CULL_FACE);
+        glDisable(GL_DEPTH_TEST);
 
-        mScreenRenderer->getParams().buffer = mVisualsPipeline->getRenderTarget();
+#ifdef DEBUG
+
+        if (mDebugRenderTarget.id == InvalidImageBuffer) {
+            mScreenRenderer->getParams().buffer = mFinalRenderTarget;
+        } else {
+            mScreenRenderer->getParams().buffer = mDebugRenderTarget;
+        }
+
+#else
+
+        mScreenRenderer->getParams().buffer = mFinalRenderTarget;
+
+#endif
+
         mScreenRenderer->render();
         renderImgui();
+
 #else
+
+        glDisable(GL_DEPTH_TEST);
+
+#ifdef DEBUG
+
+        if (mDebugRenderTarget.id == InvalidImageBuffer) {
+            mScreenRenderer->getParams().buffer = mFinalRenderTarget;
+        } else {
+            mScreenRenderer->getParams().buffer = mDebugRenderTarget;
+        }
+
+#else
+
+        mScreenRenderer->getParams().buffer = mFinalRenderTarget;
+
+#endif
+
         mScreenRenderer->renderBackBuffer();
+
 #endif
 
     }
@@ -840,6 +878,7 @@ namespace gl {
         mTextLabel = &mScene;
         mTextLabel.addComponent<Text3d>(mFontRobotoRegular, "Hello World!");
         mTextLabel.getComponent<Text3d>()->transform.translation = { 0, 5, 0 };
+        mTextLabel.getComponent<Text3d>()->transform.init();
     }
 
     void Application::renderImgui() {

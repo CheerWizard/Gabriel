@@ -16,6 +16,9 @@ namespace gl {
         u32 id;
 
         ShaderStage(u32 type, const char* filepath);
+
+    private:
+        void generateCode(const char* filepath, const std::string& src);
     };
 
     struct Shader {

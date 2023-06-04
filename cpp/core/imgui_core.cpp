@@ -201,54 +201,73 @@ namespace gl {
         unselectEntity();
         selectedEntity = entity;
 
-        bool selectedDrawable = selectedEntity.validComponent<DrawableElements>();
-        bool selectedTransform = selectedEntity.validComponent<Transform>();
-        bool selectedPhongLight = selectedEntity.validComponent<PhongLightComponent>();
-        bool selectedDirectLight = selectedEntity.validComponent<DirectLightComponent>();
-        bool selectedPointLight = selectedEntity.validComponent<PointLightComponent>();
-        bool selectedSpotLight = selectedEntity.validComponent<SpotLightComponent>();
+        DrawableElements* selectedDrawable = selectedEntity.getComponent<DrawableElements>();
+        Transform* selectedTransform = selectedEntity.getComponent<Transform>();
+        PhongLightComponent* selectedPhongLight = selectedEntity.getComponent<PhongLightComponent>();
+        DirectLightComponent* selectedDirectLight = selectedEntity.getComponent<DirectLightComponent>();
+        PointLightComponent* selectedPointLight = selectedEntity.getComponent<PointLightComponent>();
+        SpotLightComponent* selectedSpotLight = selectedEntity.getComponent<SpotLightComponent>();
+        Text2d* selectedText2d = selectedEntity.getComponent<Text2d>();
+        Text3d* selectedText3d = selectedEntity.getComponent<Text3d>();
 
         if (selectedEntity.valid()) {
 
-            if (selectedDrawable) {
-                selectedEntity.addComponent<PolygonVisual>();
-            }
-
             if (selectedTransform) {
-                selectedEntity.addComponent<GizmoTransformComponent>();
+                selectedEntity.addComponent<GizmoTransform>();
+                if (selectedDrawable) {
+                    selectedEntity.addComponent<Drawable3dVisual>(selectedTransform, selectedDrawable);
+                }
             }
 
-            if (selectedPhongLight) {
+            else if (selectedPhongLight) {
                 selectedEntity.addComponent<LightVisual>();
                 selectedEntity.addComponent<GizmoPhongLight>();
             }
 
-            if (selectedDirectLight) {
+            else if (selectedDirectLight) {
                 selectedEntity.addComponent<LightVisual>();
                 selectedEntity.addComponent<GizmoDirectLight>();
             }
 
-            if (selectedPointLight) {
+            else if (selectedPointLight) {
                 selectedEntity.addComponent<LightVisual>();
                 selectedEntity.addComponent<GizmoPointLight>();
             }
 
-            if (selectedSpotLight) {
+            else if (selectedSpotLight) {
                 selectedEntity.addComponent<LightVisual>();
                 selectedEntity.addComponent<GizmoSpotLight>();
+            }
+
+            else if (selectedText2d) {
+                selectedEntity.addComponent<Text2dVisual>(&selectedText2d->transform, &selectedText2d->drawable);
+                selectedEntity.addComponent<GizmoText2d>();
+            }
+
+            else if (selectedText3d) {
+                selectedEntity.addComponent<Text3dVisual>(&selectedText3d->transform, &selectedText3d->drawable);
+                selectedEntity.addComponent<GizmoText3d>();
             }
         }
     }
 
     void ImguiCore::unselectEntity() {
         if (selectedEntity.valid()) {
-            selectedEntity.removeComponent<PolygonVisual>();
-            selectedEntity.removeComponent<GizmoTransformComponent>();
+            selectedEntity.removeComponent<GizmoTransform>();
+            selectedEntity.removeComponent<GizmoTransform2d>();
+            selectedEntity.removeComponent<Drawable2dVisual>();
+            selectedEntity.removeComponent<Drawable3dVisual>();
+
             selectedEntity.removeComponent<LightVisual>();
             selectedEntity.removeComponent<GizmoPhongLight>();
             selectedEntity.removeComponent<GizmoDirectLight>();
             selectedEntity.removeComponent<GizmoPointLight>();
             selectedEntity.removeComponent<GizmoSpotLight>();
+
+            selectedEntity.removeComponent<Text2dVisual>();
+            selectedEntity.removeComponent<Text3dVisual>();
+            selectedEntity.removeComponent<GizmoText2d>();
+            selectedEntity.removeComponent<GizmoText3d>();
         }
     }
 

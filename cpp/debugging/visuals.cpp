@@ -44,16 +44,25 @@ namespace gl {
     void VisualsPipeline::render() {
         mFrame.bind();
 
-        // render visual polygons
+        // render visual drawables
         mPolygonVisualRenderer->begin();
-        scene->eachComponent<PolygonVisual>([this](PolygonVisual* polygonVisual) {
-            EntityID entity_id = polygonVisual->entityId;
-            mPolygonVisualRenderer->render(
-                    *polygonVisual,
-                    *scene->getComponent<Transform>(entity_id),
-                    *scene->getComponent<DrawableElements>(entity_id)
-            );
+
+        scene->eachComponent<Drawable2dVisual>([this](Drawable2dVisual* drawableVisual) {
+            mPolygonVisualRenderer->render(*drawableVisual);
         });
+
+        scene->eachComponent<Drawable3dVisual>([this](Drawable3dVisual* drawableVisual) {
+            mPolygonVisualRenderer->render(*drawableVisual);
+        });
+
+        scene->eachComponent<Text2dVisual>([this](Text2dVisual* textVisual) {
+            mPolygonVisualRenderer->render(*textVisual);
+        });
+
+        scene->eachComponent<Text3dVisual>([this](Text3dVisual* textVisual) {
+            mPolygonVisualRenderer->render(*textVisual);
+        });
+
         mPolygonVisualRenderer->end();
 
         // render visual normals
