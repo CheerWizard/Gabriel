@@ -7,7 +7,6 @@ namespace gl {
     }
 
     void TerrainBuilder::free() {
-        Entity::free();
         plane.free();
     }
 

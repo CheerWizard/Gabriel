@@ -6,7 +6,7 @@ namespace gl {
         std::ifstream file(filepath);
         if (!file.is_open()) {
             error("Failed to open file {0}", filepath);
-            return "";
+            exception("Failed to open file");
         }
 
         std::string buffer;

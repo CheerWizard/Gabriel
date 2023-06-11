@@ -86,7 +86,7 @@ namespace gl {
 
     struct ImageWriter final {
         static void write(const char* filepath, const Image& image);
-        static bool write(const char* filepath, const Bitmap& bitmap);
+        static void write(const char* filepath, const Bitmap& bitmap);
     };
 
     struct ImageParams final {

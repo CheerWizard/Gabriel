@@ -28,6 +28,8 @@ struct Logger final {
 error(__VA_ARGS__); \
 Logger::dumpBacktrace()
 
+#define exception(...) throw std::exception(__VA_ARGS__)
+
 #define printFPS(dt) \
 info("Delta time: {} ms, FPS: {}", dt, 1000 / dt)
 
@@ -42,6 +44,7 @@ info("{}:{}", name, glm::to_string(v))
 #define warning(...)
 #define error(...)
 #define error_trace(...)
+#define exception(...) throw std::exception(__VA_ARGS__)
 #define printFPS(dt)
 #define printVec4(name, v)
 

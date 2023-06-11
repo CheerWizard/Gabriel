@@ -111,7 +111,7 @@ namespace gl {
         Device* mDevice = null;
         Debugger* mDebugger = null;
 
-        Scene mScene;
+        Scene mScene = "Gabriel";
 
         Camera* mCamera = null;
 

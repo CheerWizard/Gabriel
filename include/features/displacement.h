@@ -120,6 +120,10 @@ namespace gl {
         mOriginVertices.free();
     }
 
-    struct DisplacementTBN : Displacement<VertexTBN>, Component<DisplacementTBN> {};
+    component(DisplacementTBN), Displacement<VertexTBN> {
+        ~DisplacementTBN() {
+            free();
+        }
+    };
 
 }

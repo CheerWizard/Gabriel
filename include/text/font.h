@@ -65,8 +65,8 @@ namespace gl {
 
         void setSize(u32 fontSize);
 
-        bool saveBmp(const char* filepath) const;
-        bool saveWidths(const char* filepath) const;
+        void saveBmp(const char* filepath) const;
+        void saveWidths(const char* filepath) const;
 
     private:
         int* mWidths = null;

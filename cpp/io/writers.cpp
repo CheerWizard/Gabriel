@@ -2,7 +2,7 @@
 
 namespace gl {
 
-    bool FileWriter::write(const char* filepath, const int* data, size_t size) {
+    void FileWriter::write(const char* filepath, const int* data, size_t size) {
         std::ofstream ofs;
         ofs.open(filepath);
 
@@ -11,13 +11,11 @@ namespace gl {
                 ofs << data[i] << "\n";
         } else {
             error("Failed to write to {0} with data size {1}", filepath, size);
-            return false;
+            exception("Failed to write data into file");
         }
-
-        return true;
     }
 
-    bool FileWriter::write(const char* filepath, const std::string &buffer) {
+    void FileWriter::write(const char* filepath, const std::string &buffer) {
         std::ofstream ofs;
         ofs.open(filepath);
 
@@ -25,10 +23,8 @@ namespace gl {
             ofs << buffer << "\n";
         } else {
             error("Failed to write to {0} with data size {1}", filepath, buffer.length());
-            return false;
+            exception("Failed to write data into file");
         }
-
-        return true;
     }
 
 }

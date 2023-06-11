@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ecs/scene.h>
+#include <ecs/common.h>
 
 namespace gl {
 

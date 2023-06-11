@@ -226,15 +226,26 @@ namespace gl {
         if (ImGui::BeginMenu("File")) {
 
             if (ImGui::MenuItem("New", "Ctrl+N")) {
-
+                Scene* activeScene = ImguiCore::scene;
+                if (activeScene) {
+                    activeScene->free();
+                }
             }
 
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
-
+                Scene* activeScene = ImguiCore::scene;
+                if (activeScene) {
+                    std::string filepath = activeScene->name + ".bin";
+                    Serializer<Scene>::deserialize(filepath.c_str(), *activeScene);
+                }
             }
 
             if (ImGui::MenuItem("Save", "Ctrl+S")) {
-
+                Scene* activeScene = ImguiCore::scene;
+                if (activeScene) {
+                    std::string filepath = activeScene->name + ".bin";
+                    Serializer<Scene>::serialize(filepath.c_str(), *activeScene);
+                }
             }
 
             ImGui::Separator();

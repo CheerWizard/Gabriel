@@ -373,7 +373,7 @@ namespace gl {
         stbi_write_png(filepath, image.width, image.height, image.channels, image.pixels, image.width * image.channels);
     }
 
-    bool ImageWriter::write(const char* filepath, const Bitmap& bitmap) {
+    void ImageWriter::write(const char* filepath, const Bitmap& bitmap) {
         u8* bitmapBuffer = (u8*) bitmap.pixels;
         int bufferSize = bitmap.paddedSize;
         int width = bitmap.width;
@@ -403,7 +403,7 @@ namespace gl {
         fopen_s(&file, filepath, "wb");
         if (!file) {
             error("Failed to write to {0}", filepath);
-            return false;
+            exception("Failed to write bitmap into file");
         }
 
         // write file header
@@ -420,8 +420,6 @@ namespace gl {
         fwrite(bitmapBuffer, sizeof(u8), bufferSize, file);
 
         fclose(file);
-
-        return true;
     }
 
     void Bitmap::initBmp() {

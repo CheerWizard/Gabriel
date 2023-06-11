@@ -142,12 +142,12 @@ namespace gl {
         bitmap.initBmp();
     }
 
-    bool Font::saveBmp(const char* filepath) const {
-        return ImageWriter::write(filepath, bitmap);
+    void Font::saveBmp(const char* filepath) const {
+        ImageWriter::write(filepath, bitmap);
     }
 
-    bool Font::saveWidths(const char* filepath) const {
-        return FileWriter::write(filepath, mWidths, mWidthSize);
+    void Font::saveWidths(const char* filepath) const {
+        FileWriter::write(filepath, mWidths, mWidthSize);
     }
 
     FT_Library FontAtlas::sLib;
