@@ -123,6 +123,29 @@ spdlog | https://github.com/gabime/spdlog
   - [x] Play, Pause, Sync buttons
   - [x] Fullscreen viewport button
 
+#### Network Core
+ - [x] TCP
+ - [x] UDP
+ - [x] IPv4  
+ - [x] IPv6
+ - [x] Windows Socket
+ - [x] Linux Socket
+ - [x] IO serialization
+
+#### Network Client
+ - [x] TCP support
+ - [x] UDP support 
+ - [x] Retry Connection
+ - [x] Sending Data
+ - [x] Receiving Data
+
+#### Network Server
+ - [x] TCP support
+ - [x] UDP support
+ - [x] Listening new connections
+ - [x] Sending Data
+ - [x] Receiving Data  
+
 ## Gallery
 
 ### PBR and IBL
