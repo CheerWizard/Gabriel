@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
+  <component name="CidrRootsConfiguration">
+    <sourceRoots>
+      <file path="$PROJECT_DIR$/AssetManager" />
+      <file path="$PROJECT_DIR$/Common" />
+      <file path="$PROJECT_DIR$/Editor" />
+      <file path="$PROJECT_DIR$/Engine" />
+      <file path="$PROJECT_DIR$/ImguiCore" />
+      <file path="$PROJECT_DIR$/Math" />
+      <file path="$PROJECT_DIR$/Network" />
+      <file path="$PROJECT_DIR$/NetworkClient" />
+      <file path="$PROJECT_DIR$/NetworkServer" />
+      <file path="$PROJECT_DIR$/Runtime" />
+    </sourceRoots>
+  </component>
 </project>
